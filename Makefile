@@ -7,7 +7,7 @@ lint:
 	selene --display-style=quiet lua/ plugin/ tests/
 
 typecheck:
-	lua-language-server --check lua/ --checklevel=Warning
+	lua-language-server --configpath="$$(pwd)/.luarc.json" --check lua/ --checklevel=Warning
 
 format:
 	stylua lua/ plugin/ tests/
