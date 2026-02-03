@@ -105,7 +105,9 @@ local function get_repo_info(callback)
   )
 
   return function()
-    process:kill(9)
+    if process then
+      process:kill(9)
+    end
   end
 end
 

@@ -12,7 +12,7 @@
 ---@field title string
 ---@field state 'open'|'closed'|'merged'
 ---@field author Nit.Api.User
----@field body string
+---@field body? string
 ---@field createdAt string ISO 8601 timestamp
 ---@field updatedAt string ISO 8601 timestamp
 ---@field mergeable 'clean'|'dirty'|'unknown'

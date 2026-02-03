@@ -60,12 +60,18 @@ function M.execute(args, opts, callback)
   local process = nil
 
   local wrapped_callback = vim.schedule_wrap(callback)
+  local retry_timer = nil
 
   local function cleanup()
     if timer then
       timer:stop()
       timer:close()
       timer = nil
+    end
+    if retry_timer then
+      retry_timer:stop()
+      retry_timer:close()
+      retry_timer = nil
     end
   end
 
@@ -83,13 +89,13 @@ function M.execute(args, opts, callback)
 
     timer = vim.uv.new_timer()
     if timer then
-      timer:start(timeout, 0, function()
+      timer:start(timeout, 0, vim.schedule_wrap(function()
         timed_out = true
         if process then
           process:kill(9)
         end
         complete_once({ ok = false, error = 'Request timed out' })
-      end)
+      end))
     end
 
     process = vim.system(cmd, { text = true }, function(result)
@@ -114,14 +120,15 @@ function M.execute(args, opts, callback)
         if should_retry then
           retry_count = retry_count + 1
           local delay = math.pow(2, retry_count - 1) * 1000
-          local retry_timer = vim.uv.new_timer()
+          retry_timer = vim.uv.new_timer()
           if retry_timer then
-            retry_timer:start(delay, 0, function()
+            retry_timer:start(delay, 0, vim.schedule_wrap(function()
               retry_timer:close()
+              retry_timer = nil
               if not completed then
-                vim.schedule(execute_with_retry)
+                execute_with_retry()
               end
-            end)
+            end))
           end
         else
           local error_msg = make_error_message(stderr, false)
