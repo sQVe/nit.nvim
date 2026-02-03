@@ -11,6 +11,7 @@ describe('nit', function()
     end)
 
     it('accepts empty config', function()
+      ---@diagnostic disable-next-line: undefined-field
       assert.has_no.errors(function()
         nit.setup({})
       end)
