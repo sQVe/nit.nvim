@@ -4,7 +4,7 @@ test:
 	nvim -l tests/minit.lua --minitest
 
 lint:
-	selene --display-style=quiet lua/
+	selene --display-style=quiet lua/ plugin/ tests/
 
 typecheck:
 	lua-language-server --check lua/ --checklevel=Warning

@@ -1,6 +1,10 @@
 local nit = require('nit')
 
 describe('nit', function()
+  before_each(function()
+    nit.config = {}
+  end)
+
   describe('setup()', function()
     it('is a function', function()
       assert.is_function(nit.setup)

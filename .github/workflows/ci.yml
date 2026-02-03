@@ -46,7 +46,7 @@ jobs:
       - uses: AlejandroSuero/selene-linter-action@f50a6d44c48edcc56429269592cbad4e940a40c0 # v1.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --display-style=quiet lua/
+          args: --display-style=quiet lua/ plugin/ tests/
 
   typecheck:
     name: Type check
