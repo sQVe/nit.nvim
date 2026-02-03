@@ -1,0 +1,6 @@
+std = "vim+neovim"
+
+[lints]
+global_usage = "warn"
+unused_variable = "warn"
+mixed_table = "allow"

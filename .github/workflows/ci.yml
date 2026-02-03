@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lua/**'
+      - 'plugin/**'
+      - 'tests/**'
+      - '.github/workflows/ci.yml'
+      - 'Makefile'
+  pull_request:
+    paths:
+      - 'lua/**'
+      - 'plugin/**'
+      - 'tests/**'
+      - '.github/workflows/ci.yml'
+      - 'Makefile'
+
+jobs:
+  test:
+    name: Test (nvim ${{ matrix.neovim }}, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        neovim: ['v0.9.5', 'v0.10.4', 'nightly']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rhysd/action-setup-vim@v2
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+
+      - name: Run tests
+        run: make test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install selene
+        run: |
+          curl -L https://github.com/Kampfkarren/selene/releases/latest/download/selene-linux.zip -o selene.zip
+          unzip selene.zip
+          chmod +x selene
+          sudo mv selene /usr/local/bin/
+
+      - name: Run selene
+        run: selene lua/
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: stevearc/nvim-typecheck-action@v2
+        with:
+          path: lua
+          level: Warning
+
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check lua/ plugin/ tests/

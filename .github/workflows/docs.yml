@@ -1,0 +1,26 @@
+name: Generate Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    name: Generate vimdoc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: kdheepak/panvimdoc@v4.0.2
+        with:
+          vimdoc: nit
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore(docs): auto-generate vimdoc'
+          file_pattern: 'doc/*.txt'
