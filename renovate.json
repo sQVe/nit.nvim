@@ -11,9 +11,10 @@
       "automerge": true
     },
     {
+      "description": "Disable until github-refs datasource is available (renovatebot/renovate#28016)",
       "matchManagers": ["github-actions"],
       "matchPackageNames": ["stevearc/nvim-typecheck-action"],
-      "versioning": "git"
+      "enabled": false
     }
   ]
 }
