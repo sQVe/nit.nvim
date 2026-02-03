@@ -1,5 +1,8 @@
 # nit.nvim
 
+> [!WARNING]
+> This project is under active development and not ready for use.
+
 A file-centric GitHub PR review plugin for Neovim.
 
 ## Requirements
