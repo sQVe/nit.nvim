@@ -22,7 +22,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ## Usage
 
-*Documentation coming soon.*
+_Documentation coming soon._
 
 ## Development
 
