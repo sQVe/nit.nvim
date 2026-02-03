@@ -1,0 +1,207 @@
+local gh = require('nit.api.gh')
+
+local M = {}
+
+---Normalize GitHub comment to Nit.Api.Comment format
+---@param raw_comment table Raw comment from GitHub API
+---@return Nit.Api.Comment
+local function normalize_comment(raw_comment)
+  local user = raw_comment.user
+  return {
+    id = raw_comment.id,
+    author = user and {
+      login = user.login,
+      name = user.name,
+    } or { login = 'unknown' },
+    body = raw_comment.body,
+    createdAt = raw_comment.created_at,
+    path = raw_comment.path,
+    line = raw_comment.line or raw_comment.original_line,
+    side = raw_comment.side,
+  }
+end
+
+---Group comments into threads based on in_reply_to_id
+---@param comments table[] Raw comments from GitHub API
+---@return Nit.Api.Thread[]
+local function group_into_threads(comments)
+  local comment_map = {}
+  local threads = {}
+
+  for _, raw_comment in ipairs(comments) do
+    comment_map[raw_comment.id] = {
+      raw = raw_comment,
+      normalized = normalize_comment(raw_comment),
+      replies = {},
+    }
+  end
+
+  for _, raw_comment in ipairs(comments) do
+    if raw_comment.in_reply_to_id then
+      local parent = comment_map[raw_comment.in_reply_to_id]
+      if parent then
+        table.insert(parent.replies, comment_map[raw_comment.id])
+      end
+    else
+      table.insert(threads, comment_map[raw_comment.id])
+    end
+  end
+
+  local normalized_threads = {}
+  for _, thread_root in ipairs(threads) do
+    local thread_comments = { thread_root.normalized }
+
+    local function collect_replies(node)
+      for _, reply in ipairs(node.replies) do
+        table.insert(thread_comments, reply.normalized)
+        collect_replies(reply)
+      end
+    end
+    collect_replies(thread_root)
+
+    table.insert(normalized_threads, {
+      id = thread_root.normalized.id,
+      comments = thread_comments,
+      isResolved = thread_root.raw.resolved or false,
+      path = thread_root.normalized.path,
+      line = thread_root.normalized.line,
+      side = thread_root.normalized.side,
+    })
+  end
+
+  table.sort(normalized_threads, function(a, b)
+    local a_path = a.path or ''
+    local b_path = b.path or ''
+    if a_path ~= b_path then
+      return a_path < b_path
+    end
+    return (a.line or 0) < (b.line or 0)
+  end)
+
+  return normalized_threads
+end
+
+---Get owner and repo from git remote asynchronously
+---@param callback fun(owner: string|nil, repo: string|nil)
+---@return fun() cancel Cancel function
+local function get_repo_info(callback)
+  local process = vim.system(
+    { 'git', 'remote', 'get-url', 'origin' },
+    { text = true },
+    vim.schedule_wrap(function(result)
+      if result.code ~= 0 then
+        callback(nil, nil)
+        return
+      end
+
+      local stdout = result.stdout or ''
+      local owner, repo = stdout:match('github%.com[:/]([^/]+)/([^/%.]+)')
+      if owner and repo then
+        callback(owner, repo:gsub('%.git$', ''))
+      else
+        callback(nil, nil)
+      end
+    end)
+  )
+
+  return function()
+    process:kill(9)
+  end
+end
+
+---Fetch PR comments organized into threads
+---@param opts { pr_number?: integer, timeout?: integer }
+---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
+---@return fun() cancel Cancel function
+function M.fetch_comments(opts, callback)
+  opts = opts or {}
+
+  local cancel_repo = nil
+  local cancel_inner = nil
+  local cancelled = false
+
+  cancel_repo = get_repo_info(function(owner, repo)
+    if cancelled then
+      return
+    end
+
+    if not owner or not repo then
+      callback({
+        ok = false,
+        error = 'Could not determine repository from git remote',
+      })
+      return
+    end
+
+    local function fetch_with_pr_number(pr_number)
+      local args = {
+        'api',
+        string.format('repos/%s/%s/pulls/%d/comments', owner, repo, pr_number),
+        '--paginate',
+      }
+
+      return gh.execute(args, { timeout = opts.timeout }, function(result)
+        if not result.ok then
+          callback(result)
+          return
+        end
+
+        local ok, comments = pcall(vim.json.decode, result.data)
+        if not ok then
+          callback({
+            ok = false,
+            error = 'Failed to parse comments JSON',
+          })
+          return
+        end
+
+        local threads = group_into_threads(comments)
+        callback({
+          ok = true,
+          data = threads,
+        })
+      end)
+    end
+
+    if opts.pr_number then
+      cancel_inner = fetch_with_pr_number(opts.pr_number)
+      return
+    end
+
+    local cancel_pr = nil
+    cancel_pr = gh.execute(
+      { 'pr', 'view', '--json', 'number' },
+      { timeout = opts.timeout },
+      function(result)
+        if not result.ok then
+          callback(result)
+          return
+        end
+
+        local ok, pr_data = pcall(vim.json.decode, result.data)
+        if not ok or not pr_data.number then
+          callback({
+            ok = false,
+            error = 'No PR found for current branch',
+          })
+          return
+        end
+
+        cancel_inner = fetch_with_pr_number(pr_data.number)
+      end
+    )
+    cancel_inner = cancel_pr
+  end)
+
+  return function()
+    cancelled = true
+    if cancel_repo then
+      cancel_repo()
+    end
+    if cancel_inner then
+      cancel_inner()
+    end
+  end
+end
+
+return M
