@@ -7,12 +7,15 @@ function M.is_gh_installed()
 end
 
 ---Get gh CLI version
----@return string|nil version Version string like "2.45.0", or nil if not installed
+---@return string|nil version Version string like "2.45.0", or nil if not installed or on error
 function M.get_gh_version()
   if not M.is_gh_installed() then
     return nil
   end
   local output = vim.fn.system('gh --version')
+  if vim.api.nvim_get_vvar('shell_error') ~= 0 then
+    return nil
+  end
   return output:match('gh version ([%d%.]+)')
 end
 
