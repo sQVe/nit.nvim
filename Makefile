@@ -1,13 +1,20 @@
-.PHONY: test lint format
+.PHONY: test lint typecheck format format-check ci
 
 test:
 	nvim -l tests/minit.lua --minitest
 
 lint:
-	selene lua/
+	selene --display-style=quiet lua/
+
+typecheck:
+	lua-language-server --check lua/ --checklevel=Warning
 
 format:
-	stylua lua/ tests/ plugin/
+	stylua lua/ plugin/ tests/
+	npx prettier --write --ignore-unknown "**/*.{md,json,yaml,yml}"
 
 format-check:
-	stylua --check lua/ tests/ plugin/
+	stylua --check lua/ plugin/ tests/
+	npx prettier --check --ignore-unknown "**/*.{md,json,yaml,yml}"
+
+ci: test lint typecheck format-check
