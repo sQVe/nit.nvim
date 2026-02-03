@@ -4,7 +4,7 @@ A file-centric GitHub PR review plugin for Neovim.
 
 ## Requirements
 
-- Neovim >= 0.9.0
+- Neovim >= 0.10.0
 - [gh CLI](https://cli.github.com/) (authenticated)
 
 ## Installation
