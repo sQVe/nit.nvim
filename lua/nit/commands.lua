@@ -40,7 +40,12 @@ end
 ---@return string[]
 function M.complete(arg_lead, cmdline, _cursor_pos)
   local subcmd_key, subcmd_arg_lead = cmdline:match("^[',<>]*Nit[!]*%s(%S+)%s(.*)$")
-  if subcmd_key and subcmd_arg_lead and subcommands[subcmd_key] and subcommands[subcmd_key].complete then
+  if
+    subcmd_key
+    and subcmd_arg_lead
+    and subcommands[subcmd_key]
+    and subcommands[subcmd_key].complete
+  then
     return subcommands[subcmd_key].complete(subcmd_arg_lead)
   end
 

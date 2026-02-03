@@ -187,7 +187,10 @@ describe('nit.health', function()
       local non_start = vim.tbl_filter(function(r)
         return r.type ~= 'start'
       end, reports)
-      assert.is_true(#non_start >= 3, 'Expected at least 3 health reports (gh CLI, auth, Neovim version)')
+      assert.is_true(
+        #non_start >= 3,
+        'Expected at least 3 health reports (gh CLI, auth, Neovim version)'
+      )
     end)
 
     it('reports error when account state is not success', function()
