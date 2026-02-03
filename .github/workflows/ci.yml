@@ -4,18 +4,18 @@ on:
   push:
     branches: [main]
     paths:
-      - 'lua/**'
-      - 'plugin/**'
-      - 'tests/**'
-      - '.github/workflows/ci.yml'
-      - 'Makefile'
+      - "lua/**"
+      - "plugin/**"
+      - "tests/**"
+      - ".github/workflows/ci.yml"
+      - "Makefile"
   pull_request:
     paths:
-      - 'lua/**'
-      - 'plugin/**'
-      - 'tests/**'
-      - '.github/workflows/ci.yml'
-      - 'Makefile'
+      - "lua/**"
+      - "plugin/**"
+      - "tests/**"
+      - ".github/workflows/ci.yml"
+      - "Makefile"
 
 jobs:
   test:
@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        neovim: ['v0.9.5', 'v0.10.4', 'nightly']
+        neovim: ["v0.9.5", "v0.10.4", "nightly"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

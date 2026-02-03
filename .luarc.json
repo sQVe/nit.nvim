@@ -5,10 +5,15 @@
     "pathStrict": true
   },
   "workspace": {
-    "library": ["$VIMRUNTIME", "${3rd}/luv/library"],
+    "library": [
+      "$VIMRUNTIME",
+      "${3rd}/luv/library"
+    ],
     "checkThirdParty": false
   },
   "diagnostics": {
-    "unusedLocalExclude": ["_*"]
+    "unusedLocalExclude": [
+      "_*"
+    ]
   }
 }

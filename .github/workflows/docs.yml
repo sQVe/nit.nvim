@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'README.md'
+      - "README.md"
 
 permissions:
   contents: write
@@ -22,5 +22,5 @@ jobs:
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'chore(docs): auto-generate vimdoc'
-          file_pattern: 'doc/*.txt'
+          commit_message: "chore(docs): auto-generate vimdoc"
+          file_pattern: "doc/*.txt"
