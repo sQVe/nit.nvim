@@ -9,6 +9,6 @@ load(
 
 require('lazy.minit').setup({
   spec = {
-    { dir = vim.uv.cwd() },
+    { dir = (vim.uv or vim.loop).cwd() },
   },
 })
