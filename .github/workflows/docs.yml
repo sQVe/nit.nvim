@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: kdheepak/panvimdoc@662fb20304d20c539fb48a0bde628f5165507de7 # v4.0.1
+      - uses: kdheepak/panvimdoc@662fb20304d20c539fb48a0bda628f5165507de7 # v4.0.1
         with:
           vimdoc: nit
 
