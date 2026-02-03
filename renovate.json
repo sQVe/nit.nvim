@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits"],
+  "dependencyDashboardTitle": "Dependencies",
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "github-actions (non-major)",
+      "automerge": true
+    }
+  ]
+}
