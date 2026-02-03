@@ -27,9 +27,9 @@ jobs:
         neovim: ["v0.9.5", "v0.10.4", "nightly"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: rhysd/action-setup-vim@v2
+      - uses: rhysd/action-setup-vim@19e3dd31a84dbc2c5445d65e9b363f616cab96c1 # v1.6.0
         with:
           neovim: true
           version: ${{ matrix.neovim }}
@@ -41,25 +41,20 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Install selene
-        run: |
-          curl -L https://github.com/Kampfkarren/selene/releases/latest/download/selene-linux.zip -o selene.zip
-          unzip selene.zip
-          chmod +x selene
-          sudo mv selene /usr/local/bin/
-
-      - name: Run selene
-        run: selene lua/
+      - uses: AlejandroSuero/selene-linter-action@f50a6d44c48edcc56429269592cbad4e940a40c0 # v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --display-style=quiet lua/
 
   typecheck:
     name: Type check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: stevearc/nvim-typecheck-action@v2
+      - uses: stevearc/nvim-typecheck-action@a2c7bff1c2f1d8489106271c8f89183628d41655 # v2
         with:
           path: lua
           level: Warning
@@ -68,10 +63,19 @@ jobs:
     name: Format check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: JohnnyMorganz/stylua-action@v4
+      - uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
           args: --check lua/ plugin/ tests/
+
+  ci:
+    if: always()
+    needs: [test, lint, typecheck, format]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1
+        with:
+          jobs: ${{ toJSON(needs) }}
