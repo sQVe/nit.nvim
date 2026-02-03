@@ -9,6 +9,11 @@
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "github-actions (non-major)",
       "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["stevearc/nvim-typecheck-action"],
+      "versioning": "git"
     }
   ]
 }
