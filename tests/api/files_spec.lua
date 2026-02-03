@@ -57,7 +57,7 @@ describe('files.fetch_files', function()
     }
 
     local result = nil
-    files.fetch_files({ pr_number = 123 }, function(r)
+    files.fetch_files({ number = 123 }, function(r)
       result = r
     end)
 
@@ -204,7 +204,7 @@ describe('files.fetch_diff', function()
     }
 
     local result = nil
-    files.fetch_diff({ pr_number = 123, path = 'README.md' }, function(r)
+    files.fetch_diff({ number = 123, path = 'README.md' }, function(r)
       result = r
     end)
 

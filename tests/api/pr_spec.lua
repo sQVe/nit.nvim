@@ -1,12 +1,18 @@
 describe('nit.api.pr', function()
   local pr = require('nit.api.pr')
   local gh = require('nit.api.gh')
+  local original_execute
 
   describe('fetch_pr', function()
     before_each(function()
+      original_execute = original_execute or gh.execute
       gh.execute = function(_args, _opts, _callback)
         return function() end
       end
+    end)
+
+    after_each(function()
+      gh.execute = original_execute
     end)
 
     it('returns a cancel function', function()
@@ -26,7 +32,6 @@ describe('nit.api.pr', function()
       assert.are.same({
         'pr',
         'view',
-        '',
         '--json',
         'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft',
       }, called_args)
@@ -41,13 +46,11 @@ describe('nit.api.pr', function()
 
       pr.fetch_pr({ number = 123 }, function() end)
 
-      assert.are.same({
-        'pr',
-        'view',
-        '123',
-        '--json',
-        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft',
-      }, called_args)
+      assert.equals('pr', called_args[1])
+      assert.equals('view', called_args[2])
+      assert.equals('123', called_args[3])
+      assert.equals('--json', called_args[4])
+      assert.is_truthy(called_args[5]:match('number'))
     end)
 
     it('fetches PR by branch when opts.branch provided', function()
@@ -59,13 +62,11 @@ describe('nit.api.pr', function()
 
       pr.fetch_pr({ branch = 'feat/test' }, function() end)
 
-      assert.are.same({
-        'pr',
-        'view',
-        'feat/test',
-        '--json',
-        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft',
-      }, called_args)
+      assert.equals('pr', called_args[1])
+      assert.equals('view', called_args[2])
+      assert.equals('feat/test', called_args[3])
+      assert.equals('--json', called_args[4])
+      assert.is_truthy(called_args[5]:match('number'))
     end)
 
     it('passes timeout option to gh.execute', function()

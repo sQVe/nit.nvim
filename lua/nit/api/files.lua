@@ -41,14 +41,17 @@ local function parse_files(json_str)
 end
 
 ---Fetch list of files changed in a PR
----@param opts? { pr_number?: integer, timeout?: integer }
+---@param opts? { number?: integer, timeout?: integer }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.File[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_files(opts, callback)
   opts = opts or {}
 
-  local target = opts.pr_number and tostring(opts.pr_number) or ''
-  local args = { 'pr', 'view', target, '--json', 'files' }
+  local args = { 'pr', 'view' }
+  if opts.number then
+    table.insert(args, tostring(opts.number))
+  end
+  vim.list_extend(args, { '--json', 'files' })
 
   return gh.execute(args, { timeout = opts.timeout }, function(result)
     if not result.ok then
@@ -67,14 +70,16 @@ function M.fetch_files(opts, callback)
 end
 
 ---Fetch diff for a PR or specific file
----@param opts? { pr_number?: integer, path?: string, timeout?: integer }
+---@param opts? { number?: integer, path?: string, timeout?: integer }
 ---@param callback fun(result: Nit.Api.Result<string>)
 ---@return fun() cancel Cancel function
 function M.fetch_diff(opts, callback)
   opts = opts or {}
 
-  local target = opts.pr_number and tostring(opts.pr_number) or ''
-  local args = { 'pr', 'diff', target }
+  local args = { 'pr', 'diff' }
+  if opts.number then
+    table.insert(args, tostring(opts.number))
+  end
 
   if opts.path then
     vim.list_extend(args, { '--', opts.path })

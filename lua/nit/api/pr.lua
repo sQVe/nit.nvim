@@ -24,23 +24,33 @@ local function normalize_mergeable(mergeable)
   end
 end
 
+---Normalize vim.NIL to nil
+---@param value any
+---@return any
+local function nil_if_vim_nil(value)
+  if value == vim.NIL then
+    return nil
+  end
+  return value
+end
+
 ---Normalize PR data from GitHub API format to plugin format
 ---@param data table
 ---@return Nit.Api.PR
 local function normalize_pr(data)
-  local author = data.author
+  local author = nil_if_vim_nil(data.author)
   return {
     number = data.number,
     title = data.title,
     state = normalize_state(data.state),
     author = author and {
       login = author.login,
-      name = author.name,
+      name = nil_if_vim_nil(author.name),
     } or { login = 'unknown' },
-    body = data.body,
+    body = nil_if_vim_nil(data.body),
     createdAt = data.createdAt,
     updatedAt = data.updatedAt,
-    mergeable = normalize_mergeable(data.mergeable),
+    mergeable = normalize_mergeable(nil_if_vim_nil(data.mergeable)),
     isDraft = data.isDraft,
   }
 end
@@ -56,16 +66,13 @@ end
 function M.fetch_pr(opts, callback)
   opts = opts or {}
 
-  local target
+  local args = { 'pr', 'view' }
   if opts.number then
-    target = tostring(opts.number)
+    table.insert(args, tostring(opts.number))
   elseif opts.branch then
-    target = opts.branch
-  else
-    target = ''
+    table.insert(args, opts.branch)
   end
-
-  local args = { 'pr', 'view', target, '--json', FIELDS }
+  vim.list_extend(args, { '--json', FIELDS })
 
   local request_opts = {
     timeout = opts.timeout,

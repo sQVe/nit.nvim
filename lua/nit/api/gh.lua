@@ -82,13 +82,15 @@ function M.execute(args, opts, callback)
     local timed_out = false
 
     timer = vim.uv.new_timer()
-    timer:start(timeout, 0, function()
-      timed_out = true
-      if process then
-        process:kill(9)
-      end
-      complete_once({ ok = false, error = 'Request timed out' })
-    end)
+    if timer then
+      timer:start(timeout, 0, function()
+        timed_out = true
+        if process then
+          process:kill(9)
+        end
+        complete_once({ ok = false, error = 'Request timed out' })
+      end)
+    end
 
     process = vim.system(cmd, { text = true }, function(result)
       if completed then
@@ -113,12 +115,14 @@ function M.execute(args, opts, callback)
           retry_count = retry_count + 1
           local delay = math.pow(2, retry_count - 1) * 1000
           local retry_timer = vim.uv.new_timer()
-          retry_timer:start(delay, 0, function()
-            retry_timer:close()
-            if not completed then
-              vim.schedule(execute_with_retry)
-            end
-          end)
+          if retry_timer then
+            retry_timer:start(delay, 0, function()
+              retry_timer:close()
+              if not completed then
+                vim.schedule(execute_with_retry)
+              end
+            end)
+          end
         else
           local error_msg = make_error_message(stderr, false)
           complete_once({ ok = false, error = error_msg })
@@ -127,18 +131,23 @@ function M.execute(args, opts, callback)
     end)
   end
 
+  local request_id = nil
+
   local cancel = function()
     if completed then
       return
     end
     completed = true
     cleanup()
+    if request_id then
+      tracker.untrack(request_id)
+    end
     if process then
       process:kill(9)
     end
   end
 
-  local request_id = tracker.track(cancel)
+  request_id = tracker.track(cancel)
 
   local original_callback = callback
   callback = function(result)

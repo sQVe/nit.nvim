@@ -30,10 +30,17 @@ describe('nit.api integration', function()
   end)
 
   describe('parallel execution', function()
+    local original_execute
+
     before_each(function()
+      original_execute = original_execute or gh.execute
       gh.execute = function(_args, _opts, _callback)
         return function() end
       end
+    end)
+
+    after_each(function()
+      gh.execute = original_execute
     end)
 
     it('executes multiple API calls in parallel', function()
@@ -61,9 +68,18 @@ describe('nit.api integration', function()
         execute_count = execute_count + 1
 
         vim.schedule(function()
-          if args[4] == 'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft' then
+          local json_idx = nil
+          for i, arg in ipairs(args) do
+            if arg == '--json' then
+              json_idx = i
+              break
+            end
+          end
+          local fields = json_idx and args[json_idx + 1]
+
+          if fields and fields:match('mergeable') then
             callback({ ok = true, data = pr_response })
-          elseif args[5] == 'files' then
+          elseif fields == 'files' then
             callback({ ok = true, data = files_response })
           end
         end)

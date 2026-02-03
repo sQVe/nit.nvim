@@ -95,9 +95,9 @@ local function get_repo_info(callback)
       end
 
       local stdout = result.stdout or ''
-      local owner, repo = stdout:match('github%.com[:/]([^/]+)/([^/%.]+)')
+      local owner, repo = stdout:match('github%.com[:/]([^/]+)/([^%s]+)')
       if owner and repo then
-        callback(owner, repo:gsub('%.git$', ''))
+        callback(owner, repo:gsub('%.git$', ''):gsub('/$', ''))
       else
         callback(nil, nil)
       end
@@ -110,7 +110,7 @@ local function get_repo_info(callback)
 end
 
 ---Fetch PR comments organized into threads
----@param opts { pr_number?: integer, timeout?: integer }
+---@param opts { number?: integer, timeout?: integer }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_comments(opts, callback)
@@ -163,13 +163,12 @@ function M.fetch_comments(opts, callback)
       end)
     end
 
-    if opts.pr_number then
-      cancel_inner = fetch_with_pr_number(opts.pr_number)
+    if opts.number then
+      cancel_inner = fetch_with_pr_number(opts.number)
       return
     end
 
-    local cancel_pr = nil
-    cancel_pr = gh.execute(
+    cancel_inner = gh.execute(
       { 'pr', 'view', '--json', 'number' },
       { timeout = opts.timeout },
       function(result)
@@ -190,7 +189,6 @@ function M.fetch_comments(opts, callback)
         cancel_inner = fetch_with_pr_number(pr_data.number)
       end
     )
-    cancel_inner = cancel_pr
   end)
 
   return function()
