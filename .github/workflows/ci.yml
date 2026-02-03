@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - uses: stevearc/nvim-typecheck-action@d3a454027ca4a3660b0ea1c2347a16997c97ee41 # v1.0.0
+      - uses: stevearc/nvim-typecheck-action@a2c7bff1c2f1d8489106271c8f89183628d41655 # v2
         with:
           path: lua
           level: Warning
