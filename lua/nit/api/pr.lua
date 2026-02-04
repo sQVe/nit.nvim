@@ -3,7 +3,7 @@ local gh = require('nit.api.gh')
 local M = {}
 
 local FIELDS =
-  'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments'
+  'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments,headRefName,baseRefName'
 
 ---Normalize PR state from GitHub API format to plugin format
 ---@param state string
@@ -75,19 +75,14 @@ end
 ---@param reviews table[]?
 ---@return Nit.Api.Reviewer[]
 local function normalize_reviewers(reviewRequests, reviews)
+  local seen = {}
   local result = {}
-  if reviewRequests then
-    for _, request in ipairs(reviewRequests) do
-      table.insert(result, {
-        login = request.login,
-        state = 'PENDING',
-      })
-    end
-  end
+
   if reviews then
     for _, review in ipairs(reviews) do
       local author = nil_if_vim_nil(review.author)
-      if author then
+      if author and not seen[author.login] then
+        seen[author.login] = true
         table.insert(result, {
           login = author.login,
           state = review.state,
@@ -95,6 +90,19 @@ local function normalize_reviewers(reviewRequests, reviews)
       end
     end
   end
+
+  if reviewRequests then
+    for _, request in ipairs(reviewRequests) do
+      if not seen[request.login] then
+        seen[request.login] = true
+        table.insert(result, {
+          login = request.login,
+          state = 'PENDING',
+        })
+      end
+    end
+  end
+
   return result
 end
 
@@ -159,6 +167,8 @@ local function normalize_pr(data)
     assignees = normalize_assignees(data.assignees),
     reviewers = normalize_reviewers(data.reviewRequests, data.reviews),
     comments = normalize_comments(data.comments),
+    headRefName = nil_if_vim_nil(data.headRefName),
+    baseRefName = nil_if_vim_nil(data.baseRefName),
   }
 end
 
