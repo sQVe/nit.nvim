@@ -1,6 +1,10 @@
+---@class Nit.State.PersistenceModule
 local M = {}
 
 local CURRENT_VERSION = 1
+
+---@type string?
+local cached_repo_hash = nil
 
 ---Compute a simple hash of a string
 ---@param str string
@@ -13,15 +17,20 @@ local function hash_string(str)
   return string.format('%08x', sum)
 end
 
----Get the git remote URL hash for the current repository
+---Get the git remote URL hash for the current repository (cached)
 ---@return string
 local function get_repo_hash()
+  if cached_repo_hash then
+    return cached_repo_hash
+  end
   local result = vim.fn.system('git remote get-url origin 2>/dev/null')
   if vim.v.shell_error ~= 0 then
-    return 'unknown'
+    cached_repo_hash = 'unknown'
+    return cached_repo_hash
   end
   local trimmed = result:gsub('%s+$', '')
-  return hash_string(trimmed)
+  cached_repo_hash = hash_string(trimmed)
+  return cached_repo_hash
 end
 
 ---Get the persistence directory path
@@ -48,7 +57,10 @@ function M.save_pending(pending)
   }
 
   local json = vim.json.encode(data)
-  vim.fn.writefile({ json }, M.get_persistence_path())
+  local result = vim.fn.writefile({ json }, M.get_persistence_path())
+  if result == -1 then
+    vim.notify('[nit] failed to save pending comments', vim.log.levels.WARN)
+  end
 end
 
 ---Load pending comments from disk

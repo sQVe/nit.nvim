@@ -45,10 +45,14 @@ function M.get_file(path)
   return files_by_path[path]
 end
 
----Get all files
+---Get all files (sorted by filename)
 ---@return Nit.Api.File[]
 function M.get_files()
-  return vim.tbl_values(files_by_path)
+  local files = vim.tbl_values(files_by_path)
+  table.sort(files, function(a, b)
+    return a.filename < b.filename
+  end)
+  return files
 end
 
 ---Rebuild threads_by_file index
@@ -82,10 +86,14 @@ function M.get_thread(id)
   return threads_by_id[id]
 end
 
----Get all threads
+---Get all threads (sorted by ID)
 ---@return Nit.Api.Thread[]
 function M.get_threads()
-  return vim.tbl_values(threads_by_id)
+  local threads = vim.tbl_values(threads_by_id)
+  table.sort(threads, function(a, b)
+    return a.id < b.id
+  end)
+  return threads
 end
 
 ---Get threads for a specific file path

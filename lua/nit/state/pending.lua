@@ -27,11 +27,11 @@ local function ensure_loaded()
   end
 end
 
----Get all pending comments
+---Get all pending comments (returns a copy to prevent mutation)
 ---@return Nit.State.PendingComment[]
 function M.get_pending()
   ensure_loaded()
-  return pending
+  return vim.list_extend({}, pending)
 end
 
 ---Add a pending comment
@@ -62,6 +62,7 @@ end
 ---Update a pending comment body
 ---@param id integer Comment ID
 ---@param body string New body text
+---@return boolean success Whether the comment was found and updated
 function M.update_pending(id, body)
   ensure_loaded()
   for _, comment in ipairs(pending) do
@@ -69,13 +70,15 @@ function M.update_pending(id, body)
       comment.body = body
       observers.notify('pending')
       persistence.save_pending(pending)
-      return
+      return true
     end
   end
+  return false
 end
 
 ---Remove a pending comment
 ---@param id integer Comment ID
+---@return boolean success Whether the comment was found and removed
 function M.remove_pending(id)
   ensure_loaded()
   for i, comment in ipairs(pending) do
@@ -83,9 +86,10 @@ function M.remove_pending(id)
       table.remove(pending, i)
       observers.notify('pending')
       persistence.save_pending(pending)
-      return
+      return true
     end
   end
+  return false
 end
 
 ---Clear all pending state (for testing)

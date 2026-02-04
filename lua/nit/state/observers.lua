@@ -1,7 +1,7 @@
 ---@class Nit.State.ObserverModule
 local M = {}
 
----@type table<string, function[]>
+---@type table<string, (fun(key: string))[]>
 local callbacks = {}
 
 ---@type table<string, boolean>

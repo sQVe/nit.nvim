@@ -27,7 +27,8 @@ function M.reset()
   data.clear()
 end
 
----Explicit load trigger for pending comments
+---Trigger lazy loading of pending comments from disk
+---Call during startup to ensure persistence is loaded before UI renders
 function M.load_pending()
   pending.get_pending()
 end

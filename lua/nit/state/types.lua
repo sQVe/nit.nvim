@@ -13,6 +13,5 @@
 
 ---@class Nit.State.Indexes
 ---@field threads_by_file table<string, integer[]> Thread IDs by file path
----@field threads_by_file_line table<string, table<integer, integer[]>> Thread IDs by file+line
 
 return {}

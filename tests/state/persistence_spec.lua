@@ -106,7 +106,7 @@ describe('nit.state.persistence', function()
     it('writes pending comments to file', function()
       local pending = {
         {
-          id = 'abc123',
+          id = 1,
           path = 'src/main.lua',
           line = 10,
           side = 'RIGHT',
@@ -122,7 +122,7 @@ describe('nit.state.persistence', function()
       local decoded = vim.json.decode(content)
 
       assert.equals(1, #decoded.pending)
-      assert.equals('abc123', decoded.pending[1].id)
+      assert.equals(1, decoded.pending[1].id)
       assert.equals('src/main.lua', decoded.pending[1].path)
       assert.equals(10, decoded.pending[1].line)
       assert.equals('RIGHT', decoded.pending[1].side)
@@ -160,7 +160,7 @@ describe('nit.state.persistence', function()
     it('returns pending comments from valid file', function()
       local pending = {
         {
-          id = 'xyz789',
+          id = 1,
           path = 'lib/utils.lua',
           line = 25,
           side = 'LEFT',
@@ -173,7 +173,7 @@ describe('nit.state.persistence', function()
       local result = persistence.load_pending()
 
       assert.equals(1, #result)
-      assert.equals('xyz789', result[1].id)
+      assert.equals(1, result[1].id)
       assert.equals('lib/utils.lua', result[1].path)
       assert.equals(25, result[1].line)
       assert.equals('LEFT', result[1].side)
@@ -183,7 +183,7 @@ describe('nit.state.persistence', function()
     it('round-trips multiple pending comments', function()
       local pending = {
         {
-          id = 'id1',
+          id = 1,
           path = 'file1.lua',
           line = 1,
           side = 'RIGHT',
@@ -191,7 +191,7 @@ describe('nit.state.persistence', function()
           created_at = '2026-02-04T10:00:00Z',
         },
         {
-          id = 'id2',
+          id = 2,
           path = 'file2.lua',
           line = 2,
           side = 'LEFT',
@@ -199,7 +199,7 @@ describe('nit.state.persistence', function()
           created_at = '2026-02-04T10:01:00Z',
         },
         {
-          id = 'id3',
+          id = 3,
           path = 'file3.lua',
           line = 3,
           side = 'RIGHT',
@@ -212,9 +212,9 @@ describe('nit.state.persistence', function()
       local result = persistence.load_pending()
 
       assert.equals(3, #result)
-      assert.equals('id1', result[1].id)
-      assert.equals('id2', result[2].id)
-      assert.equals('id3', result[3].id)
+      assert.equals(1, result[1].id)
+      assert.equals(2, result[2].id)
+      assert.equals(3, result[3].id)
     end)
   end)
 end)
