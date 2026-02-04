@@ -3,22 +3,33 @@ local state = require('nit.state')
 
 local M = {}
 
-vim.filetype.add({ extension = { nit = 'nit' } })
-vim.treesitter.language.register('markdown', 'nit')
+local initialized = false
 
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'nit',
-  callback = function(args)
-    if vim.treesitter.language.add('markdown') then
-      vim.treesitter.start(args.buf, 'markdown')
-    end
-  end,
-})
+---Initialize buffer filetype and treesitter support
+local function init()
+  if initialized then
+    return
+  end
+  initialized = true
+
+  vim.filetype.add({ extension = { nit = 'nit' } })
+  vim.treesitter.language.register('markdown', 'nit')
+
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'nit',
+    callback = function(args)
+      if vim.treesitter.language.add('markdown') then
+        vim.treesitter.start(args.buf, 'markdown')
+      end
+    end,
+  })
+end
 
 ---Render PR content to buffer
 ---@param bufnr integer Buffer number
 ---@param opts? Nit.Buffer.RenderOpts Render options
 function M.render(bufnr, opts)
+  init()
   opts = opts or {}
   local pr = opts.pr or state.get_pr()
   local comments = opts.comments or state.get_comments()
@@ -49,6 +60,7 @@ end
 ---Render loading state to buffer
 ---@param bufnr integer Buffer number
 function M.render_loading(bufnr)
+  init()
   local lines = {
     'Loading PR...',
     '',
@@ -65,6 +77,7 @@ end
 ---@param bufnr integer Buffer number
 ---@param message string Error message
 function M.render_error(bufnr, message)
+  init()
   local lines = {
     '# Error',
     '',
