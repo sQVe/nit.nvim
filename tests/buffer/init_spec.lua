@@ -116,4 +116,93 @@ describe('nit.buffer', function()
       assert.is_false(modifiable)
     end)
   end)
+
+  describe('render fallback behavior', function()
+    it('uses state.get_pr when opts.pr is nil', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      local pr = {
+        number = 456,
+        title = 'State PR',
+        state = 'open',
+        isDraft = false,
+        author = { login = 'stateuser' },
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-01T12:00:00Z',
+        body = 'From state',
+      }
+
+      state.set_pr(pr)
+      buffer.render(bufnr, { comments = {} })
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.equals('# State PR', lines[1])
+    end)
+
+    it('uses state.get_comments when opts.comments is nil', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      local pr = {
+        number = 789,
+        title = 'Test PR',
+        state = 'open',
+        isDraft = false,
+        author = { login = 'testuser' },
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-01T12:00:00Z',
+        body = 'Test',
+      }
+      local comments = {
+        {
+          id = 1,
+          author = { login = 'commenter' },
+          body = 'State comment',
+          createdAt = '2026-01-02T00:00:00Z',
+          reactions = {},
+        },
+      }
+
+      state.set_pr(pr)
+      state.set_comments(comments)
+      buffer.render(bufnr)
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      local has_commenter = false
+      for _, line in ipairs(lines) do
+        if line:match('commenter') then
+          has_commenter = true
+          break
+        end
+      end
+      assert.is_true(has_commenter)
+    end)
+
+    it('prefers opts.pr over state.get_pr', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      local state_pr = {
+        number = 111,
+        title = 'State PR',
+        state = 'open',
+        isDraft = false,
+        author = { login = 'stateuser' },
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-01T12:00:00Z',
+        body = 'From state',
+      }
+      local opts_pr = {
+        number = 222,
+        title = 'Opts PR',
+        state = 'open',
+        isDraft = false,
+        author = { login = 'optsuser' },
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-01T12:00:00Z',
+        body = 'From opts',
+      }
+
+      state.set_pr(state_pr)
+      buffer.render(bufnr, { pr = opts_pr, comments = {} })
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.equals('# Opts PR', lines[1])
+    end)
+  end)
 end)

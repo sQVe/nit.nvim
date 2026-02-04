@@ -251,5 +251,164 @@ describe('nit.buffer.sections', function()
       assert.equals('', lines[2])
       assert.equals('*No comments yet.*', lines[3])
     end)
+
+    it('shows placeholder for nil comments', function()
+      local lines = sections.comments(nil)
+
+      assert.equals('## Conversation', lines[1])
+      assert.equals('', lines[2])
+      assert.equals('*No comments yet.*', lines[3])
+    end)
+
+    it('omits reaction line when reactions table is empty', function()
+      local comments = {
+        {
+          author = { login = 'alice' },
+          createdAt = '2024-01-15T10:30:00Z',
+          body = 'Nice!',
+          reactions = {},
+        },
+      }
+
+      local lines = sections.comments(comments)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^> '))
+      end
+    end)
+
+    it('omits reaction line when all reaction counts are 0', function()
+      local comments = {
+        {
+          author = { login = 'alice' },
+          createdAt = '2024-01-15T10:30:00Z',
+          body = 'Nice!',
+          reactions = {
+            THUMBS_UP = 0,
+            HEART = 0,
+          },
+        },
+      }
+
+      local lines = sections.comments(comments)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^> '))
+      end
+    end)
+
+    it('only renders reactions with count > 0', function()
+      local comments = {
+        {
+          author = { login = 'alice' },
+          createdAt = '2024-01-15T10:30:00Z',
+          body = 'Nice!',
+          reactions = {
+            THUMBS_UP = 2,
+            HEART = 0,
+            ROCKET = 1,
+          },
+        },
+      }
+
+      local lines = sections.comments(comments)
+
+      local reaction_line = nil
+      for _, line in ipairs(lines) do
+        if line:match('^> ') then
+          reaction_line = line
+          break
+        end
+      end
+
+      assert.is_not_nil(reaction_line)
+      assert.is_truthy(reaction_line:match('%+1'))
+      assert.is_truthy(reaction_line:match('rocket'))
+      assert.is_nil(reaction_line:match('heart'))
+    end)
+  end)
+
+  describe('metadata edge cases', function()
+    it('omits branch line when headRefName is nil', function()
+      local pr = {
+        title = 'Test PR',
+        isDraft = false,
+        state = 'open',
+        author = { login = 'johndoe' },
+        headRefName = nil,
+        baseRefName = 'main',
+      }
+
+      local lines = sections.metadata(pr)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^%*%*Branch:%*%*'))
+      end
+    end)
+
+    it('omits branch line when baseRefName is nil', function()
+      local pr = {
+        title = 'Test PR',
+        isDraft = false,
+        state = 'open',
+        author = { login = 'johndoe' },
+        headRefName = 'feature',
+        baseRefName = nil,
+      }
+
+      local lines = sections.metadata(pr)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^%*%*Branch:%*%*'))
+      end
+    end)
+
+    it('omits labels line when labels is nil', function()
+      local pr = {
+        title = 'Test PR',
+        isDraft = false,
+        state = 'open',
+        author = { login = 'johndoe' },
+        labels = nil,
+      }
+
+      local lines = sections.metadata(pr)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^%*%*Labels:%*%*'))
+      end
+    end)
+
+    it('omits assignees line when assignees is nil', function()
+      local pr = {
+        title = 'Test PR',
+        isDraft = false,
+        state = 'open',
+        author = { login = 'johndoe' },
+        assignees = nil,
+      }
+
+      local lines = sections.metadata(pr)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^%*%*Assignees:%*%*'))
+      end
+    end)
+
+    it('omits reviewers line when reviewers is nil', function()
+      local pr = {
+        title = 'Test PR',
+        isDraft = false,
+        state = 'open',
+        author = { login = 'johndoe' },
+        reviewers = nil,
+      }
+
+      local lines = sections.metadata(pr)
+
+      for _, line in ipairs(lines) do
+        assert.is_nil(line:match('^%*%*Reviewers:%*%*'))
+      end
+    end)
   end)
 end)
