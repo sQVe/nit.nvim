@@ -48,7 +48,8 @@ function M.notify(key)
     local keys = vim.tbl_keys(pending)
     pending = {}
     for _, k in ipairs(keys) do
-      for _, callback in ipairs(callbacks[k] or {}) do
+      local snapshot = { unpack(callbacks[k] or {}) }
+      for _, callback in ipairs(snapshot) do
         local ok, err = pcall(callback, k)
         if not ok then
           vim.notify('[nit] observer error: ' .. tostring(err), vim.log.levels.ERROR)

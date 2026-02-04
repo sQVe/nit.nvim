@@ -23,7 +23,7 @@ local function get_repo_hash()
   if cached_repo_hash then
     return cached_repo_hash
   end
-  local result = vim.fn.system('git remote get-url origin 2>/dev/null')
+  local result = vim.fn.system('git remote get-url origin')
   if vim.v.shell_error ~= 0 then
     cached_repo_hash = 'unknown'
     return cached_repo_hash
