@@ -111,42 +111,26 @@ describe('nit.buffer.formatters', function()
     end)
   end)
 
-  describe('format_reactions', function()
-    it('returns empty string for nil or empty reactions', function()
-      assert.equals('', formatters.format_reactions(nil))
-      assert.equals('', formatters.format_reactions({}))
+  describe('get_reaction_icon', function()
+    it('returns +1 for THUMBS_UP', function()
+      assert.equals('+1', formatters.get_reaction_icon('THUMBS_UP'))
     end)
 
-    it('formats single reaction', function()
-      local single_reaction = {
-        { content = 'THUMBS_UP', count = 3 },
-      }
-      assert.equals('+1 3', formatters.format_reactions(single_reaction))
+    it('returns -1 for THUMBS_DOWN', function()
+      assert.equals('-1', formatters.get_reaction_icon('THUMBS_DOWN'))
     end)
 
-    it('formats multiple reactions', function()
-      local multiple_reactions = {
-        { content = 'THUMBS_UP', count = 3 },
-        { content = 'HEART', count = 2 },
-        { content = 'LAUGH', count = 1 },
-      }
-      assert.equals('+1 3  heart 2  laugh 1', formatters.format_reactions(multiple_reactions))
+    it('returns mapped icons for known reactions', function()
+      assert.equals('laugh', formatters.get_reaction_icon('LAUGH'))
+      assert.equals('hooray', formatters.get_reaction_icon('HOORAY'))
+      assert.equals('confused', formatters.get_reaction_icon('CONFUSED'))
+      assert.equals('heart', formatters.get_reaction_icon('HEART'))
+      assert.equals('rocket', formatters.get_reaction_icon('ROCKET'))
+      assert.equals('eyes', formatters.get_reaction_icon('EYES'))
     end)
 
-    it('skips reactions with zero count', function()
-      local zero_count = {
-        { content = 'THUMBS_UP', count = 0 },
-      }
-      assert.equals('', formatters.format_reactions(zero_count))
-    end)
-
-    it('filters zero count from mixed reactions', function()
-      local mixed_counts = {
-        { content = 'THUMBS_UP', count = 5 },
-        { content = 'HEART', count = 0 },
-        { content = 'ROCKET', count = 1 },
-      }
-      assert.equals('+1 5  rocket 1', formatters.format_reactions(mixed_counts))
+    it('returns lowercase for unknown reactions', function()
+      assert.equals('unknown_emoji', formatters.get_reaction_icon('UNKNOWN_EMOJI'))
     end)
   end)
 end)

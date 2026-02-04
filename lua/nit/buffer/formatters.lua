@@ -78,22 +78,11 @@ function M.format_review_state(state)
   return REVIEW_STATE_LABELS[state] or state
 end
 
----@param reactions? table[]
+---Get reaction icon for emoji name
+---@param emoji string
 ---@return string
-function M.format_reactions(reactions)
-  if not reactions or #reactions == 0 then
-    return ''
-  end
-
-  local parts = {}
-  for _, reaction in ipairs(reactions) do
-    if reaction.count and reaction.count > 0 then
-      local icon = REACTION_ICONS[reaction.content] or reaction.content:lower()
-      table.insert(parts, icon .. ' ' .. reaction.count)
-    end
-  end
-
-  return table.concat(parts, '  ')
+function M.get_reaction_icon(emoji)
+  return REACTION_ICONS[emoji] or emoji:lower()
 end
 
 return M

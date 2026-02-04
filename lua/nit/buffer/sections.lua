@@ -99,7 +99,7 @@ function M.comments(comments)
       local reaction_parts = {}
       for emoji, count in pairs(comment.reactions) do
         if count > 0 then
-          local icon = emoji:lower():gsub('thumbs_up', '+1'):gsub('thumbs_down', '-1')
+          local icon = formatters.get_reaction_icon(emoji)
           table.insert(reaction_parts, icon .. ' ' .. count)
         end
       end
