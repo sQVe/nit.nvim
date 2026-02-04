@@ -15,6 +15,11 @@
       "matchManagers": ["github-actions"],
       "matchPackageNames": ["stevearc/nvim-typecheck-action"],
       "enabled": false
+    },
+    {
+      "description": "Group StyLua updates across pre-commit and CI",
+      "matchPackageNames": ["JohnnyMorganz/StyLua"],
+      "groupName": "stylua"
     }
   ]
 }
