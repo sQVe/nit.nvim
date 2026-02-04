@@ -33,7 +33,7 @@ describe('nit.api.pr', function()
         'pr',
         'view',
         '--json',
-        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments',
+        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments,headRefName,baseRefName',
       }, called_args)
     end)
 
@@ -490,12 +490,12 @@ describe('nit.api.pr', function()
 
       assert.is_true(result.ok)
       assert.equals(3, #result.data.reviewers)
-      assert.equals('carol', result.data.reviewers[1].login)
-      assert.equals('PENDING', result.data.reviewers[1].state)
-      assert.equals('alice', result.data.reviewers[2].login)
-      assert.equals('APPROVED', result.data.reviewers[2].state)
-      assert.equals('bob', result.data.reviewers[3].login)
-      assert.equals('CHANGES_REQUESTED', result.data.reviewers[3].state)
+      assert.equals('alice', result.data.reviewers[1].login)
+      assert.equals('APPROVED', result.data.reviewers[1].state)
+      assert.equals('bob', result.data.reviewers[2].login)
+      assert.equals('CHANGES_REQUESTED', result.data.reviewers[2].state)
+      assert.equals('carol', result.data.reviewers[3].login)
+      assert.equals('PENDING', result.data.reviewers[3].state)
     end)
 
     it('returns empty reviewers array when PR has no reviewers', function()
@@ -608,6 +608,301 @@ describe('nit.api.pr', function()
 
       assert.is_true(result.ok)
       assert.are.same({}, result.data.comments)
+    end)
+
+    it('handles vim.NIL author with fallback to unknown', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = vim.NIL,
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals('unknown', result.data.author.login)
+      assert.is_nil(result.data.author.name)
+    end)
+
+    it('handles nil author with fallback to unknown', function()
+      local response_data = {
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+      }
+      local gh_response = vim.json.encode(response_data)
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals('unknown', result.data.author.login)
+    end)
+
+    it('deduplicates reviewers when same user appears in both reviews and reviewRequests', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {
+          { login = 'alice' },
+        },
+        reviews = {
+          {
+            author = { login = 'alice' },
+            state = 'APPROVED',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.reviewers)
+      assert.equals('alice', result.data.reviewers[1].login)
+      assert.equals('APPROVED', result.data.reviewers[1].state)
+    end)
+
+    it('skips reviews with vim.NIL author', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {},
+        reviews = {
+          {
+            author = vim.NIL,
+            state = 'APPROVED',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+          {
+            author = { login = 'bob' },
+            state = 'CHANGES_REQUESTED',
+            submittedAt = '2026-01-03T01:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.reviewers)
+      assert.equals('bob', result.data.reviewers[1].login)
+    end)
+
+    it('keeps only first review when same user has multiple reviews', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {},
+        reviews = {
+          {
+            author = { login = 'alice' },
+            state = 'CHANGES_REQUESTED',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+          {
+            author = { login = 'alice' },
+            state = 'APPROVED',
+            submittedAt = '2026-01-04T00:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.reviewers)
+      assert.equals('alice', result.data.reviewers[1].login)
+      assert.equals('CHANGES_REQUESTED', result.data.reviewers[1].state)
+    end)
+
+    it('handles vim.NIL comment author with fallback to unknown', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {
+          {
+            id = 1001,
+            author = vim.NIL,
+            body = 'A comment',
+            createdAt = '2026-01-03T00:00:00Z',
+            reactions = {},
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.comments)
+      assert.equals('unknown', result.data.comments[1].author.login)
+      assert.is_nil(result.data.comments[1].author.name)
+    end)
+
+    it('handles reaction with missing users field', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {
+          {
+            id = 1001,
+            author = { login = 'alice' },
+            body = 'A comment',
+            createdAt = '2026-01-03T00:00:00Z',
+            reactions = {
+              { content = '+1' },
+            },
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(0, result.data.comments[1].reactions['+1'])
+    end)
+
+    it('handles unexpected mergeable value as unknown', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'CHECKING',
+        isDraft = false,
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals('unknown', result.data.mergeable)
+    end)
+
+    it('prefers number over branch when both provided', function()
+      local called_args = nil
+      gh.execute = function(args, _opts, _callback)
+        called_args = args
+        return function() end
+      end
+
+      pr.fetch_pr({ number = 123, branch = 'feature' }, function() end)
+
+      assert.equals('123', called_args[3])
+      for _, arg in ipairs(called_args) do
+        assert.is_not.equals('feature', arg)
+      end
     end)
   end)
 end)
