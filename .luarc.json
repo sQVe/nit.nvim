@@ -10,6 +10,9 @@
   },
   "diagnostics": {
     "unusedLocalExclude": ["_*"],
-    "globals": ["vim"]
+    "globals": ["vim"],
+    "severity": {
+      "need-check-nil": "Warning"
+    }
   }
 }
