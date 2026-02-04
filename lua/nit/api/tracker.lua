@@ -21,10 +21,11 @@ end
 
 ---Cancel all in-flight requests
 function M.cancel_all()
-  for _, cancel_fn in pairs(requests) do
+  local current = requests
+  requests = {}
+  for _, cancel_fn in pairs(current) do
     cancel_fn()
   end
-  requests = {}
 end
 
 ---Get the number of in-flight requests

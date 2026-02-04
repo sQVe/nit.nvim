@@ -59,6 +59,11 @@ describe('fetch_comments', function()
     mock_system_results = {
       {
         code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
+      {
+        code = 0,
         stdout = vim.json.encode({ number = 123 }),
         stderr = '',
       },
@@ -123,6 +128,11 @@ describe('fetch_comments', function()
     mock_system_results = {
       {
         code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
+      {
+        code = 0,
         stdout = vim.json.encode({ number = 123 }),
         stderr = '',
       },
@@ -150,6 +160,11 @@ describe('fetch_comments', function()
 
   it('groups multiple threads by path and line', function()
     mock_system_results = {
+      {
+        code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
       {
         code = 0,
         stdout = vim.json.encode({ number = 123 }),
@@ -205,6 +220,11 @@ describe('fetch_comments', function()
 
   it('sorts threads by path then line', function()
     mock_system_results = {
+      {
+        code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
       {
         code = 0,
         stdout = vim.json.encode({ number = 123 }),
@@ -272,7 +292,7 @@ describe('fetch_comments', function()
     mock_system_results = {
       {
         code = 0,
-        stdout = vim.json.encode({ number = 123 }),
+        stdout = 'git@github.com:owner/repo.git\n',
         stderr = '',
       },
     }
@@ -284,6 +304,11 @@ describe('fetch_comments', function()
 
   it('handles gh CLI errors gracefully', function()
     mock_system_results = {
+      {
+        code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
       {
         code = 1,
         stdout = '',

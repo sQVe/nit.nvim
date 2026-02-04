@@ -13,7 +13,9 @@ local function is_transient_error(stderr)
     return false
   end
   local lower = stderr:lower()
-  return lower:match('timeout') or lower:match('network') or lower:match('connection')
+  return lower:match('timeout') ~= nil
+    or lower:match('network') ~= nil
+    or lower:match('connection') ~= nil
 end
 
 ---Check if error is an authentication error
@@ -23,7 +25,8 @@ local function is_auth_error(stderr)
   if not stderr then
     return false
   end
-  return stderr:lower():match('authentication') or stderr:lower():match('not authenticated')
+  local lower = stderr:lower()
+  return lower:match('authentication') ~= nil or lower:match('not authenticated') ~= nil
 end
 
 ---Create user-friendly error message
@@ -89,13 +92,17 @@ function M.execute(args, opts, callback)
 
     timer = vim.uv.new_timer()
     if timer then
-      timer:start(timeout, 0, vim.schedule_wrap(function()
-        timed_out = true
-        if process then
-          process:kill(9)
-        end
-        complete_once({ ok = false, error = 'Request timed out' })
-      end))
+      timer:start(
+        timeout,
+        0,
+        vim.schedule_wrap(function()
+          timed_out = true
+          if process then
+            process:kill(9)
+          end
+          complete_once({ ok = false, error = 'Request timed out' })
+        end)
+      )
     end
 
     process = vim.system(cmd, { text = true }, function(result)
@@ -122,13 +129,17 @@ function M.execute(args, opts, callback)
           local delay = math.pow(2, retry_count - 1) * 1000
           retry_timer = vim.uv.new_timer()
           if retry_timer then
-            retry_timer:start(delay, 0, vim.schedule_wrap(function()
-              retry_timer:close()
-              retry_timer = nil
-              if not completed then
-                execute_with_retry()
-              end
-            end))
+            retry_timer:start(
+              delay,
+              0,
+              vim.schedule_wrap(function()
+                retry_timer:close()
+                retry_timer = nil
+                if not completed then
+                  execute_with_retry()
+                end
+              end)
+            )
           end
         else
           local error_msg = make_error_message(stderr, false)

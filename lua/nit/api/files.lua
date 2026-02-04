@@ -41,7 +41,7 @@ local function parse_files(json_str)
 end
 
 ---Fetch list of files changed in a PR
----@param opts? { number?: integer, timeout?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: integer }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.File[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_files(opts, callback)
@@ -53,7 +53,12 @@ function M.fetch_files(opts, callback)
   end
   vim.list_extend(args, { '--json', 'files' })
 
-  return gh.execute(args, { timeout = opts.timeout }, function(result)
+  local request_opts = {
+    timeout = opts.timeout,
+    retry = opts.retry,
+  }
+
+  return gh.execute(args, request_opts, function(result)
     if not result.ok then
       callback({ ok = false, error = result.error })
       return
@@ -70,7 +75,7 @@ function M.fetch_files(opts, callback)
 end
 
 ---Fetch diff for a PR or specific file
----@param opts? { number?: integer, path?: string, timeout?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: integer, path?: string }
 ---@param callback fun(result: Nit.Api.Result<string>)
 ---@return fun() cancel Cancel function
 function M.fetch_diff(opts, callback)
@@ -85,7 +90,12 @@ function M.fetch_diff(opts, callback)
     vim.list_extend(args, { '--', opts.path })
   end
 
-  return gh.execute(args, { timeout = opts.timeout }, function(result)
+  local request_opts = {
+    timeout = opts.timeout,
+    retry = opts.retry,
+  }
+
+  return gh.execute(args, request_opts, function(result)
     if not result.ok then
       callback({ ok = false, error = result.error })
       return

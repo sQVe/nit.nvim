@@ -29,9 +29,9 @@
 ---@field author Nit.Api.User
 ---@field body string
 ---@field createdAt string ISO 8601 timestamp
----@field path string
----@field line integer
----@field side 'LEFT'|'RIGHT'
+---@field path string?
+---@field line integer?
+---@field side 'LEFT'|'RIGHT'?
 
 ---@class Nit.Api.Thread
 ---@field id integer

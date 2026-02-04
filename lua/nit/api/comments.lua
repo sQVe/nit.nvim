@@ -1,6 +1,17 @@
 local gh = require('nit.api.gh')
+local tracker = require('nit.api.tracker')
 
 local M = {}
+
+---Normalize vim.NIL to nil
+---@param value any
+---@return any
+local function nil_if_vim_nil(value)
+  if value == vim.NIL then
+    return nil
+  end
+  return value
+end
 
 ---Normalize GitHub comment to Nit.Api.Comment format
 ---@param raw_comment table Raw comment from GitHub API
@@ -11,7 +22,7 @@ local function normalize_comment(raw_comment)
     id = raw_comment.id,
     author = user and {
       login = user.login,
-      name = user.name,
+      name = nil_if_vim_nil(user.name),
     } or { login = 'unknown' },
     body = raw_comment.body,
     createdAt = raw_comment.created_at,
@@ -85,10 +96,21 @@ end
 ---@param callback fun(owner: string|nil, repo: string|nil)
 ---@return fun() cancel Cancel function
 local function get_repo_info(callback)
+  local completed = false
+  local request_id = nil
+
   local process = vim.system(
     { 'git', 'remote', 'get-url', 'origin' },
     { text = true },
     vim.schedule_wrap(function(result)
+      if completed then
+        return
+      end
+      completed = true
+      if request_id then
+        tracker.untrack(request_id)
+      end
+
       if result.code ~= 0 then
         callback(nil, nil)
         return
@@ -104,15 +126,26 @@ local function get_repo_info(callback)
     end)
   )
 
-  return function()
+  local cancel = function()
+    if completed then
+      return
+    end
+    completed = true
+    if request_id then
+      tracker.untrack(request_id)
+    end
     if process then
       process:kill(9)
     end
   end
+
+  request_id = tracker.track(cancel)
+
+  return cancel
 end
 
 ---Fetch PR comments organized into threads
----@param opts { number?: integer, timeout?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: integer }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_comments(opts, callback)
@@ -121,6 +154,11 @@ function M.fetch_comments(opts, callback)
   local cancel_repo = nil
   local cancel_inner = nil
   local cancelled = false
+
+  local request_opts = {
+    timeout = opts.timeout,
+    retry = opts.retry,
+  }
 
   cancel_repo = get_repo_info(function(owner, repo)
     if cancelled then
@@ -142,7 +180,7 @@ function M.fetch_comments(opts, callback)
         '--paginate',
       }
 
-      return gh.execute(args, { timeout = opts.timeout }, function(result)
+      return gh.execute(args, request_opts, function(result)
         if not result.ok then
           callback(result)
           return
@@ -170,27 +208,23 @@ function M.fetch_comments(opts, callback)
       return
     end
 
-    cancel_inner = gh.execute(
-      { 'pr', 'view', '--json', 'number' },
-      { timeout = opts.timeout },
-      function(result)
-        if not result.ok then
-          callback(result)
-          return
-        end
-
-        local ok, pr_data = pcall(vim.json.decode, result.data)
-        if not ok or not pr_data.number then
-          callback({
-            ok = false,
-            error = 'No PR found for current branch',
-          })
-          return
-        end
-
-        cancel_inner = fetch_with_pr_number(pr_data.number)
+    cancel_inner = gh.execute({ 'pr', 'view', '--json', 'number' }, request_opts, function(result)
+      if not result.ok then
+        callback(result)
+        return
       end
-    )
+
+      local ok, pr_data = pcall(vim.json.decode, result.data)
+      if not ok or not pr_data.number then
+        callback({
+          ok = false,
+          error = 'No PR found for current branch',
+        })
+        return
+      end
+
+      cancel_inner = fetch_with_pr_number(pr_data.number)
+    end)
   end)
 
   return function()
