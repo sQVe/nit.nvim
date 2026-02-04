@@ -12,7 +12,7 @@
 ---@field color string
 ---@field description? string
 
----@alias Nit.Api.ReviewerState 'PENDING'|'APPROVED'|'CHANGES_REQUESTED'|'COMMENTED'
+---@alias Nit.Api.ReviewerState 'PENDING'|'APPROVED'|'CHANGES_REQUESTED'|'COMMENTED'|'DISMISSED'
 
 ---@class Nit.Api.Reviewer
 ---@field login string
