@@ -83,6 +83,47 @@ describe('nit.state.pending', function()
       assert.equals(id1 + 1, id2)
     end)
 
+    it('continues ID sequence from max loaded ID', function()
+      loaded_data = {
+        {
+          id = 5,
+          path = 'first.lua',
+          line = 1,
+          side = 'RIGHT',
+          body = 'First',
+          created_at = '2026-01-01T00:00:00Z',
+        },
+        {
+          id = 10,
+          path = 'second.lua',
+          line = 2,
+          side = 'LEFT',
+          body = 'Second',
+          created_at = '2026-01-01T00:00:00Z',
+        },
+        {
+          id = 3,
+          path = 'third.lua',
+          line = 3,
+          side = 'RIGHT',
+          body = 'Third',
+          created_at = '2026-01-01T00:00:00Z',
+        },
+      }
+
+      package.loaded['nit.state.pending'] = nil
+      pending_module = require('nit.state.pending')
+
+      local new_id = pending_module.add_pending({
+        path = 'new.lua',
+        line = 100,
+        side = 'RIGHT',
+        body = 'New comment',
+      })
+
+      assert.equals(11, new_id)
+    end)
+
     it('triggers observer notification', function()
       local notified_key = nil
       observers.subscribe('pending', function(key)
@@ -167,6 +208,23 @@ describe('nit.state.pending', function()
       assert.equals(1, #result)
       assert.equals('loaded.lua', result[1].path)
       assert.equals('Loaded from disk', result[1].body)
+    end)
+
+    it('returns copy to prevent mutation of internal state', function()
+      pending_module.add_pending({
+        path = 'src/main.lua',
+        line = 10,
+        side = 'RIGHT',
+        body = 'Original',
+      })
+
+      local result = pending_module.get_pending()
+      result[1].body = 'Mutated'
+      table.insert(result, { id = 999, path = 'fake.lua' })
+
+      local fresh = pending_module.get_pending()
+      assert.equals('Original', fresh[1].body)
+      assert.equals(1, #fresh)
     end)
   end)
 

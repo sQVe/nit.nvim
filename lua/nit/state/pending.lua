@@ -27,11 +27,11 @@ local function ensure_loaded()
   end
 end
 
----Get all pending comments (returns a copy to prevent mutation)
+---Get all pending comments (returns a deep copy to prevent mutation)
 ---@return Nit.State.PendingComment[]
 function M.get_pending()
   ensure_loaded()
-  return vim.list_extend({}, pending)
+  return vim.deepcopy(pending)
 end
 
 ---Add a pending comment
