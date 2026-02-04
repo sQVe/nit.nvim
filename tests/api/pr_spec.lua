@@ -665,44 +665,47 @@ describe('nit.api.pr', function()
       assert.equals('unknown', result.data.author.login)
     end)
 
-    it('deduplicates reviewers when same user appears in both reviews and reviewRequests', function()
-      local gh_response = vim.json.encode({
-        number = 123,
-        title = 'Test',
-        state = 'OPEN',
-        author = { login = 'test' },
-        body = '',
-        createdAt = '2026-01-01T00:00:00Z',
-        updatedAt = '2026-01-02T00:00:00Z',
-        mergeable = 'UNKNOWN',
-        isDraft = false,
-        reviewRequests = {
-          { login = 'alice' },
-        },
-        reviews = {
-          {
-            author = { login = 'alice' },
-            state = 'APPROVED',
-            submittedAt = '2026-01-03T00:00:00Z',
+    it(
+      'deduplicates reviewers when same user appears in both reviews and reviewRequests',
+      function()
+        local gh_response = vim.json.encode({
+          number = 123,
+          title = 'Test',
+          state = 'OPEN',
+          author = { login = 'test' },
+          body = '',
+          createdAt = '2026-01-01T00:00:00Z',
+          updatedAt = '2026-01-02T00:00:00Z',
+          mergeable = 'UNKNOWN',
+          isDraft = false,
+          reviewRequests = {
+            { login = 'alice' },
           },
-        },
-      })
+          reviews = {
+            {
+              author = { login = 'alice' },
+              state = 'APPROVED',
+              submittedAt = '2026-01-03T00:00:00Z',
+            },
+          },
+        })
 
-      local result = nil
-      gh.execute = function(_args, _opts, callback)
-        callback({ ok = true, data = gh_response })
-        return function() end
+        local result = nil
+        gh.execute = function(_args, _opts, callback)
+          callback({ ok = true, data = gh_response })
+          return function() end
+        end
+
+        pr.fetch_pr({}, function(r)
+          result = r
+        end)
+
+        assert.is_true(result.ok)
+        assert.equals(1, #result.data.reviewers)
+        assert.equals('alice', result.data.reviewers[1].login)
+        assert.equals('APPROVED', result.data.reviewers[1].state)
       end
-
-      pr.fetch_pr({}, function(r)
-        result = r
-      end)
-
-      assert.is_true(result.ok)
-      assert.equals(1, #result.data.reviewers)
-      assert.equals('alice', result.data.reviewers[1].login)
-      assert.equals('APPROVED', result.data.reviewers[1].state)
-    end)
+    )
 
     it('skips reviews with vim.NIL author', function()
       local gh_response = vim.json.encode({
