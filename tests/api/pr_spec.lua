@@ -33,7 +33,7 @@ describe('nit.api.pr', function()
         'pr',
         'view',
         '--json',
-        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft',
+        'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments',
       }, called_args)
     end)
 
@@ -303,6 +303,311 @@ describe('nit.api.pr', function()
       assert.is_false(result.ok)
       assert.is_string(result.error)
       assert.is_truthy(result.error:match('[Cc]ould not parse'))
+    end)
+
+    it('includes extended fields in --json query', function()
+      local called_args = nil
+      gh.execute = function(args, _opts, _callback)
+        called_args = args
+        return function() end
+      end
+
+      pr.fetch_pr({}, function() end)
+
+      local json_fields = called_args[#called_args]
+      assert.is_truthy(json_fields:match('labels'))
+      assert.is_truthy(json_fields:match('assignees'))
+      assert.is_truthy(json_fields:match('reviewRequests'))
+      assert.is_truthy(json_fields:match('reviews'))
+      assert.is_truthy(json_fields:match('comments'))
+    end)
+
+    it('normalizes labels array', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        labels = {
+          { name = 'bug', color = 'ff0000', description = 'Bug report' },
+          { name = 'enhancement', color = '00ff00' },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(2, #result.data.labels)
+      assert.equals('bug', result.data.labels[1].name)
+      assert.equals('ff0000', result.data.labels[1].color)
+      assert.equals('Bug report', result.data.labels[1].description)
+      assert.equals('enhancement', result.data.labels[2].name)
+      assert.equals('00ff00', result.data.labels[2].color)
+      assert.is_nil(result.data.labels[2].description)
+    end)
+
+    it('returns empty labels array when PR has no labels', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        labels = {},
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.are.same({}, result.data.labels)
+    end)
+
+    it('normalizes assignees array', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        assignees = {
+          { login = 'alice', name = 'Alice Smith' },
+          { login = 'bob' },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(2, #result.data.assignees)
+      assert.equals('alice', result.data.assignees[1].login)
+      assert.equals('Alice Smith', result.data.assignees[1].name)
+      assert.equals('bob', result.data.assignees[2].login)
+      assert.is_nil(result.data.assignees[2].name)
+    end)
+
+    it('returns empty assignees array when PR has no assignees', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        assignees = {},
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.are.same({}, result.data.assignees)
+    end)
+
+    it('merges reviewRequests and reviews into reviewers array', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {
+          { login = 'carol' },
+        },
+        reviews = {
+          {
+            author = { login = 'alice' },
+            state = 'APPROVED',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+          {
+            author = { login = 'bob' },
+            state = 'CHANGES_REQUESTED',
+            submittedAt = '2026-01-03T01:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(3, #result.data.reviewers)
+      assert.equals('carol', result.data.reviewers[1].login)
+      assert.equals('PENDING', result.data.reviewers[1].state)
+      assert.equals('alice', result.data.reviewers[2].login)
+      assert.equals('APPROVED', result.data.reviewers[2].state)
+      assert.equals('bob', result.data.reviewers[3].login)
+      assert.equals('CHANGES_REQUESTED', result.data.reviewers[3].state)
+    end)
+
+    it('returns empty reviewers array when PR has no reviewers', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {},
+        reviews = {},
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.are.same({}, result.data.reviewers)
+    end)
+
+    it('normalizes PR-level comments array', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {
+          {
+            id = 1001,
+            author = { login = 'alice' },
+            body = 'LGTM',
+            createdAt = '2026-01-03T00:00:00Z',
+            reactions = {
+              { content = '+1', users = { { login = 'bob' }, { login = 'carol' } } },
+              { content = 'heart', users = { { login = 'alice' } } },
+            },
+          },
+          {
+            id = 1002,
+            author = { login = 'bob' },
+            body = 'Looks good',
+            createdAt = '2026-01-03T01:00:00Z',
+            reactions = {},
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(2, #result.data.comments)
+      assert.equals(1001, result.data.comments[1].id)
+      assert.equals('alice', result.data.comments[1].author.login)
+      assert.equals('LGTM', result.data.comments[1].body)
+      assert.equals('2026-01-03T00:00:00Z', result.data.comments[1].createdAt)
+      assert.equals(2, result.data.comments[1].reactions['+1'])
+      assert.equals(1, result.data.comments[1].reactions['heart'])
+      assert.equals(1002, result.data.comments[2].id)
+      assert.equals('bob', result.data.comments[2].author.login)
+      assert.are.same({}, result.data.comments[2].reactions)
+    end)
+
+    it('returns empty comments array when PR has no comments', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {},
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.are.same({}, result.data.comments)
     end)
   end)
 end)

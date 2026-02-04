@@ -7,6 +7,26 @@
 ---@field login string
 ---@field name? string
 
+---@class Nit.Api.Label
+---@field name string
+---@field color string
+---@field description? string
+
+---@alias Nit.Api.ReviewerState 'PENDING'|'APPROVED'|'CHANGES_REQUESTED'|'COMMENTED'
+
+---@class Nit.Api.Reviewer
+---@field login string
+---@field state Nit.Api.ReviewerState
+
+---@alias Nit.Api.Reactions table<string, integer>
+
+---@class Nit.Api.IssueComment
+---@field id integer
+---@field author Nit.Api.User
+---@field body string
+---@field createdAt string ISO 8601 timestamp
+---@field reactions Nit.Api.Reactions
+
 ---@class Nit.Api.PR
 ---@field number integer
 ---@field title string
@@ -17,6 +37,12 @@
 ---@field updatedAt string ISO 8601 timestamp
 ---@field mergeable 'clean'|'dirty'|'unknown'
 ---@field isDraft boolean
+---@field headRefName? string
+---@field baseRefName? string
+---@field labels? Nit.Api.Label[]
+---@field assignees? Nit.Api.User[]
+---@field reviewers? Nit.Api.Reviewer[]
+---@field comments? Nit.Api.IssueComment[]
 
 ---@class Nit.Api.File
 ---@field filename string

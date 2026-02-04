@@ -16,6 +16,8 @@ M.get_thread = data.get_thread
 M.get_threads = data.get_threads
 M.set_threads = data.set_threads
 M.get_threads_for_file = data.get_threads_for_file
+M.set_comments = data.set_comments
+M.get_comments = data.get_comments
 
 M.get_pending = pending.get_pending
 M.add_pending = pending.add_pending
