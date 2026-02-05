@@ -224,8 +224,8 @@ describe('nit.buffer.sections', function()
           createdAt = '2024-01-15T10:30:00Z',
           body = 'Great work!',
           reactions = {
-            THUMBS_UP = 3,
-            HEART = 2,
+            ['+1'] = 3,
+            ['heart'] = 2,
           },
         },
       }
@@ -284,8 +284,8 @@ describe('nit.buffer.sections', function()
           createdAt = '2024-01-15T10:30:00Z',
           body = 'Nice!',
           reactions = {
-            THUMBS_UP = 0,
-            HEART = 0,
+            ['+1'] = 0,
+            ['heart'] = 0,
           },
         },
       }
@@ -304,9 +304,9 @@ describe('nit.buffer.sections', function()
           createdAt = '2024-01-15T10:30:00Z',
           body = 'Nice!',
           reactions = {
-            THUMBS_UP = 2,
-            HEART = 0,
-            ROCKET = 1,
+            ['+1'] = 2,
+            ['heart'] = 0,
+            ['rocket'] = 1,
           },
         },
       }

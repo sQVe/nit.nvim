@@ -18,9 +18,7 @@ local function init()
   vim.api.nvim_create_autocmd('FileType', {
     pattern = 'nit',
     callback = function(args)
-      if vim.treesitter.language.add('markdown') then
-        vim.treesitter.start(args.buf, 'markdown')
-      end
+      pcall(vim.treesitter.start, args.buf, 'markdown')
     end,
   })
 end
@@ -70,6 +68,9 @@ function M.render_loading(bufnr)
   vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
+  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
+  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
   vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
 end
 
@@ -89,6 +90,9 @@ function M.render_error(bufnr, message)
   vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
+  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
+  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
   vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
 end
 

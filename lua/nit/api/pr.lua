@@ -81,12 +81,21 @@ local function normalize_reviewers(reviewRequests, reviews)
   if reviews then
     for _, review in ipairs(reviews) do
       local author = nil_if_vim_nil(review.author)
-      if author and not seen[author.login] then
-        seen[author.login] = true
-        table.insert(result, {
-          login = author.login,
-          state = review.state,
-        })
+      if author then
+        if seen[author.login] then
+          for _, r in ipairs(result) do
+            if r.login == author.login then
+              r.state = review.state
+              break
+            end
+          end
+        else
+          seen[author.login] = true
+          table.insert(result, {
+            login = author.login,
+            state = review.state,
+          })
+        end
       end
     end
   end

@@ -748,7 +748,7 @@ describe('nit.api.pr', function()
       assert.equals('bob', result.data.reviewers[1].login)
     end)
 
-    it('keeps only first review when same user has multiple reviews', function()
+    it('keeps most recent review when same user has multiple reviews', function()
       local gh_response = vim.json.encode({
         number = 123,
         title = 'Test',
@@ -787,7 +787,7 @@ describe('nit.api.pr', function()
       assert.is_true(result.ok)
       assert.equals(1, #result.data.reviewers)
       assert.equals('alice', result.data.reviewers[1].login)
-      assert.equals('CHANGES_REQUESTED', result.data.reviewers[1].state)
+      assert.equals('APPROVED', result.data.reviewers[1].state)
     end)
 
     it('handles vim.NIL comment author with fallback to unknown', function()

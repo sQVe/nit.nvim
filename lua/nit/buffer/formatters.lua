@@ -1,14 +1,14 @@
 local M = {}
 
 local REACTION_ICONS = {
-  THUMBS_UP = '+1',
-  THUMBS_DOWN = '-1',
-  LAUGH = 'laugh',
-  HOORAY = 'hooray',
-  CONFUSED = 'confused',
-  HEART = 'heart',
-  ROCKET = 'rocket',
-  EYES = 'eyes',
+  ['+1'] = '+1',
+  ['-1'] = '-1',
+  ['laugh'] = 'laugh',
+  ['hooray'] = 'hooray',
+  ['confused'] = 'confused',
+  ['heart'] = 'heart',
+  ['rocket'] = 'rocket',
+  ['eyes'] = 'eyes',
 }
 
 local REVIEW_STATE_LABELS = {
