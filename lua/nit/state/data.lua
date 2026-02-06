@@ -15,6 +15,9 @@ local threads_by_id = {}
 ---@type table<string, integer[]>
 local threads_by_file = {}
 
+---@type Nit.Api.IssueComment[]
+local comments = {}
+
 ---Set PR data
 ---@param data Nit.Api.PR?
 function M.set_pr(data)
@@ -114,15 +117,30 @@ function M.get_threads_for_file(path)
   return result
 end
 
+---Set PR-level comments
+---@param data Nit.Api.IssueComment[]
+function M.set_comments(data)
+  comments = data
+  observers.notify('pr_comments')
+end
+
+---Get PR-level comments
+---@return Nit.Api.IssueComment[]
+function M.get_comments()
+  return comments
+end
+
 ---Clear all state data
 function M.clear()
   pr = nil
   files_by_path = {}
   threads_by_id = {}
   threads_by_file = {}
+  comments = {}
   observers.notify('pr')
   observers.notify('files')
   observers.notify('comments')
+  observers.notify('pr_comments')
 end
 
 return M

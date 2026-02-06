@@ -269,6 +269,62 @@ describe('nit.state.data', function()
     end)
   end)
 
+  describe('PR comments operations', function()
+    it('set_comments stores and get_comments retrieves', function()
+      local comments = {
+        {
+          id = 1,
+          author = { login = 'user1' },
+          body = 'First comment',
+          createdAt = '2026-01-01T00:00:00Z',
+        },
+        {
+          id = 2,
+          author = { login = 'user2' },
+          body = 'Second comment',
+          createdAt = '2026-01-02T00:00:00Z',
+        },
+      }
+
+      data.set_comments(comments)
+
+      local result = data.get_comments()
+      assert.is_not_nil(result)
+      assert.equals(2, #result)
+      assert.equals('user1', result[1].author.login)
+      assert.equals('Second comment', result[2].body)
+    end)
+
+    it('get_comments returns empty array when none set', function()
+      local result = data.get_comments()
+      assert.is_table(result)
+      assert.equals(0, #result)
+    end)
+
+    it('set_comments notifies pr_comments key', function()
+      local notified_key = nil
+      observers.subscribe('pr_comments', function(key)
+        notified_key = key
+      end)
+
+      data.set_comments({
+        {
+          id = 1,
+          author = { login = 'user' },
+          body = 'Comment',
+          createdAt = '2026-01-01T00:00:00Z',
+        },
+      })
+
+      local ok = vim.wait(100, function()
+        return notified_key ~= nil
+      end)
+
+      assert.is_true(ok, 'observer was not notified')
+      assert.equals('pr_comments', notified_key)
+    end)
+  end)
+
   describe('clear', function()
     it('resets all data', function()
       data.set_pr({
@@ -287,6 +343,14 @@ describe('nit.state.data', function()
       data.set_threads({
         { id = 1, comments = {}, isResolved = false, path = 'test.lua', line = 10 },
       })
+      data.set_comments({
+        {
+          id = 1,
+          author = { login = 'user' },
+          body = 'Comment',
+          createdAt = '2026-01-01T00:00:00Z',
+        },
+      })
 
       data.clear()
 
@@ -294,6 +358,7 @@ describe('nit.state.data', function()
       assert.equals(0, #data.get_files())
       assert.equals(0, #data.get_threads())
       assert.equals(0, #data.get_threads_for_file('test.lua'))
+      assert.equals(0, #data.get_comments())
     end)
 
     it('notifies all keys', function()
@@ -307,17 +372,24 @@ describe('nit.state.data', function()
       observers.subscribe('comments', function(key)
         notified_keys[key] = true
       end)
+      observers.subscribe('pr_comments', function(key)
+        notified_keys[key] = true
+      end)
 
       data.clear()
 
       local ok = vim.wait(100, function()
-        return notified_keys.pr and notified_keys.files and notified_keys.comments
+        return notified_keys.pr
+          and notified_keys.files
+          and notified_keys.comments
+          and notified_keys.pr_comments
       end)
 
       assert.is_true(ok, 'all keys should be notified')
       assert.is_true(notified_keys.pr)
       assert.is_true(notified_keys.files)
       assert.is_true(notified_keys.comments)
+      assert.is_true(notified_keys.pr_comments)
     end)
   end)
 end)
