@@ -7,6 +7,7 @@ local CURRENT_VERSION = 1
 local cached_repo_hash = nil
 
 vim.api.nvim_create_autocmd('DirChanged', {
+  group = vim.api.nvim_create_augroup('NitPersistence', { clear = true }),
   callback = function()
     cached_repo_hash = nil
   end,

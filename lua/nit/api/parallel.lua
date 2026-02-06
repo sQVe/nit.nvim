@@ -33,6 +33,7 @@ function M.parallel(operations, callback)
     if ok then
       cancel_fns[i] = cancel_fn_or_err
     else
+      cancel_fns[i] = function() end
       results[i] = { ok = false, error = tostring(cancel_fn_or_err) }
       pending = pending - 1
     end
