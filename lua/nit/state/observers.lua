@@ -25,10 +25,9 @@ function M.subscribe(key, callback)
     if not list then
       return
     end
-    for i, cb in ipairs(list) do
-      if cb == callback then
+    for i = #list, 1, -1 do
+      if list[i] == callback then
         table.remove(list, i)
-        break
       end
     end
   end

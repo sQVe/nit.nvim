@@ -1,16 +1,5 @@
 local M = {}
 
-local REACTION_ICONS = {
-  ['+1'] = '+1',
-  ['-1'] = '-1',
-  ['laugh'] = 'laugh',
-  ['hooray'] = 'hooray',
-  ['confused'] = 'confused',
-  ['heart'] = 'heart',
-  ['rocket'] = 'rocket',
-  ['eyes'] = 'eyes',
-}
-
 local REVIEW_STATE_LABELS = {
   PENDING = 'Pending',
   APPROVED = 'Approved',
@@ -82,7 +71,7 @@ end
 ---@param emoji string
 ---@return string
 function M.get_reaction_icon(emoji)
-  return REACTION_ICONS[emoji] or emoji:lower()
+  return emoji:lower()
 end
 
 return M
