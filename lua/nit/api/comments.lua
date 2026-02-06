@@ -52,6 +52,8 @@ local function group_into_threads(comments)
       local parent = comment_map[raw_comment.in_reply_to_id]
       if parent then
         table.insert(parent.replies, comment_map[raw_comment.id])
+      else
+        table.insert(threads, comment_map[raw_comment.id])
       end
     else
       table.insert(threads, comment_map[raw_comment.id])

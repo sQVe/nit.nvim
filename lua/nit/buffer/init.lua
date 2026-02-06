@@ -23,6 +23,19 @@ local function init()
   })
 end
 
+---Write lines to buffer and set standard buffer options
+---@param bufnr integer Buffer number
+---@param lines string[] Lines to write
+local function write_buffer(bufnr, lines)
+  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
+  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
+  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
+end
+
 ---Render PR content to buffer
 ---@param bufnr integer Buffer number
 ---@param opts? Nit.Buffer.RenderOpts Render options
@@ -45,33 +58,18 @@ function M.render(bufnr, opts)
   vim.list_extend(lines, sections.separator())
   vim.list_extend(lines, sections.comments(comments))
 
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
-  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
-  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
+  write_buffer(bufnr, lines)
 end
 
 ---Render loading state to buffer
 ---@param bufnr integer Buffer number
 function M.render_loading(bufnr)
   init()
-  local lines = {
+  write_buffer(bufnr, {
     'Loading PR...',
     '',
     'Fetching data from GitHub...',
-  }
-
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
-  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
-  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
+  })
 end
 
 ---Render error state to buffer
@@ -79,21 +77,13 @@ end
 ---@param message string Error message
 function M.render_error(bufnr, message)
   init()
-  local lines = {
+  write_buffer(bufnr, {
     '# Error',
     '',
     message,
     '',
     'Use :Nit refresh to retry',
-  }
-
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
-  vim.api.nvim_set_option_value('bufhidden', 'hide', { buf = bufnr })
-  vim.api.nvim_set_option_value('swapfile', false, { buf = bufnr })
-  vim.api.nvim_set_option_value('filetype', 'nit', { buf = bufnr })
+  })
 end
 
 return M

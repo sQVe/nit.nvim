@@ -79,7 +79,11 @@ local function normalize_reviewers(reviewRequests, reviews)
   local result = {}
 
   if reviews then
-    for _, review in ipairs(reviews) do
+    local sorted = { unpack(reviews) }
+    table.sort(sorted, function(a, b)
+      return (a.submittedAt or '') < (b.submittedAt or '')
+    end)
+    for _, review in ipairs(sorted) do
       local author = nil_if_vim_nil(review.author)
       if author then
         if seen[author.login] then

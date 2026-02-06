@@ -6,6 +6,13 @@ local CURRENT_VERSION = 1
 ---@type string?
 local cached_repo_hash = nil
 
+vim.api.nvim_create_autocmd('DirChanged', {
+  group = vim.api.nvim_create_augroup('NitPersistence', { clear = true }),
+  callback = function()
+    cached_repo_hash = nil
+  end,
+})
+
 ---Compute a simple hash of a string
 ---@param str string
 ---@return string

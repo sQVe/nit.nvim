@@ -1,16 +1,5 @@
 local M = {}
 
-local REACTION_ICONS = {
-  ['+1'] = '+1',
-  ['-1'] = '-1',
-  ['laugh'] = 'laugh',
-  ['hooray'] = 'hooray',
-  ['confused'] = 'confused',
-  ['heart'] = 'heart',
-  ['rocket'] = 'rocket',
-  ['eyes'] = 'eyes',
-}
-
 local REVIEW_STATE_LABELS = {
   PENDING = 'Pending',
   APPROVED = 'Approved',
@@ -35,15 +24,15 @@ function M.format_relative_time(iso_timestamp)
     hour = assert(tonumber(hour)),
     min = assert(tonumber(min)),
     sec = assert(tonumber(sec)),
+    isdst = false,
   })
 
-  local local_now = os.time()
   local utc_date = os.date('!*t')
   assert(type(utc_date) == 'table', 'os.date failed to return table')
+  utc_date.isdst = false
   local utc_now = os.time(utc_date)
-  local timezone_offset = os.difftime(local_now, utc_now)
 
-  local diff = os.difftime(local_now, utc_time + timezone_offset)
+  local diff = os.difftime(utc_now, utc_time)
 
   if diff < 60 then
     return 'just now'
@@ -82,7 +71,7 @@ end
 ---@param emoji string
 ---@return string
 function M.get_reaction_icon(emoji)
-  return REACTION_ICONS[emoji] or emoji:lower()
+  return emoji:lower()
 end
 
 return M

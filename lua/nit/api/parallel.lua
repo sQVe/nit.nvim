@@ -21,7 +21,7 @@ function M.parallel(operations, callback)
   local cancel_fns = {}
 
   for i, op in ipairs(operations) do
-    local cancel_fn = op.fn(op.args, function(result)
+    local ok, cancel_fn_or_err = pcall(op.fn, op.args, function(result)
       results[i] = result
       pending = pending - 1
 
@@ -30,7 +30,19 @@ function M.parallel(operations, callback)
       end
     end)
 
-    cancel_fns[i] = cancel_fn
+    if ok then
+      cancel_fns[i] = cancel_fn_or_err
+    else
+      cancel_fns[i] = function() end
+      results[i] = { ok = false, error = tostring(cancel_fn_or_err) }
+      pending = pending - 1
+    end
+  end
+
+  if pending == 0 then
+    vim.schedule(function()
+      callback(results)
+    end)
   end
 
   return function()
