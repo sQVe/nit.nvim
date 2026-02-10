@@ -12,6 +12,11 @@ local subcommands = {
       vim.cmd('checkhealth nit')
     end,
   },
+  refresh = {
+    run = function(_args, _opts)
+      require('nit.controller').refresh()
+    end,
+  },
   review = {
     run = function(_args, _opts)
       require('nit').review.toggle()

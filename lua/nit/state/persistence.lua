@@ -17,11 +17,7 @@ vim.api.nvim_create_autocmd('DirChanged', {
 ---@param str string
 ---@return string
 local function hash_string(str)
-  local sum = 0
-  for i = 1, #str do
-    sum = (sum * 31 + str:byte(i)) % 0x100000000
-  end
-  return string.format('%08x', sum)
+  return vim.fn.sha256(str):sub(1, 16)
 end
 
 ---Get the git remote URL hash for the current repository (cached)

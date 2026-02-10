@@ -9,11 +9,18 @@ local nil_if_vim_nil = util.nil_if_vim_nil
 local FIELDS =
   'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments,headRefName,baseRefName'
 
+---@type table<string, 'open'|'closed'|'merged'>
+local PR_STATES = {
+  open = 'open',
+  closed = 'closed',
+  merged = 'merged',
+}
+
 ---Normalize PR state from GitHub API format to plugin format
 ---@param state string
 ---@return 'open'|'closed'|'merged'
 local function normalize_state(state)
-  return state:lower()
+  return PR_STATES[state:lower()] or 'open'
 end
 
 ---Normalize PR mergeable status from GitHub API format to plugin format
@@ -73,7 +80,7 @@ local function normalize_reviewers(reviewRequests, reviews)
   local result = {}
 
   if reviews then
-    local sorted = { unpack(reviews) }
+    local sorted = vim.list_extend({}, reviews)
     table.sort(sorted, function(a, b)
       return (a.submittedAt or '') < (b.submittedAt or '')
     end)

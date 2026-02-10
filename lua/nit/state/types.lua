@@ -9,12 +9,12 @@
 ---@class Nit.State.Data
 ---@field pr Nit.Api.PR? Current PR
 ---@field files_by_path table<string, Nit.Api.File> Files indexed by path
----@field threads_by_id table<integer, Nit.Api.Thread> Threads indexed by ID
+---@field threads_by_id table<string, Nit.Api.Thread> Threads indexed by ID
 ---@field comments Nit.Api.IssueComment[]? PR-level conversation comments
 ---@field loading boolean Loading state
 ---@field error string? Error message
 
 ---@class Nit.State.Indexes
----@field threads_by_file table<string, integer[]> Thread IDs by file path
+---@field threads_by_file table<string, string[]> Thread IDs by file path
 
 return {}
