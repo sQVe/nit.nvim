@@ -30,6 +30,44 @@ describe('commands', function()
       assert.is_true(called)
     end)
 
+    it('calls review subcommand', function()
+      local commands = require('nit.commands')
+      local toggled = false
+      package.loaded['nit.review'] = {
+        toggle = function()
+          toggled = true
+        end,
+      }
+      package.loaded['nit'] = nil
+
+      commands.dispatch({ fargs = { 'review' } })
+
+      package.loaded['nit.review'] = nil
+      assert.is_true(toggled)
+    end)
+
+    it('passes remaining args to subcommand impl', function()
+      local commands = require('nit.commands')
+
+      package.loaded['nit.commands'] = nil
+      commands = require('nit.commands')
+
+      local called = false
+      local original_cmd = vim.cmd
+      vim.cmd = function(cmd)
+        if cmd == 'checkhealth nit' then
+          called = true
+        else
+          original_cmd(cmd)
+        end
+      end
+
+      commands.dispatch({ fargs = { 'healthcheck', 'extra', 'args' } })
+
+      vim.cmd = original_cmd
+      assert.is_true(called)
+    end)
+
     it('shows error for unknown subcommand', function()
       local commands = require('nit.commands')
       local notified = false
@@ -49,24 +87,20 @@ describe('commands', function()
       assert.are.equal(vim.log.levels.ERROR, captured_level)
     end)
 
-    it('shows available subcommands when no subcommand provided', function()
+    it('toggles review panel when no subcommand provided', function()
       local commands = require('nit.commands')
-      ---@type string?
-      local captured_msg = nil
-      local captured_level = nil
-      local original_notify = vim.notify
-      vim.notify = function(msg, level)
-        captured_msg = msg
-        captured_level = level
-      end
+      local toggled = false
+      package.loaded['nit.review'] = {
+        toggle = function()
+          toggled = true
+        end,
+      }
+      package.loaded['nit'] = nil
 
       commands.dispatch({ fargs = {} })
 
-      vim.notify = original_notify
-      assert.is_not_nil(captured_msg)
-      assert.is_true(captured_msg:match('Nit subcommands:') ~= nil)
-      assert.is_true(captured_msg:match('healthcheck') ~= nil)
-      assert.are.equal(vim.log.levels.INFO, captured_level)
+      package.loaded['nit.review'] = nil
+      assert.is_true(toggled)
     end)
   end)
 
@@ -88,6 +122,14 @@ describe('commands', function()
       local results = commands.complete('health', 'Nit health', 10)
       assert.is_table(results)
       assert.is_true(vim.tbl_contains(results, 'healthcheck'))
+    end)
+
+    it('filters subcommands by rev prefix', function()
+      local commands = require('nit.commands')
+      local results = commands.complete('rev', 'Nit rev', 7)
+      assert.is_table(results)
+      assert.is_true(vim.tbl_contains(results, 'review'))
+      assert.is_false(vim.tbl_contains(results, 'healthcheck'))
     end)
 
     it('returns empty table for unknown subcommand args', function()

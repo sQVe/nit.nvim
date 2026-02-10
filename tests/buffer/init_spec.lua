@@ -1,9 +1,9 @@
 describe('nit.buffer', function()
   local buffer = require('nit.buffer.init')
-  local state = require('nit.state')
+  local data = require('nit.state.data')
 
   after_each(function()
-    state.reset()
+    data.clear()
   end)
 
   describe('render', function()
@@ -131,14 +131,14 @@ describe('nit.buffer', function()
         body = 'From state',
       }
 
-      state.set_pr(pr)
+      data.set_pr(pr)
       buffer.render(bufnr, { comments = {} })
 
       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
       assert.equals('# State PR', lines[1])
     end)
 
-    it('uses state.get_comments when opts.comments is nil', function()
+    it('uses data.get_comments when opts.comments is nil', function()
       local bufnr = vim.api.nvim_create_buf(false, true)
       local pr = {
         number = 789,
@@ -160,8 +160,8 @@ describe('nit.buffer', function()
         },
       }
 
-      state.set_pr(pr)
-      state.set_comments(comments)
+      data.set_pr(pr)
+      data.set_comments(comments)
       buffer.render(bufnr)
 
       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
@@ -198,7 +198,7 @@ describe('nit.buffer', function()
         body = 'From opts',
       }
 
-      state.set_pr(state_pr)
+      data.set_pr(state_pr)
       buffer.render(bufnr, { pr = opts_pr, comments = {} })
 
       local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)

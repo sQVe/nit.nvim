@@ -1,4 +1,4 @@
----@class Nit.State.PendingModule
+---@class Nit.State.Pending
 local M = {}
 
 local observers = require('nit.state.observers')
@@ -35,7 +35,7 @@ function M.get_pending()
 end
 
 ---Add a pending comment
----@param comment {path: string, line: integer, side: 'LEFT'|'RIGHT', body: string}
+---@param comment {path: Nit.Api.FilePath, line: Nit.Api.LineNumber, side: Nit.Api.CommentSide, body: string}
 ---@return integer id Generated ID
 function M.add_pending(comment)
   ensure_loaded()

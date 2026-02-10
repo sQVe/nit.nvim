@@ -1,6 +1,7 @@
-local tracker = require('nit.api.tracker')
-
+---@class Nit.Api.Gh
 local M = {}
+
+local tracker = require('nit.api.tracker')
 
 local DEFAULT_TIMEOUT = 10000
 local DEFAULT_RETRY = 2
@@ -16,6 +17,17 @@ local function is_transient_error(stderr)
   return lower:match('timeout') ~= nil
     or lower:match('network') ~= nil
     or lower:match('connection') ~= nil
+end
+
+---Check if error is a rate limit error
+---@param stderr string
+---@return boolean
+local function is_rate_limit_error(stderr)
+  if not stderr then
+    return false
+  end
+  local lower = stderr:lower()
+  return lower:match('429') ~= nil or lower:match('throttled') ~= nil
 end
 
 ---Check if error is an authentication error
@@ -39,6 +51,9 @@ local function make_error_message(stderr, timed_out)
   end
   if is_auth_error(stderr) then
     return 'Not authenticated'
+  end
+  if is_rate_limit_error(stderr) then
+    return 'Rate limited by GitHub — try again shortly'
   end
   if is_transient_error(stderr) then
     return 'Network error'
@@ -121,7 +136,7 @@ function M.execute(args, opts, callback)
       else
         local stderr = result.stderr or ''
         local should_retry = retry_count < max_retries
-          and is_transient_error(stderr)
+          and (is_transient_error(stderr) or is_rate_limit_error(stderr))
           and not is_auth_error(stderr)
 
         if should_retry then

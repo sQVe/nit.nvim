@@ -12,11 +12,3 @@ end, {
   end,
   desc = 'nit.nvim PR review',
 })
-
-vim.keymap.set('n', '<Plug>(nit-open)', function()
-  vim.notify('nit-open: not yet implemented', vim.log.levels.WARN)
-end, { desc = 'Open PR review' })
-
-vim.keymap.set('n', '<Plug>(nit-healthcheck)', function()
-  vim.cmd('checkhealth nit')
-end, { desc = 'Run nit health check' })

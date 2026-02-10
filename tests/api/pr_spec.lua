@@ -707,6 +707,40 @@ describe('nit.api.pr', function()
       end
     )
 
+    it('skips reviewRequests with nil login (team requests)', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        reviewRequests = {
+          { login = 'alice' },
+          { name = 'backend-team', slug = 'backend-team' },
+        },
+        reviews = {},
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.reviewers)
+      assert.equals('alice', result.data.reviewers[1].login)
+      assert.equals('PENDING', result.data.reviewers[1].state)
+    end)
+
     it('skips reviews with vim.NIL author', function()
       local gh_response = vim.json.encode({
         number = 123,
@@ -906,6 +940,138 @@ describe('nit.api.pr', function()
       for _, arg in ipairs(called_args) do
         assert.is_not.equals('feature', arg)
       end
+    end)
+
+    it('includes review body as comment when body is non-empty', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {},
+        reviews = {
+          {
+            id = 'R_1',
+            author = { login = 'reviewer' },
+            state = 'COMMENTED',
+            body = 'Overall looks good, minor nit',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(1, #result.data.comments)
+      assert.equals('reviewer', result.data.comments[1].author.login)
+      assert.equals('Overall looks good, minor nit', result.data.comments[1].body)
+      assert.equals('2026-01-03T00:00:00Z', result.data.comments[1].createdAt)
+    end)
+
+    it('excludes review with empty body from comments', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {},
+        reviews = {
+          {
+            id = 'R_1',
+            author = { login = 'approver' },
+            state = 'APPROVED',
+            body = '',
+            submittedAt = '2026-01-03T00:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.are.same({}, result.data.comments)
+    end)
+
+    it('sorts mixed issue comments and review body comments by time', function()
+      local gh_response = vim.json.encode({
+        number = 123,
+        title = 'Test',
+        state = 'OPEN',
+        author = { login = 'test' },
+        body = '',
+        createdAt = '2026-01-01T00:00:00Z',
+        updatedAt = '2026-01-02T00:00:00Z',
+        mergeable = 'UNKNOWN',
+        isDraft = false,
+        comments = {
+          {
+            id = 1001,
+            author = { login = 'alice' },
+            body = 'First issue comment',
+            createdAt = '2026-01-03T10:00:00Z',
+            reactions = {},
+          },
+          {
+            id = 1002,
+            author = { login = 'charlie' },
+            body = 'Third issue comment',
+            createdAt = '2026-01-03T14:00:00Z',
+            reactions = {},
+          },
+        },
+        reviews = {
+          {
+            id = 'R_1',
+            author = { login = 'bob' },
+            state = 'COMMENTED',
+            body = 'Second from review',
+            submittedAt = '2026-01-03T12:00:00Z',
+          },
+        },
+      })
+
+      local result = nil
+      gh.execute = function(_args, _opts, callback)
+        callback({ ok = true, data = gh_response })
+        return function() end
+      end
+
+      pr.fetch_pr({}, function(r)
+        result = r
+      end)
+
+      assert.is_true(result.ok)
+      assert.equals(3, #result.data.comments)
+      assert.equals('alice', result.data.comments[1].author.login)
+      assert.equals('bob', result.data.comments[2].author.login)
+      assert.equals('charlie', result.data.comments[3].author.login)
     end)
   end)
 end)

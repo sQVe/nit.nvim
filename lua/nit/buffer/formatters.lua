@@ -1,3 +1,4 @@
+---@class Nit.Buffer.Formatters
 local M = {}
 
 local REVIEW_STATE_LABELS = {
@@ -17,22 +18,21 @@ function M.format_relative_time(iso_timestamp)
     return iso_timestamp
   end
 
-  local utc_time = os.time({
+  local parsed_as_local = os.time({
     year = assert(tonumber(year)),
     month = assert(tonumber(month)),
     day = assert(tonumber(day)),
     hour = assert(tonumber(hour)),
     min = assert(tonumber(min)),
     sec = assert(tonumber(sec)),
-    isdst = false,
   })
 
-  local utc_date = os.date('!*t')
-  assert(type(utc_date) == 'table', 'os.date failed to return table')
-  utc_date.isdst = false
-  local utc_now = os.time(utc_date)
+  local utc_table = os.date('!*t', parsed_as_local)
+  assert(type(utc_table) == 'table', 'os.date failed to return table')
+  local utc_offset = parsed_as_local - os.time(utc_table)
+  local parsed_utc = parsed_as_local + utc_offset
 
-  local diff = os.difftime(utc_now, utc_time)
+  local diff = os.difftime(os.time(), parsed_utc)
 
   if diff < 60 then
     return 'just now'
@@ -67,11 +67,22 @@ function M.format_review_state(state)
   return REVIEW_STATE_LABELS[state] or state
 end
 
+local REACTION_ICONS = {
+  THUMBS_UP = '👍',
+  THUMBS_DOWN = '👎',
+  LAUGH = '😄',
+  HOORAY = '🎉',
+  CONFUSED = '😕',
+  HEART = '❤️',
+  ROCKET = '🚀',
+  EYES = '👀',
+}
+
 ---Get reaction icon for emoji name
 ---@param emoji string
 ---@return string
 function M.get_reaction_icon(emoji)
-  return emoji:lower()
+  return REACTION_ICONS[emoji] or emoji:lower()
 end
 
 return M

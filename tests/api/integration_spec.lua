@@ -1,33 +1,12 @@
 describe('nit.api integration', function()
-  local api = require('nit.api')
+  local pr_api = require('nit.api.pr')
+  local files_api = require('nit.api.files')
+  local parallel_api = require('nit.api.parallel')
   local gh = require('nit.api.gh')
+  local util = require('nit.api.util')
   local tracker = require('nit.api.tracker')
 
-  describe('public exports', function()
-    it('exports fetch_pr', function()
-      assert.is_function(api.fetch_pr)
-    end)
-
-    it('exports fetch_files', function()
-      assert.is_function(api.fetch_files)
-    end)
-
-    it('exports fetch_diff', function()
-      assert.is_function(api.fetch_diff)
-    end)
-
-    it('exports fetch_comments', function()
-      assert.is_function(api.fetch_comments)
-    end)
-
-    it('exports parallel', function()
-      assert.is_function(api.parallel)
-    end)
-
-    it('exports cancel_all', function()
-      assert.is_function(api.cancel_all)
-    end)
-  end)
+  local original_get_repo_info = util.get_repo_info
 
   describe('parallel execution', function()
     local original_execute
@@ -57,17 +36,25 @@ describe('nit.api integration', function()
       })
 
       local files_response = vim.json.encode({
-        files = {
-          { path = 'file1.lua', status = 'modified', additions = 10, deletions = 5 },
-          { path = 'file2.lua', status = 'added', additions = 20, deletions = 0 },
-        },
+        { filename = 'file1.lua', status = 'modified', additions = 10, deletions = 5 },
+        { filename = 'file2.lua', status = 'added', additions = 20, deletions = 0 },
       })
+
+      util.get_repo_info = function(callback)
+        callback('testowner', 'testrepo')
+        return function() end
+      end
 
       local execute_count = 0
       gh.execute = function(args, _opts, callback)
         execute_count = execute_count + 1
 
         vim.schedule(function()
+          if args[1] == 'api' then
+            callback({ ok = true, data = files_response })
+            return
+          end
+
           local json_idx = nil
           for i, arg in ipairs(args) do
             if arg == '--json' then
@@ -79,8 +66,6 @@ describe('nit.api integration', function()
 
           if fields and fields:match('mergeable') then
             callback({ ok = true, data = pr_response })
-          elseif fields == 'files' then
-            callback({ ok = true, data = files_response })
           end
         end)
 
@@ -88,9 +73,9 @@ describe('nit.api integration', function()
       end
 
       local results = nil
-      api.parallel({
-        { fn = api.fetch_pr, args = {} },
-        { fn = api.fetch_files, args = {} },
+      parallel_api.parallel({
+        { fn = pr_api.fetch_pr, args = {} },
+        { fn = files_api.fetch_files, args = { number = 1 } },
       }, function(r)
         results = r
       end)
@@ -105,6 +90,8 @@ describe('nit.api integration', function()
       assert.equals(123, results[1].data.number)
       assert.is_true(results[2].ok)
       assert.equals(2, #results[2].data)
+
+      util.get_repo_info = original_get_repo_info
     end)
 
     it('handles mixed success and failure in parallel', function()
@@ -119,9 +106,9 @@ describe('nit.api integration', function()
       end
 
       local results = nil
-      api.parallel({
-        { fn = api.fetch_pr, args = {} },
-        { fn = api.fetch_diff, args = {} },
+      parallel_api.parallel({
+        { fn = pr_api.fetch_pr, args = {} },
+        { fn = files_api.fetch_diff, args = {} },
       }, function(r)
         results = r
       end)
@@ -145,6 +132,11 @@ describe('nit.api integration', function()
       local cancelled_count = 0
       local original_execute = gh.execute
 
+      util.get_repo_info = function(callback)
+        callback('testowner', 'testrepo')
+        return function() end
+      end
+
       gh.execute = function(_args, _opts, _callback)
         local cancel_fn = function()
           cancelled_count = cancelled_count + 1
@@ -156,18 +148,19 @@ describe('nit.api integration', function()
         end
       end
 
-      api.fetch_pr({}, function() end)
-      api.fetch_files({}, function() end)
-      api.fetch_diff({}, function() end)
+      pr_api.fetch_pr({}, function() end)
+      files_api.fetch_files({ number = 1 }, function() end)
+      files_api.fetch_diff({}, function() end)
 
       assert.equals(3, tracker.get_count())
 
-      api.cancel_all()
+      tracker.cancel_all()
 
       assert.equals(3, cancelled_count)
       assert.equals(0, tracker.get_count())
 
       gh.execute = original_execute
+      util.get_repo_info = original_get_repo_info
     end)
 
     it('prevents callbacks from being called after cancel', function()
@@ -194,11 +187,11 @@ describe('nit.api integration', function()
         end
       end
 
-      api.fetch_pr({}, function()
+      pr_api.fetch_pr({}, function()
         callback_called = true
       end)
 
-      api.cancel_all()
+      tracker.cancel_all()
 
       vim.wait(50, function()
         return callback_called
@@ -230,7 +223,7 @@ describe('nit.api integration', function()
       end
 
       local result = nil
-      api.fetch_pr({}, function(r)
+      pr_api.fetch_pr({}, function(r)
         result = r
       end)
 
@@ -249,10 +242,13 @@ describe('nit.api integration', function()
 
     it('fetch_files returns expected file structure', function()
       local files_response = vim.json.encode({
-        files = {
-          { path = 'src/main.lua', status = 'modified', additions = 15, deletions = 3 },
-        },
+        { filename = 'src/main.lua', status = 'modified', additions = 15, deletions = 3 },
       })
+
+      util.get_repo_info = function(callback)
+        callback('testowner', 'testrepo')
+        return function() end
+      end
 
       gh.execute = function(_args, _opts, callback)
         callback({ ok = true, data = files_response })
@@ -260,7 +256,7 @@ describe('nit.api integration', function()
       end
 
       local result = nil
-      api.fetch_files({}, function(r)
+      files_api.fetch_files({ number = 1 }, function(r)
         result = r
       end)
 
@@ -272,6 +268,8 @@ describe('nit.api integration', function()
       assert.is_string(file.status)
       assert.is_number(file.additions)
       assert.is_number(file.deletions)
+
+      util.get_repo_info = original_get_repo_info
     end)
 
     it('fetch_diff returns string diff content', function()
@@ -291,7 +289,7 @@ index 123..456 789
       end
 
       local result = nil
-      api.fetch_diff({}, function(r)
+      files_api.fetch_diff({}, function(r)
         result = r
       end)
 

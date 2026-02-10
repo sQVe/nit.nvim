@@ -392,4 +392,102 @@ describe('nit.state.data', function()
       assert.is_true(notified_keys.pr_comments)
     end)
   end)
+
+  describe('Loading state operations', function()
+    it('get_loading returns false by default', function()
+      assert.equals(false, data.get_loading())
+    end)
+
+    it('set_loading(true) makes get_loading return true', function()
+      data.set_loading(true)
+      assert.equals(true, data.get_loading())
+    end)
+
+    it('set_loading(false) makes get_loading return false', function()
+      data.set_loading(true)
+      data.set_loading(false)
+      assert.equals(false, data.get_loading())
+    end)
+
+    it('set_loading notifies loading key', function()
+      local notified_key = nil
+      observers.subscribe('loading', function(key)
+        notified_key = key
+      end)
+
+      data.set_loading(true)
+
+      local ok = vim.wait(100, function()
+        return notified_key ~= nil
+      end)
+
+      assert.is_true(ok, 'observer was not notified')
+      assert.equals('loading', notified_key)
+    end)
+  end)
+
+  describe('Error state operations', function()
+    it('get_error returns nil by default', function()
+      assert.is_nil(data.get_error())
+    end)
+
+    it('set_error stores and get_error retrieves', function()
+      data.set_error('Something went wrong')
+      assert.equals('Something went wrong', data.get_error())
+    end)
+
+    it('set_error(nil) clears error', function()
+      data.set_error('Error message')
+      data.set_error(nil)
+      assert.is_nil(data.get_error())
+    end)
+
+    it('set_error notifies error key', function()
+      local notified_key = nil
+      observers.subscribe('error', function(key)
+        notified_key = key
+      end)
+
+      data.set_error('Test error')
+
+      local ok = vim.wait(100, function()
+        return notified_key ~= nil
+      end)
+
+      assert.is_true(ok, 'observer was not notified')
+      assert.equals('error', notified_key)
+    end)
+  end)
+
+  describe('clear with loading and error', function()
+    it('resets loading to false and error to nil', function()
+      data.set_loading(true)
+      data.set_error('Error message')
+
+      data.clear()
+
+      assert.equals(false, data.get_loading())
+      assert.is_nil(data.get_error())
+    end)
+
+    it('notifies loading and error keys', function()
+      local notified_keys = {}
+      observers.subscribe('loading', function(key)
+        notified_keys[key] = true
+      end)
+      observers.subscribe('error', function(key)
+        notified_keys[key] = true
+      end)
+
+      data.clear()
+
+      local ok = vim.wait(100, function()
+        return notified_keys.loading and notified_keys.error
+      end)
+
+      assert.is_true(ok, 'loading and error keys should be notified')
+      assert.is_true(notified_keys.loading)
+      assert.is_true(notified_keys.error)
+    end)
+  end)
 end)

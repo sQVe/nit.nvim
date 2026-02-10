@@ -294,6 +294,21 @@ describe('nit.state.pending', function()
       local comments = pending_module.get_pending()
       assert.equals('Original', comments[1].body)
     end)
+
+    it('returns true when comment is found and updated', function()
+      local id = pending_module.add_pending({
+        path = 'src/main.lua',
+        line = 10,
+        side = 'RIGHT',
+        body = 'Original',
+      })
+
+      assert.is_true(pending_module.update_pending(id, 'Updated'))
+    end)
+
+    it('returns false when comment is not found', function()
+      assert.is_false(pending_module.update_pending(999, 'No match'))
+    end)
   end)
 
   describe('remove_pending', function()
@@ -367,6 +382,21 @@ describe('nit.state.pending', function()
 
       local comments = pending_module.get_pending()
       assert.equals(1, #comments)
+    end)
+
+    it('returns true when comment is found and removed', function()
+      local id = pending_module.add_pending({
+        path = 'src/main.lua',
+        line = 10,
+        side = 'RIGHT',
+        body = 'Test',
+      })
+
+      assert.is_true(pending_module.remove_pending(id))
+    end)
+
+    it('returns false when comment is not found', function()
+      assert.is_false(pending_module.remove_pending(999))
     end)
   end)
 

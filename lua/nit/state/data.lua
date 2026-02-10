@@ -1,4 +1,4 @@
----@class Nit.State.DataModule
+---@class Nit.State.Data
 local M = {}
 
 local observers = require('nit.state.observers')
@@ -6,17 +6,23 @@ local observers = require('nit.state.observers')
 ---@type Nit.Api.PR?
 local pr = nil
 
----@type table<string, Nit.Api.File>
+---@type table<Nit.Api.FilePath, Nit.Api.File>
 local files_by_path = {}
 
----@type table<integer, Nit.Api.Thread>
+---@type table<Nit.Api.ThreadId, Nit.Api.Thread>
 local threads_by_id = {}
 
----@type table<string, integer[]>
+---@type table<Nit.Api.FilePath, Nit.Api.ThreadId[]>
 local threads_by_file = {}
 
 ---@type Nit.Api.IssueComment[]
 local comments = {}
+
+---@type boolean
+local loading = false
+
+---@type string?
+local error_msg = nil
 
 ---Set PR data
 ---@param data Nit.Api.PR?
@@ -42,7 +48,7 @@ function M.set_files(files)
 end
 
 ---Get file by path
----@param path string
+---@param path Nit.Api.FilePath
 ---@return Nit.Api.File?
 function M.get_file(path)
   return files_by_path[path]
@@ -100,7 +106,7 @@ function M.get_threads()
 end
 
 ---Get threads for a specific file path
----@param path string
+---@param path Nit.Api.FilePath
 ---@return Nit.Api.Thread[]
 function M.get_threads_for_file(path)
   local ids = threads_by_file[path]
@@ -130,17 +136,47 @@ function M.get_comments()
   return comments
 end
 
+---Set loading state
+---@param value boolean
+function M.set_loading(value)
+  loading = value
+  observers.notify('loading')
+end
+
+---Get loading state
+---@return boolean
+function M.get_loading()
+  return loading
+end
+
+---Set error state
+---@param value string?
+function M.set_error(value)
+  error_msg = value
+  observers.notify('error')
+end
+
+---Get error state
+---@return string?
+function M.get_error()
+  return error_msg
+end
+
 ---Clear all state data
 function M.clear()
-  pr = nil
-  files_by_path = {}
-  threads_by_id = {}
-  threads_by_file = {}
   comments = {}
-  observers.notify('pr')
-  observers.notify('files')
+  error_msg = nil
+  files_by_path = {}
+  loading = false
   observers.notify('comments')
+  observers.notify('error')
+  observers.notify('files')
+  observers.notify('loading')
+  observers.notify('pr')
   observers.notify('pr_comments')
+  pr = nil
+  threads_by_file = {}
+  threads_by_id = {}
 end
 
 return M

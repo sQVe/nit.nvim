@@ -1,3 +1,4 @@
+---@class Nit.Health
 local M = {}
 
 ---Check if gh CLI is installed
@@ -51,6 +52,7 @@ function M.check()
     local version = M.get_gh_version()
     vim.health.ok('gh CLI installed: ' .. (version or 'unknown version'))
   else
+    ---@diagnostic disable-next-line: redundant-parameter
     vim.health.error('gh CLI not found', {
       'Install GitHub CLI: https://cli.github.com/',
       'Verify with: gh --version',
@@ -67,6 +69,7 @@ function M.check()
       if account.state == 'success' then
         vim.health.ok('Authenticated as: ' .. (account.login or 'unknown'))
       else
+        ---@diagnostic disable-next-line: redundant-parameter
         vim.health.error('Authentication failed', {
           'Run: gh auth login',
         })
@@ -75,6 +78,7 @@ function M.check()
       vim.health.warn('No GitHub.com authentication found')
     end
   else
+    ---@diagnostic disable-next-line: redundant-parameter
     vim.health.error('Not authenticated with GitHub: ' .. (err or 'unknown error'), {
       'Run: gh auth login',
       'Then verify with: gh auth status',
@@ -85,6 +89,7 @@ function M.check()
   if vim.fn.has('nvim-0.10') == 1 then
     vim.health.ok('Neovim version: ' .. vim.version().major .. '.' .. vim.version().minor)
   else
+    ---@diagnostic disable-next-line: redundant-parameter
     vim.health.error('Neovim 0.10+ required', {
       'Upgrade Neovim: https://neovim.io/',
     })

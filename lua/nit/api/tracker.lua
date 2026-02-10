@@ -1,3 +1,4 @@
+---@class Nit.Api.Tracker
 local M = {}
 
 local requests = {}

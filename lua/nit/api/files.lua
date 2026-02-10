@@ -1,10 +1,12 @@
-local gh = require('nit.api.gh')
-
+---@class Nit.Api.Files
 local M = {}
+
+local gh = require('nit.api.gh')
+local util = require('nit.api.util')
 
 ---Normalize file status from gh CLI to Nit.Api.File status
 ---@param status string
----@return 'added'|'modified'|'removed'|'renamed'
+---@return Nit.Api.FileStatus
 local function normalize_status(status)
   local lower = status:lower()
   if lower == 'added' or lower == 'a' then
@@ -13,24 +15,26 @@ local function normalize_status(status)
     return 'removed'
   elseif lower == 'renamed' or lower == 'r' then
     return 'renamed'
+  elseif lower == 'copied' then
+    return 'modified'
   else
     return 'modified'
   end
 end
 
----Parse files JSON from gh CLI
+---Parse files JSON from REST API
 ---@param json_str string
 ---@return Nit.Api.File[]?
 local function parse_files(json_str)
   local ok, parsed = pcall(vim.json.decode, json_str)
-  if not ok or not parsed or not parsed.files then
+  if not ok or not parsed then
     return nil
   end
 
   local files = {}
-  for _, file in ipairs(parsed.files) do
+  for _, file in ipairs(parsed) do
     table.insert(files, {
-      filename = file.path,
+      filename = file.filename,
       status = normalize_status(file.status),
       additions = file.additions or 0,
       deletions = file.deletions or 0,
@@ -41,41 +45,36 @@ local function parse_files(json_str)
 end
 
 ---Fetch list of files changed in a PR
----@param opts? Nit.Api.RequestOpts|{ number?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.File[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_files(opts, callback)
-  opts = opts or {}
+  return util.with_pr_context(opts, function(owner, repo, pr_number, request_opts)
+    local args = {
+      'api',
+      string.format('repos/%s/%s/pulls/%d/files', owner, repo, pr_number),
+      '--paginate',
+    }
 
-  local args = { 'pr', 'view' }
-  if opts.number then
-    table.insert(args, tostring(opts.number))
-  end
-  vim.list_extend(args, { '--json', 'files' })
+    return gh.execute(args, request_opts, function(result)
+      if not result.ok then
+        callback(result)
+        return
+      end
 
-  local request_opts = {
-    timeout = opts.timeout,
-    retry = opts.retry,
-  }
+      local files = parse_files(result.data)
+      if not files then
+        callback({ ok = false, error = 'Failed to parse files JSON' })
+        return
+      end
 
-  return gh.execute(args, request_opts, function(result)
-    if not result.ok then
-      callback({ ok = false, error = result.error })
-      return
-    end
-
-    local files = parse_files(result.data)
-    if not files then
-      callback({ ok = false, error = 'Failed to parse files JSON' })
-      return
-    end
-
-    callback({ ok = true, data = files })
-  end)
+      callback({ ok = true, data = files })
+    end)
+  end, callback)
 end
 
 ---Fetch diff for a PR or specific file
----@param opts? Nit.Api.RequestOpts|{ number?: integer, path?: string }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber, path?: Nit.Api.FilePath }
 ---@param callback fun(result: Nit.Api.Result<string>)
 ---@return fun() cancel Cancel function
 function M.fetch_diff(opts, callback)

@@ -1,6 +1,7 @@
-local formatters = require('nit.buffer.formatters')
-
+---@class Nit.Buffer.Sections
 local M = {}
+
+local formatters = require('nit.buffer.formatters')
 
 ---@param pr Nit.Api.PR
 ---@return string[]

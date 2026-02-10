@@ -1,3 +1,4 @@
+---@class Nit
 local M = {}
 
 ---@class Nit.Config
@@ -10,5 +11,12 @@ M.config = {}
 function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts or {})
 end
+
+---@type Nit.Review
+M.review = setmetatable({}, {
+  __index = function(_, key)
+    return require('nit.review')[key]
+  end,
+})
 
 return M

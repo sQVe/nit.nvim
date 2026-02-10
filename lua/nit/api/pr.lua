@@ -1,20 +1,31 @@
-local gh = require('nit.api.gh')
-
+---@class Nit.Api.Pr
 local M = {}
+
+local gh = require('nit.api.gh')
+local util = require('nit.api.util')
+
+local nil_if_vim_nil = util.nil_if_vim_nil
 
 local FIELDS =
   'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments,headRefName,baseRefName'
 
+---@type table<string, Nit.Api.PrState>
+local PR_STATES = {
+  open = 'open',
+  closed = 'closed',
+  merged = 'merged',
+}
+
 ---Normalize PR state from GitHub API format to plugin format
----@param state string
----@return 'open'|'closed'|'merged'
+---@param state Nit.Api.PrStateRaw
+---@return Nit.Api.PrState
 local function normalize_state(state)
-  return state:lower()
+  return PR_STATES[state:lower()] or 'open'
 end
 
 ---Normalize PR mergeable status from GitHub API format to plugin format
 ---@param mergeable string
----@return 'clean'|'dirty'|'unknown'
+---@return Nit.Api.MergeableState
 local function normalize_mergeable(mergeable)
   if mergeable == 'MERGEABLE' then
     return 'clean'
@@ -23,16 +34,6 @@ local function normalize_mergeable(mergeable)
   else
     return 'unknown'
   end
-end
-
----Normalize vim.NIL to nil
----@param value any
----@return any
-local function nil_if_vim_nil(value)
-  if value == vim.NIL then
-    return nil
-  end
-  return value
 end
 
 ---Normalize labels array
@@ -79,7 +80,7 @@ local function normalize_reviewers(reviewRequests, reviews)
   local result = {}
 
   if reviews then
-    local sorted = { unpack(reviews) }
+    local sorted = vim.list_extend({}, reviews)
     table.sort(sorted, function(a, b)
       return (a.submittedAt or '') < (b.submittedAt or '')
     end)
@@ -106,10 +107,11 @@ local function normalize_reviewers(reviewRequests, reviews)
 
   if reviewRequests then
     for _, request in ipairs(reviewRequests) do
-      if not seen[request.login] then
-        seen[request.login] = true
+      local login = nil_if_vim_nil(request.login)
+      if login and not seen[login] then
+        seen[login] = true
         table.insert(result, {
-          login = request.login,
+          login = login,
           state = 'PENDING',
         })
       end
@@ -134,27 +136,52 @@ local function normalize_reactions(reactions)
   return result
 end
 
----Normalize comments array
+---Normalize issue comments and review body comments into a single sorted list
 ---@param comments table[]?
+---@param reviews table[]?
 ---@return Nit.Api.IssueComment[]
-local function normalize_comments(comments)
-  if not comments then
-    return {}
-  end
+local function normalize_comments(comments, reviews)
   local result = {}
-  for _, comment in ipairs(comments) do
-    local author = nil_if_vim_nil(comment.author)
-    table.insert(result, {
-      id = comment.id,
-      author = author and {
-        login = author.login,
-        name = nil_if_vim_nil(author.name),
-      } or { login = 'unknown' },
-      body = comment.body,
-      createdAt = comment.createdAt,
-      reactions = normalize_reactions(comment.reactions),
-    })
+
+  if comments then
+    for _, comment in ipairs(comments) do
+      local author = nil_if_vim_nil(comment.author)
+      table.insert(result, {
+        id = comment.id,
+        author = author and {
+          login = author.login,
+          name = nil_if_vim_nil(author.name),
+        } or { login = 'unknown' },
+        body = comment.body,
+        createdAt = comment.createdAt,
+        reactions = normalize_reactions(comment.reactions),
+      })
+    end
   end
+
+  if reviews then
+    for _, review in ipairs(reviews) do
+      local body = nil_if_vim_nil(review.body)
+      if body and body ~= '' then
+        local author = nil_if_vim_nil(review.author)
+        table.insert(result, {
+          id = review.id,
+          author = author and {
+            login = author.login,
+            name = nil_if_vim_nil(author.name),
+          } or { login = 'unknown' },
+          body = body,
+          createdAt = review.submittedAt,
+          reactions = {},
+        })
+      end
+    end
+  end
+
+  table.sort(result, function(a, b)
+    return (a.createdAt or '') < (b.createdAt or '')
+  end)
+
   return result
 end
 
@@ -164,24 +191,22 @@ end
 local function normalize_pr(data)
   local author = nil_if_vim_nil(data.author)
   return {
-    number = data.number,
-    title = data.title,
-    state = normalize_state(data.state),
-    author = author and {
-      login = author.login,
-      name = nil_if_vim_nil(author.name),
-    } or { login = 'unknown' },
+    assignees = normalize_assignees(data.assignees),
+    author = author and { login = author.login, name = nil_if_vim_nil(author.name) }
+      or { login = 'unknown' },
+    baseRefName = nil_if_vim_nil(data.baseRefName),
     body = nil_if_vim_nil(data.body),
+    comments = normalize_comments(data.comments, data.reviews),
     createdAt = data.createdAt,
-    updatedAt = data.updatedAt,
-    mergeable = normalize_mergeable(nil_if_vim_nil(data.mergeable)),
+    headRefName = nil_if_vim_nil(data.headRefName),
     isDraft = data.isDraft,
     labels = normalize_labels(data.labels),
-    assignees = normalize_assignees(data.assignees),
+    mergeable = normalize_mergeable(nil_if_vim_nil(data.mergeable)),
+    number = data.number,
     reviewers = normalize_reviewers(data.reviewRequests, data.reviews),
-    comments = normalize_comments(data.comments),
-    headRefName = nil_if_vim_nil(data.headRefName),
-    baseRefName = nil_if_vim_nil(data.baseRefName),
+    state = normalize_state(data.state),
+    title = data.title,
+    updatedAt = data.updatedAt,
   }
 end
 
