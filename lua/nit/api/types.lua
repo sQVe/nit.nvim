@@ -71,14 +71,19 @@
 ---@field path Nit.Api.FilePath?
 ---@field line Nit.Api.LineNumber?
 ---@field side Nit.Api.CommentSide?
+---@field start_line Nit.Api.LineNumber?
+---@field start_side Nit.Api.CommentSide?
 
 ---@class Nit.Api.Thread
 ---@field id Nit.Api.ThreadId
 ---@field comments Nit.Api.Comment[]
 ---@field isResolved boolean
+---@field isOutdated boolean
 ---@field path Nit.Api.FilePath?
 ---@field line Nit.Api.LineNumber?
 ---@field side Nit.Api.CommentSide?
+---@field start_line Nit.Api.LineNumber?
+---@field start_side Nit.Api.CommentSide?
 
 ---@class Nit.Api.RequestOpts
 ---@field timeout? integer Timeout in milliseconds (default: 10000)

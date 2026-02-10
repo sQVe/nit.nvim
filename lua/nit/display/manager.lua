@@ -127,10 +127,6 @@ function M.attach(bufnr, filepath)
   })
   table.insert(state.autocmd_ids, delete_autocmd)
 
-  vim.keymap.set('n', 'gc', function()
-    M.show_popup(bufnr)
-  end, { buffer = bufnr, silent = true, desc = 'Show comment popup' })
-
   attached_buffers[bufnr] = state
 end
 

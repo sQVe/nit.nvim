@@ -17,9 +17,12 @@ local REVIEW_THREADS_QUERY = [[
           nodes {
             id
             isResolved
+            isOutdated
             path
             line
             diffSide
+            startLine
+            startDiffSide
             comments(first: 100) {
               pageInfo {
                 hasNextPage
@@ -58,6 +61,8 @@ local function normalize_threads(thread_nodes)
         path = nil_if_vim_nil(thread_node.path),
         line = nil_if_vim_nil(thread_node.line),
         side = nil_if_vim_nil(thread_node.diffSide),
+        start_line = nil_if_vim_nil(thread_node.startLine),
+        start_side = nil_if_vim_nil(thread_node.startDiffSide),
       }
     end
 
@@ -65,9 +70,12 @@ local function normalize_threads(thread_nodes)
       id = thread_node.id,
       comments = comments,
       isResolved = thread_node.isResolved or false,
+      isOutdated = thread_node.isOutdated or false,
       path = nil_if_vim_nil(thread_node.path),
       line = nil_if_vim_nil(thread_node.line),
       side = nil_if_vim_nil(thread_node.diffSide),
+      start_line = nil_if_vim_nil(thread_node.startLine),
+      start_side = nil_if_vim_nil(thread_node.startDiffSide),
     }
   end
 

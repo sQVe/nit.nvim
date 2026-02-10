@@ -60,7 +60,10 @@ describe('review session', function()
     it('sets up display manager and loads data', function()
       review.start()
 
-      assert.is_true(display_manager_mock.setup_called, 'Expected display_manager.setup to be called')
+      assert.is_true(
+        display_manager_mock.setup_called,
+        'Expected display_manager.setup to be called'
+      )
       assert.is_true(controller_mock.load_called, 'Expected controller.load to be called')
     end)
 
@@ -72,7 +75,10 @@ describe('review session', function()
       review.start()
 
       assert.is_false(controller_mock.load_called, 'Expected controller.load not to be called')
-      assert.is_false(display_manager_mock.setup_called, 'Expected display_manager.setup not to be called')
+      assert.is_false(
+        display_manager_mock.setup_called,
+        'Expected display_manager.setup not to be called'
+      )
     end)
 
     it('reports active after start', function()
@@ -88,7 +94,10 @@ describe('review session', function()
 
       review.stop()
 
-      assert.is_true(display_manager_mock.detach_all_called, 'Expected display_manager.detach_all to be called')
+      assert.is_true(
+        display_manager_mock.detach_all_called,
+        'Expected display_manager.detach_all to be called'
+      )
       assert.is_true(comment_popup_mock.close_called, 'Expected comment_popup.close to be called')
       assert.is_true(controller_mock.cleanup_called, 'Expected controller.cleanup to be called')
     end)
@@ -96,8 +105,14 @@ describe('review session', function()
     it('is no-op when not active', function()
       review.stop()
 
-      assert.is_false(display_manager_mock.detach_all_called, 'Expected display_manager.detach_all not to be called')
-      assert.is_false(controller_mock.cleanup_called, 'Expected controller.cleanup not to be called')
+      assert.is_false(
+        display_manager_mock.detach_all_called,
+        'Expected display_manager.detach_all not to be called'
+      )
+      assert.is_false(
+        controller_mock.cleanup_called,
+        'Expected controller.cleanup not to be called'
+      )
     end)
 
     it('reports inactive after stop', function()

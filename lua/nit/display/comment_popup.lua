@@ -60,8 +60,7 @@ function M.format_thread(thread)
       table.insert(lines, '')
     end
 
-    local author_line =
-      comment.author.login .. ' · ' .. format_relative_time(comment.createdAt)
+    local author_line = comment.author.login .. ' · ' .. format_relative_time(comment.createdAt)
     table.insert(lines, author_line)
     table.insert(lines, '')
 
