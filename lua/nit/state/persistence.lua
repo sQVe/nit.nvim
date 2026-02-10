@@ -1,4 +1,4 @@
----@class Nit.State.PersistenceModule
+---@class Nit.State.Persistence
 local M = {}
 
 local CURRENT_VERSION = 1

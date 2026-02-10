@@ -1,4 +1,4 @@
----@class Nit.State.PendingModule
+---@class Nit.State.Pending
 local M = {}
 
 local observers = require('nit.state.observers')

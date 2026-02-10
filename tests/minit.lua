@@ -9,6 +9,7 @@ load(
 
 require('lazy.minit').setup({
   spec = {
+    { 'MunifTanjim/nui.nvim' },
     { dir = (vim.uv or vim.loop).cwd() },
   },
 })

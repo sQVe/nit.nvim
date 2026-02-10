@@ -1,3 +1,10 @@
+local has_nui, _ = pcall(require, 'nui.split')
+
+if not has_nui then
+  package.loaded['nui.split'] = {}
+  package.loaded['nui.tree'] = {}
+end
+
 local nit = require('nit')
 
 describe('nit', function()

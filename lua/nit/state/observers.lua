@@ -1,4 +1,4 @@
----@class Nit.State.ObserverModule
+---@class Nit.State.Observers
 local M = {}
 
 ---@type table<string, (fun(key: string))[]>

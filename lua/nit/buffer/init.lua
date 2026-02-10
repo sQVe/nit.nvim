@@ -1,7 +1,8 @@
-local sections = require('nit.buffer.sections')
-local state = require('nit.state')
-
+---@class Nit.Buffer
 local M = {}
+
+local sections = require('nit.buffer.sections')
+local data = require('nit.state.data')
 
 local initialized = false
 
@@ -42,8 +43,8 @@ end
 function M.render(bufnr, opts)
   init()
   opts = opts or {}
-  local pr = opts.pr or state.get_pr()
-  local comments = opts.comments or state.get_comments()
+  local pr = opts.pr or data.get_pr()
+  local comments = opts.comments or data.get_comments()
 
   if not pr then
     M.render_error(bufnr, 'No PR loaded')

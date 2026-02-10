@@ -1,4 +1,4 @@
----@class Nit.State.DataModule
+---@class Nit.State.Data
 local M = {}
 
 local observers = require('nit.state.observers')
@@ -17,6 +17,12 @@ local threads_by_file = {}
 
 ---@type Nit.Api.IssueComment[]
 local comments = {}
+
+---@type boolean
+local loading = false
+
+---@type string?
+local error_msg = nil
 
 ---Set PR data
 ---@param data Nit.Api.PR?
@@ -130,17 +136,47 @@ function M.get_comments()
   return comments
 end
 
+---Set loading state
+---@param value boolean
+function M.set_loading(value)
+  loading = value
+  observers.notify('loading')
+end
+
+---Get loading state
+---@return boolean
+function M.get_loading()
+  return loading
+end
+
+---Set error state
+---@param value string?
+function M.set_error(value)
+  error_msg = value
+  observers.notify('error')
+end
+
+---Get error state
+---@return string?
+function M.get_error()
+  return error_msg
+end
+
 ---Clear all state data
 function M.clear()
-  pr = nil
-  files_by_path = {}
-  threads_by_id = {}
-  threads_by_file = {}
   comments = {}
-  observers.notify('pr')
-  observers.notify('files')
+  error_msg = nil
+  files_by_path = {}
+  loading = false
   observers.notify('comments')
+  observers.notify('error')
+  observers.notify('files')
+  observers.notify('loading')
+  observers.notify('pr')
   observers.notify('pr_comments')
+  pr = nil
+  threads_by_file = {}
+  threads_by_id = {}
 end
 
 return M

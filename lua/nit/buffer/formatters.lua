@@ -1,3 +1,4 @@
+---@class Nit.Buffer.Formatters
 local M = {}
 
 local REVIEW_STATE_LABELS = {
