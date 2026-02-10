@@ -17,9 +17,9 @@
 ---@class Nit.Ui.Tree.FileNode
 ---@field id string Node ID for nui.tree
 ---@field _type 'file' Node type
----@field path string Full file path
+---@field path Nit.Api.FilePath Full file path
 ---@field display_path string Shortened display path
----@field status 'added'|'modified'|'removed'|'renamed' File status
+---@field status Nit.Api.FileStatus File status
 ---@field additions integer Number of additions
 ---@field deletions integer Number of deletions
 ---@field indent_state boolean[] Indent state for tree line rendering
@@ -27,10 +27,10 @@
 ---@class Nit.Ui.Tree.CommentNode
 ---@field id string Node ID for nui.tree
 ---@field _type 'comment' Node type
----@field thread_id string Thread ID
+---@field thread_id Nit.Api.ThreadId Thread ID
 ---@field author string Author login
 ---@field is_resolved boolean Whether thread is resolved
----@field line? integer Line number if available
+---@field line? Nit.Api.LineNumber Line number if available
 ---@field indent_state boolean[] Indent state for tree line rendering
 
 ---@class Nit.Ui.Tree.SeparatorNode
@@ -58,7 +58,7 @@ local function extend_indent(parent_state, is_last)
 end
 
 ---Split a file path into segments
----@param path string
+---@param path Nit.Api.FilePath
 ---@return string[]
 local function split_path(path)
   local parts = {}
@@ -120,7 +120,7 @@ function M.create_files_header_node(count, children)
 end
 
 ---Create directory node
----@param full_path string Full directory path for unique ID
+---@param full_path Nit.Api.FilePath Full directory path for unique ID
 ---@param display_name string Display name (may be path-compressed)
 ---@param indent_state boolean[]
 ---@param children? any[]
@@ -193,8 +193,8 @@ end
 ---Convert a trie into NuiTree nodes with path compression
 ---@param trie_node table
 ---@param parent_indent boolean[]
----@param threads_by_path table<string, Nit.Api.Thread[]>
----@param path_prefix string
+---@param threads_by_path table<Nit.Api.FilePath, Nit.Api.Thread[]>
+---@param path_prefix Nit.Api.FilePath
 ---@return any[]
 local function trie_to_nodes(trie_node, parent_indent, threads_by_path, path_prefix)
   local dir_names = {}
@@ -261,6 +261,7 @@ function M.build_tree_data(files, threads)
   tree_nodes[#tree_nodes + 1] = M.create_overview_node()
   tree_nodes[#tree_nodes + 1] = M.create_separator_node('sep:files')
 
+  ---@type table<Nit.Api.FilePath, Nit.Api.Thread[]>
   local threads_by_path = {}
   for _, thread in ipairs(threads) do
     if thread.path then

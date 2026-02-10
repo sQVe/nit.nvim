@@ -6,13 +6,13 @@ local observers = require('nit.state.observers')
 ---@type Nit.Api.PR?
 local pr = nil
 
----@type table<string, Nit.Api.File>
+---@type table<Nit.Api.FilePath, Nit.Api.File>
 local files_by_path = {}
 
----@type table<integer, Nit.Api.Thread>
+---@type table<Nit.Api.ThreadId, Nit.Api.Thread>
 local threads_by_id = {}
 
----@type table<string, integer[]>
+---@type table<Nit.Api.FilePath, Nit.Api.ThreadId[]>
 local threads_by_file = {}
 
 ---@type Nit.Api.IssueComment[]
@@ -48,7 +48,7 @@ function M.set_files(files)
 end
 
 ---Get file by path
----@param path string
+---@param path Nit.Api.FilePath
 ---@return Nit.Api.File?
 function M.get_file(path)
   return files_by_path[path]
@@ -106,7 +106,7 @@ function M.get_threads()
 end
 
 ---Get threads for a specific file path
----@param path string
+---@param path Nit.Api.FilePath
 ---@return Nit.Api.Thread[]
 function M.get_threads_for_file(path)
   local ids = threads_by_file[path]

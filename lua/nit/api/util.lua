@@ -67,7 +67,7 @@ end
 
 ---Resolve repo info and PR number, then call inner function.
 ---Handles cancellation, repo resolution, and PR number detection.
----@param opts? Nit.Api.RequestOpts|{ number?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber }
 ---@param inner fun(owner: string, repo: string, pr_number: integer, request_opts: Nit.Api.RequestOpts): fun()? Inner function returning optional cancel
 ---@param on_error fun(result: Nit.Api.Result)
 ---@return fun() cancel

@@ -6,7 +6,7 @@ local util = require('nit.api.util')
 
 ---Normalize file status from gh CLI to Nit.Api.File status
 ---@param status string
----@return 'added'|'modified'|'removed'|'renamed'
+---@return Nit.Api.FileStatus
 local function normalize_status(status)
   local lower = status:lower()
   if lower == 'added' or lower == 'a' then
@@ -45,7 +45,7 @@ local function parse_files(json_str)
 end
 
 ---Fetch list of files changed in a PR
----@param opts? Nit.Api.RequestOpts|{ number?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.File[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_files(opts, callback)
@@ -74,7 +74,7 @@ function M.fetch_files(opts, callback)
 end
 
 ---Fetch diff for a PR or specific file
----@param opts? Nit.Api.RequestOpts|{ number?: integer, path?: string }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber, path?: Nit.Api.FilePath }
 ---@param callback fun(result: Nit.Api.Result<string>)
 ---@return fun() cancel Cancel function
 function M.fetch_diff(opts, callback)

@@ -9,7 +9,7 @@ local nil_if_vim_nil = util.nil_if_vim_nil
 local FIELDS =
   'number,title,state,author,body,createdAt,updatedAt,mergeable,isDraft,labels,assignees,reviewRequests,reviews,comments,headRefName,baseRefName'
 
----@type table<string, 'open'|'closed'|'merged'>
+---@type table<string, Nit.Api.PrState>
 local PR_STATES = {
   open = 'open',
   closed = 'closed',
@@ -17,15 +17,15 @@ local PR_STATES = {
 }
 
 ---Normalize PR state from GitHub API format to plugin format
----@param state string
----@return 'open'|'closed'|'merged'
+---@param state Nit.Api.PrStateRaw
+---@return Nit.Api.PrState
 local function normalize_state(state)
   return PR_STATES[state:lower()] or 'open'
 end
 
 ---Normalize PR mergeable status from GitHub API format to plugin format
 ---@param mergeable string
----@return 'clean'|'dirty'|'unknown'
+---@return Nit.Api.MergeableState
 local function normalize_mergeable(mergeable)
   if mergeable == 'MERGEABLE' then
     return 'clean'

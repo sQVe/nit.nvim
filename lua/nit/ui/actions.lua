@@ -4,8 +4,8 @@ local M = {}
 local layout = require('nit.ui.layout')
 
 ---Open a file in the main editing window, optionally at a line.
----@param filepath string
----@param line? integer
+---@param filepath Nit.Api.FilePath
+---@param line? Nit.Api.LineNumber
 function M.open_file(filepath, line)
   layout.open_in_main_window(function(winid)
     vim.api.nvim_set_current_win(winid)
@@ -29,8 +29,8 @@ function M.open_pr_buffer()
 end
 
 ---Navigate to a comment's file location. Keeps focus on sidebar.
----@param filepath string
----@param line? integer
+---@param filepath Nit.Api.FilePath
+---@param line? Nit.Api.LineNumber
 function M.go_to_comment(filepath, line)
   layout.open_in_main_window(function(winid)
     vim.api.nvim_set_current_win(winid)

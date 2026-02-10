@@ -13,8 +13,10 @@ local highlights_initialized = false
 ---@type fun()?
 local on_close_callback = nil
 
+---@alias Nit.Ui.LayoutPosition 'left'|'right'
+
 ---@class Nit.Ui.Layout.OpenOpts
----@field position? 'left'|'right' Sidebar position (default: 'left')
+---@field position? Nit.Ui.LayoutPosition Sidebar position (default: 'left')
 ---@field on_close? fun() Callback when sidebar is closed externally
 
 ---Open the layout sidebar

@@ -84,7 +84,7 @@ local function normalize_threads(thread_nodes)
 end
 
 ---Fetch PR review threads via GraphQL
----@param opts? Nit.Api.RequestOpts|{ number?: integer }
+---@param opts? Nit.Api.RequestOpts|{ number?: Nit.Api.PrNumber }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_comments(opts, callback)
