@@ -49,92 +49,28 @@ end
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.File[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_files(opts, callback)
-  opts = opts or {}
+  return util.with_pr_context(opts, function(owner, repo, pr_number, request_opts)
+    local args = {
+      'api',
+      string.format('repos/%s/%s/pulls/%d/files', owner, repo, pr_number),
+      '--paginate',
+    }
 
-  local cancel_repo = nil
-  local cancel_inner = nil
-  local cancelled = false
-
-  local request_opts = {
-    timeout = opts.timeout,
-    retry = opts.retry,
-  }
-
-  cancel_repo = util.get_repo_info(function(owner, repo)
-    if cancelled then
-      return
-    end
-
-    if not owner or not repo then
-      callback({
-        ok = false,
-        error = 'Could not determine repository from git remote',
-      })
-      return
-    end
-
-    local function fetch_with_pr_number(pr_number)
-      local args = {
-        'api',
-        string.format('repos/%s/%s/pulls/%d/files', owner, repo, pr_number),
-        '--paginate',
-      }
-
-      return gh.execute(args, request_opts, function(result)
-        if not result.ok then
-          callback(result)
-          return
-        end
-
-        local files = parse_files(result.data)
-        if not files then
-          callback({
-            ok = false,
-            error = 'Failed to parse files JSON',
-          })
-          return
-        end
-
-        callback({
-          ok = true,
-          data = files,
-        })
-      end)
-    end
-
-    if opts.number then
-      cancel_inner = fetch_with_pr_number(opts.number)
-      return
-    end
-
-    cancel_inner = gh.execute({ 'pr', 'view', '--json', 'number' }, request_opts, function(result)
+    return gh.execute(args, request_opts, function(result)
       if not result.ok then
         callback(result)
         return
       end
 
-      local ok, pr_data = pcall(vim.json.decode, result.data)
-      if not ok or not pr_data.number then
-        callback({
-          ok = false,
-          error = 'No PR found for current branch',
-        })
+      local files = parse_files(result.data)
+      if not files then
+        callback({ ok = false, error = 'Failed to parse files JSON' })
         return
       end
 
-      cancel_inner = fetch_with_pr_number(pr_data.number)
+      callback({ ok = true, data = files })
     end)
-  end)
-
-  return function()
-    cancelled = true
-    if cancel_repo then
-      cancel_repo()
-    end
-    if cancel_inner then
-      cancel_inner()
-    end
-  end
+  end, callback)
 end
 
 ---Fetch diff for a PR or specific file

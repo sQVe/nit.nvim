@@ -11,6 +11,9 @@ local REVIEW_THREADS_QUERY = [[
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $number) {
         reviewThreads(first: 100) {
+          pageInfo {
+            hasNextPage
+          }
           nodes {
             id
             isResolved
@@ -18,6 +21,9 @@ local REVIEW_THREADS_QUERY = [[
             line
             diffSide
             comments(first: 100) {
+              pageInfo {
+                hasNextPage
+              }
               nodes {
                 databaseId
                 author { login }
@@ -82,110 +88,83 @@ end
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
 ---@return fun() cancel Cancel function
 function M.fetch_comments(opts, callback)
-  opts = opts or {}
+  return util.with_pr_context(opts, function(owner, repo, pr_number, request_opts)
+    local args = {
+      'api',
+      'graphql',
+      '-f',
+      'query=' .. REVIEW_THREADS_QUERY,
+      '-f',
+      'owner=' .. owner,
+      '-f',
+      'repo=' .. repo,
+      '-F',
+      'number=' .. tostring(pr_number),
+    }
 
-  local cancel_repo = nil
-  local cancel_inner = nil
-  local cancelled = false
-
-  local request_opts = {
-    timeout = opts.timeout,
-    retry = opts.retry,
-  }
-
-  cancel_repo = util.get_repo_info(function(owner, repo)
-    if cancelled then
-      return
-    end
-
-    if not owner or not repo then
-      callback({
-        ok = false,
-        error = 'Could not determine repository from git remote',
-      })
-      return
-    end
-
-    local function fetch_with_pr_number(pr_number)
-      local args = {
-        'api',
-        'graphql',
-        '-f',
-        'query=' .. REVIEW_THREADS_QUERY,
-        '-f',
-        'owner=' .. owner,
-        '-f',
-        'repo=' .. repo,
-        '-F',
-        'number=' .. tostring(pr_number),
-      }
-
-      return gh.execute(args, request_opts, function(result)
-        if not result.ok then
-          callback(result)
-          return
-        end
-
-        local ok, data = pcall(vim.json.decode, result.data)
-        if not ok then
-          callback({
-            ok = false,
-            error = 'Failed to parse GraphQL response',
-          })
-          return
-        end
-
-        if data.errors then
-          local msg = data.errors[1] and data.errors[1].message or 'GraphQL error'
-          callback({ ok = false, error = msg })
-          return
-        end
-
-        local pull_request = data.data and data.data.repository and data.data.repository.pullRequest
-        if not pull_request then
-          callback({ ok = false, error = 'Pull request not found' })
-          return
-        end
-
-        local thread_nodes = pull_request.reviewThreads and pull_request.reviewThreads.nodes or {}
-        local threads = normalize_threads(thread_nodes)
-        callback({ ok = true, data = threads })
-      end)
-    end
-
-    if opts.number then
-      cancel_inner = fetch_with_pr_number(opts.number)
-      return
-    end
-
-    cancel_inner = gh.execute({ 'pr', 'view', '--json', 'number' }, request_opts, function(result)
+    return gh.execute(args, request_opts, function(result)
       if not result.ok then
         callback(result)
         return
       end
 
-      local ok, pr_data = pcall(vim.json.decode, result.data)
-      if not ok or not pr_data.number then
-        callback({
-          ok = false,
-          error = 'No PR found for current branch',
-        })
+      local ok, data = pcall(vim.json.decode, result.data)
+      if not ok then
+        callback({ ok = false, error = 'Failed to parse GraphQL response' })
         return
       end
 
-      cancel_inner = fetch_with_pr_number(pr_data.number)
-    end)
-  end)
+      if data.errors then
+        local msg = data.errors[1] and data.errors[1].message or 'GraphQL error'
+        callback({ ok = false, error = msg })
+        return
+      end
 
-  return function()
-    cancelled = true
-    if cancel_repo then
-      cancel_repo()
-    end
-    if cancel_inner then
-      cancel_inner()
-    end
-  end
+      local pull_request = data.data and data.data.repository and data.data.repository.pullRequest
+      if not pull_request then
+        callback({ ok = false, error = 'Pull request not found' })
+        return
+      end
+
+      local review_threads = pull_request.reviewThreads
+      local thread_nodes = review_threads and review_threads.nodes or {}
+
+      local warnings = {}
+      if review_threads and review_threads.pageInfo and review_threads.pageInfo.hasNextPage then
+        table.insert(warnings, 'PR has more than 100 review threads; some may not be shown')
+      end
+
+      local comments_truncated = false
+      for _, thread in ipairs(thread_nodes) do
+        if
+          thread.comments
+          and thread.comments.pageInfo
+          and thread.comments.pageInfo.hasNextPage
+        then
+          comments_truncated = true
+          break
+        end
+      end
+
+      if comments_truncated then
+        table.insert(
+          warnings,
+          'Some review threads have more than 100 comments; some may not be shown'
+        )
+      end
+
+      if #warnings > 0 then
+        vim.schedule(function()
+          for _, msg in ipairs(warnings) do
+            vim.notify('[nit] ' .. msg, vim.log.levels.WARN)
+          end
+        end)
+      end
+
+      local threads = normalize_threads(thread_nodes)
+      callback({ ok = true, data = threads })
+    end)
+  end, callback)
 end
 
 return M
