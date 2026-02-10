@@ -1,6 +1,8 @@
-local gh = require('nit.api.gh')
-
+---@class Nit.Api.Files
 local M = {}
+
+local gh = require('nit.api.gh')
+local util = require('nit.api.util')
 
 ---Normalize file status from gh CLI to Nit.Api.File status
 ---@param status string
@@ -13,24 +15,26 @@ local function normalize_status(status)
     return 'removed'
   elseif lower == 'renamed' or lower == 'r' then
     return 'renamed'
+  elseif lower == 'copied' then
+    return 'modified'
   else
     return 'modified'
   end
 end
 
----Parse files JSON from gh CLI
+---Parse files JSON from REST API
 ---@param json_str string
 ---@return Nit.Api.File[]?
 local function parse_files(json_str)
   local ok, parsed = pcall(vim.json.decode, json_str)
-  if not ok or not parsed or not parsed.files then
+  if not ok or not parsed then
     return nil
   end
 
   local files = {}
-  for _, file in ipairs(parsed.files) do
+  for _, file in ipairs(parsed) do
     table.insert(files, {
-      filename = file.path,
+      filename = file.filename,
       status = normalize_status(file.status),
       additions = file.additions or 0,
       deletions = file.deletions or 0,
@@ -47,31 +51,90 @@ end
 function M.fetch_files(opts, callback)
   opts = opts or {}
 
-  local args = { 'pr', 'view' }
-  if opts.number then
-    table.insert(args, tostring(opts.number))
-  end
-  vim.list_extend(args, { '--json', 'files' })
+  local cancel_repo = nil
+  local cancel_inner = nil
+  local cancelled = false
 
   local request_opts = {
     timeout = opts.timeout,
     retry = opts.retry,
   }
 
-  return gh.execute(args, request_opts, function(result)
-    if not result.ok then
-      callback({ ok = false, error = result.error })
+  cancel_repo = util.get_repo_info(function(owner, repo)
+    if cancelled then
       return
     end
 
-    local files = parse_files(result.data)
-    if not files then
-      callback({ ok = false, error = 'Failed to parse files JSON' })
+    if not owner or not repo then
+      callback({
+        ok = false,
+        error = 'Could not determine repository from git remote',
+      })
       return
     end
 
-    callback({ ok = true, data = files })
+    local function fetch_with_pr_number(pr_number)
+      local args = {
+        'api',
+        string.format('repos/%s/%s/pulls/%d/files', owner, repo, pr_number),
+        '--paginate',
+      }
+
+      return gh.execute(args, request_opts, function(result)
+        if not result.ok then
+          callback(result)
+          return
+        end
+
+        local files = parse_files(result.data)
+        if not files then
+          callback({
+            ok = false,
+            error = 'Failed to parse files JSON',
+          })
+          return
+        end
+
+        callback({
+          ok = true,
+          data = files,
+        })
+      end)
+    end
+
+    if opts.number then
+      cancel_inner = fetch_with_pr_number(opts.number)
+      return
+    end
+
+    cancel_inner = gh.execute({ 'pr', 'view', '--json', 'number' }, request_opts, function(result)
+      if not result.ok then
+        callback(result)
+        return
+      end
+
+      local ok, pr_data = pcall(vim.json.decode, result.data)
+      if not ok or not pr_data.number then
+        callback({
+          ok = false,
+          error = 'No PR found for current branch',
+        })
+        return
+      end
+
+      cancel_inner = fetch_with_pr_number(pr_data.number)
+    end)
   end)
+
+  return function()
+    cancelled = true
+    if cancel_repo then
+      cancel_repo()
+    end
+    if cancel_inner then
+      cancel_inner()
+    end
+  end
 end
 
 ---Fetch diff for a PR or specific file

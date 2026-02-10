@@ -1,33 +1,9 @@
 describe('nit.api integration', function()
-  local api = require('nit.api')
+  local pr_api = require('nit.api.pr')
+  local files_api = require('nit.api.files')
+  local parallel_api = require('nit.api.parallel')
   local gh = require('nit.api.gh')
   local tracker = require('nit.api.tracker')
-
-  describe('public exports', function()
-    it('exports fetch_pr', function()
-      assert.is_function(api.fetch_pr)
-    end)
-
-    it('exports fetch_files', function()
-      assert.is_function(api.fetch_files)
-    end)
-
-    it('exports fetch_diff', function()
-      assert.is_function(api.fetch_diff)
-    end)
-
-    it('exports fetch_comments', function()
-      assert.is_function(api.fetch_comments)
-    end)
-
-    it('exports parallel', function()
-      assert.is_function(api.parallel)
-    end)
-
-    it('exports cancel_all', function()
-      assert.is_function(api.cancel_all)
-    end)
-  end)
 
   describe('parallel execution', function()
     local original_execute
@@ -88,9 +64,9 @@ describe('nit.api integration', function()
       end
 
       local results = nil
-      api.parallel({
-        { fn = api.fetch_pr, args = {} },
-        { fn = api.fetch_files, args = {} },
+      parallel_api.parallel({
+        { fn = pr_api.fetch_pr, args = {} },
+        { fn = files_api.fetch_files, args = {} },
       }, function(r)
         results = r
       end)
@@ -119,9 +95,9 @@ describe('nit.api integration', function()
       end
 
       local results = nil
-      api.parallel({
-        { fn = api.fetch_pr, args = {} },
-        { fn = api.fetch_diff, args = {} },
+      parallel_api.parallel({
+        { fn = pr_api.fetch_pr, args = {} },
+        { fn = files_api.fetch_diff, args = {} },
       }, function(r)
         results = r
       end)
@@ -156,13 +132,13 @@ describe('nit.api integration', function()
         end
       end
 
-      api.fetch_pr({}, function() end)
-      api.fetch_files({}, function() end)
-      api.fetch_diff({}, function() end)
+      pr_api.fetch_pr({}, function() end)
+      files_api.fetch_files({}, function() end)
+      files_api.fetch_diff({}, function() end)
 
       assert.equals(3, tracker.get_count())
 
-      api.cancel_all()
+      tracker.cancel_all()
 
       assert.equals(3, cancelled_count)
       assert.equals(0, tracker.get_count())
@@ -194,11 +170,11 @@ describe('nit.api integration', function()
         end
       end
 
-      api.fetch_pr({}, function()
+      pr_api.fetch_pr({}, function()
         callback_called = true
       end)
 
-      api.cancel_all()
+      tracker.cancel_all()
 
       vim.wait(50, function()
         return callback_called
@@ -230,7 +206,7 @@ describe('nit.api integration', function()
       end
 
       local result = nil
-      api.fetch_pr({}, function(r)
+      pr_api.fetch_pr({}, function(r)
         result = r
       end)
 
@@ -260,7 +236,7 @@ describe('nit.api integration', function()
       end
 
       local result = nil
-      api.fetch_files({}, function(r)
+      files_api.fetch_files({}, function(r)
         result = r
       end)
 
@@ -291,7 +267,7 @@ index 123..456 789
       end
 
       local result = nil
-      api.fetch_diff({}, function(r)
+      files_api.fetch_diff({}, function(r)
         result = r
       end)
 

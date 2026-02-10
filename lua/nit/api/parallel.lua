@@ -1,3 +1,4 @@
+---@class Nit.Api.Parallel
 local M = {}
 
 ---@class Nit.Api.ParallelOperation

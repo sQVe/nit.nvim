@@ -1,88 +1,71 @@
-local gh = require('nit.api.gh')
-local tracker = require('nit.api.tracker')
-
+---@class Nit.Api.Comments
 local M = {}
 
----Normalize vim.NIL to nil
----@param value any
----@return any
-local function nil_if_vim_nil(value)
-  if value == vim.NIL then
-    return nil
-  end
-  return value
-end
+local gh = require('nit.api.gh')
+local util = require('nit.api.util')
 
----Normalize GitHub comment to Nit.Api.Comment format
----@param raw_comment table Raw comment from GitHub API
----@return Nit.Api.Comment
-local function normalize_comment(raw_comment)
-  local user = raw_comment.user
-  return {
-    id = raw_comment.id,
-    author = user and {
-      login = user.login,
-      name = nil_if_vim_nil(user.name),
-    } or { login = 'unknown' },
-    body = raw_comment.body,
-    createdAt = raw_comment.created_at,
-    path = raw_comment.path,
-    line = raw_comment.line or raw_comment.original_line,
-    side = raw_comment.side,
+local nil_if_vim_nil = util.nil_if_vim_nil
+
+local REVIEW_THREADS_QUERY = [[
+  query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100) {
+          nodes {
+            id
+            isResolved
+            path
+            line
+            diffSide
+            comments(first: 100) {
+              nodes {
+                databaseId
+                author { login }
+                body
+                createdAt
+              }
+            }
+          }
+        }
+      }
+    }
   }
-end
+]]
 
----Group comments into threads based on in_reply_to_id
----@param comments table[] Raw comments from GitHub API
+---Normalize GraphQL thread nodes to Nit.Api.Thread format
+---@param thread_nodes table[]
 ---@return Nit.Api.Thread[]
-local function group_into_threads(comments)
-  local comment_map = {}
+local function normalize_threads(thread_nodes)
   local threads = {}
 
-  for _, raw_comment in ipairs(comments) do
-    comment_map[raw_comment.id] = {
-      raw = raw_comment,
-      normalized = normalize_comment(raw_comment),
-      replies = {},
+  for _, thread_node in ipairs(thread_nodes) do
+    local comments = {}
+    local comment_nodes = thread_node.comments and thread_node.comments.nodes or {}
+
+    for _, comment_node in ipairs(comment_nodes) do
+      local author = comment_node.author
+      comments[#comments + 1] = {
+        id = comment_node.databaseId,
+        author = author and author.login and { login = author.login } or { login = 'unknown' },
+        body = comment_node.body or '',
+        createdAt = comment_node.createdAt or '',
+        path = nil_if_vim_nil(thread_node.path),
+        line = nil_if_vim_nil(thread_node.line),
+        side = nil_if_vim_nil(thread_node.diffSide),
+      }
+    end
+
+    threads[#threads + 1] = {
+      id = thread_node.id,
+      comments = comments,
+      isResolved = thread_node.isResolved or false,
+      path = nil_if_vim_nil(thread_node.path),
+      line = nil_if_vim_nil(thread_node.line),
+      side = nil_if_vim_nil(thread_node.diffSide),
     }
   end
 
-  for _, raw_comment in ipairs(comments) do
-    if raw_comment.in_reply_to_id then
-      local parent = comment_map[raw_comment.in_reply_to_id]
-      if parent then
-        table.insert(parent.replies, comment_map[raw_comment.id])
-      else
-        table.insert(threads, comment_map[raw_comment.id])
-      end
-    else
-      table.insert(threads, comment_map[raw_comment.id])
-    end
-  end
-
-  local normalized_threads = {}
-  for _, thread_root in ipairs(threads) do
-    local thread_comments = { thread_root.normalized }
-
-    local function collect_replies(node)
-      for _, reply in ipairs(node.replies) do
-        table.insert(thread_comments, reply.normalized)
-        collect_replies(reply)
-      end
-    end
-    collect_replies(thread_root)
-
-    table.insert(normalized_threads, {
-      id = thread_root.normalized.id,
-      comments = thread_comments,
-      isResolved = thread_root.raw.resolved or false,
-      path = thread_root.normalized.path,
-      line = thread_root.normalized.line,
-      side = thread_root.normalized.side,
-    })
-  end
-
-  table.sort(normalized_threads, function(a, b)
+  table.sort(threads, function(a, b)
     local a_path = a.path or ''
     local b_path = b.path or ''
     if a_path ~= b_path then
@@ -91,62 +74,10 @@ local function group_into_threads(comments)
     return (a.line or 0) < (b.line or 0)
   end)
 
-  return normalized_threads
+  return threads
 end
 
----Get owner and repo from git remote asynchronously
----@param callback fun(owner: string|nil, repo: string|nil)
----@return fun() cancel Cancel function
-local function get_repo_info(callback)
-  local completed = false
-  local request_id = nil
-
-  local process = vim.system(
-    { 'git', 'remote', 'get-url', 'origin' },
-    { text = true },
-    vim.schedule_wrap(function(result)
-      if completed then
-        return
-      end
-      completed = true
-      if request_id then
-        tracker.untrack(request_id)
-      end
-
-      if result.code ~= 0 then
-        callback(nil, nil)
-        return
-      end
-
-      local stdout = result.stdout or ''
-      local owner, repo = stdout:match('github%.com[:/]([^/]+)/([^%s]+)')
-      if owner and repo then
-        callback(owner, repo:gsub('%.git$', ''):gsub('/$', ''))
-      else
-        callback(nil, nil)
-      end
-    end)
-  )
-
-  local cancel = function()
-    if completed then
-      return
-    end
-    completed = true
-    if request_id then
-      tracker.untrack(request_id)
-    end
-    if process then
-      process:kill(9)
-    end
-  end
-
-  request_id = tracker.track(cancel)
-
-  return cancel
-end
-
----Fetch PR comments organized into threads
+---Fetch PR review threads via GraphQL
 ---@param opts? Nit.Api.RequestOpts|{ number?: integer }
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Thread[]>)
 ---@return fun() cancel Cancel function
@@ -162,7 +93,7 @@ function M.fetch_comments(opts, callback)
     retry = opts.retry,
   }
 
-  cancel_repo = get_repo_info(function(owner, repo)
+  cancel_repo = util.get_repo_info(function(owner, repo)
     if cancelled then
       return
     end
@@ -178,8 +109,15 @@ function M.fetch_comments(opts, callback)
     local function fetch_with_pr_number(pr_number)
       local args = {
         'api',
-        string.format('repos/%s/%s/pulls/%d/comments', owner, repo, pr_number),
-        '--paginate',
+        'graphql',
+        '-f',
+        'query=' .. REVIEW_THREADS_QUERY,
+        '-f',
+        'owner=' .. owner,
+        '-f',
+        'repo=' .. repo,
+        '-F',
+        'number=' .. tostring(pr_number),
       }
 
       return gh.execute(args, request_opts, function(result)
@@ -188,20 +126,30 @@ function M.fetch_comments(opts, callback)
           return
         end
 
-        local ok, comments = pcall(vim.json.decode, result.data)
+        local ok, data = pcall(vim.json.decode, result.data)
         if not ok then
           callback({
             ok = false,
-            error = 'Failed to parse comments JSON',
+            error = 'Failed to parse GraphQL response',
           })
           return
         end
 
-        local threads = group_into_threads(comments)
-        callback({
-          ok = true,
-          data = threads,
-        })
+        if data.errors then
+          local msg = data.errors[1] and data.errors[1].message or 'GraphQL error'
+          callback({ ok = false, error = msg })
+          return
+        end
+
+        local pull_request = data.data and data.data.repository and data.data.repository.pullRequest
+        if not pull_request then
+          callback({ ok = false, error = 'Pull request not found' })
+          return
+        end
+
+        local thread_nodes = pull_request.reviewThreads and pull_request.reviewThreads.nodes or {}
+        local threads = normalize_threads(thread_nodes)
+        callback({ ok = true, data = threads })
       end)
     end
 

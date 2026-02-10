@@ -60,7 +60,7 @@
 ---@field side 'LEFT'|'RIGHT'?
 
 ---@class Nit.Api.Thread
----@field id integer
+---@field id string
 ---@field comments Nit.Api.Comment[]
 ---@field isResolved boolean
 ---@field path string?

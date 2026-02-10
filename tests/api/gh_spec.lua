@@ -135,6 +135,55 @@ describe('gh.execute', function()
     assert.equals(initial_count, count_after)
   end)
 
+  it('retries on HTTP 429 throttled error', function()
+    local call_count = 0
+    vim.system = function(_cmd, _opts, callback)
+      call_count = call_count + 1
+      vim.schedule(function()
+        if call_count == 1 then
+          callback({
+            code = 1,
+            stdout = '',
+            stderr = 'HTTP 429: This endpoint is temporarily being throttled',
+          })
+        else
+          callback({
+            code = 0,
+            stdout = '{"ok":true}',
+            stderr = '',
+          })
+        end
+      end)
+      return { kill = function() end }
+    end
+
+    vim.uv.new_timer = function()
+      local timer = {}
+      table.insert(_mock_timers, timer)
+      return {
+        start = function(_, _timeout, _, cb)
+          timer.callback = cb
+          vim.schedule(cb)
+        end,
+        stop = function() end,
+        close = function() end,
+      }
+    end
+
+    local result = nil
+    gh.execute({ 'api', 'graphql' }, { retry = 2 }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.equals(2, call_count)
+  end)
+
   it('provides user-friendly error for authentication', function()
     mock_system_result = {
       code = 1,
@@ -154,5 +203,209 @@ describe('gh.execute', function()
     assert.is_not_nil(result)
     assert.is_false(result.ok)
     assert.equals('Not authenticated', result.error)
+  end)
+
+  it('provides user-friendly error for rate limiting', function()
+    mock_system_result = {
+      code = 1,
+      stdout = '',
+      stderr = 'HTTP 429: rate limit exceeded',
+    }
+
+    local result = nil
+    gh.execute({ 'pr', 'view' }, { retry = 0 }, function(r)
+      result = r
+    end)
+
+    vim.wait(100, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('Rate limited by GitHub — try again shortly', result.error)
+  end)
+
+  it('provides user-friendly error for network errors', function()
+    mock_system_result = {
+      code = 1,
+      stdout = '',
+      stderr = 'connection refused by host',
+    }
+
+    local result = nil
+    gh.execute({ 'pr', 'view' }, { retry = 0 }, function(r)
+      result = r
+    end)
+
+    vim.wait(100, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('Network error', result.error)
+  end)
+
+  it('extracts first line from multiline stderr', function()
+    mock_system_result = {
+      code = 1,
+      stdout = '',
+      stderr = 'some specific error\nwith additional details\non multiple lines',
+    }
+
+    local result = nil
+    gh.execute({ 'pr', 'view' }, { retry = 0 }, function(r)
+      result = r
+    end)
+
+    vim.wait(100, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('some specific error', result.error)
+  end)
+
+  it('returns unknown error for empty stderr', function()
+    mock_system_result = {
+      code = 1,
+      stdout = '',
+      stderr = '',
+    }
+
+    local result = nil
+    gh.execute({ 'pr', 'view' }, { retry = 0 }, function(r)
+      result = r
+    end)
+
+    vim.wait(100, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('Unknown error', result.error)
+  end)
+
+  it('retries on transient network error', function()
+    local call_count = 0
+    vim.system = function(_cmd, _opts, callback)
+      call_count = call_count + 1
+      vim.schedule(function()
+        if call_count == 1 then
+          callback({
+            code = 1,
+            stdout = '',
+            stderr = 'connection timeout',
+          })
+        else
+          callback({
+            code = 0,
+            stdout = '{"ok":true}',
+            stderr = '',
+          })
+        end
+      end)
+      return { kill = function() end }
+    end
+
+    vim.uv.new_timer = function()
+      local timer = {}
+      table.insert(_mock_timers, timer)
+      return {
+        start = function(_, _timeout, _, cb)
+          timer.callback = cb
+          vim.schedule(cb)
+        end,
+        stop = function() end,
+        close = function() end,
+      }
+    end
+
+    local result = nil
+    gh.execute({ 'api', 'graphql' }, { retry = 2 }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.equals(2, call_count)
+  end)
+
+  it('does not retry on authentication error', function()
+    local call_count = 0
+    vim.system = function(_cmd, _opts, callback)
+      call_count = call_count + 1
+      vim.schedule(function()
+        callback({
+          code = 1,
+          stdout = '',
+          stderr = 'error: not authenticated',
+        })
+      end)
+      return { kill = function() end }
+    end
+
+    local result = nil
+    gh.execute({ 'pr', 'view' }, { retry = 3 }, function(r)
+      result = r
+    end)
+
+    vim.wait(100, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('Not authenticated', result.error)
+    assert.equals(1, call_count)
+  end)
+
+  it('stops retrying after max retries exhausted', function()
+    local call_count = 0
+    vim.system = function(_cmd, _opts, callback)
+      call_count = call_count + 1
+      vim.schedule(function()
+        callback({
+          code = 1,
+          stdout = '',
+          stderr = 'network unavailable',
+        })
+      end)
+      return { kill = function() end }
+    end
+
+    vim.uv.new_timer = function()
+      local timer = {}
+      table.insert(_mock_timers, timer)
+      return {
+        start = function(_, _timeout, _, cb)
+          timer.callback = cb
+          vim.schedule(cb)
+        end,
+        stop = function() end,
+        close = function() end,
+      }
+    end
+
+    local result = nil
+    gh.execute({ 'api', 'graphql' }, { retry = 2 }, function(r)
+      result = r
+    end)
+
+    vim.wait(300, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.equals('Network error', result.error)
+    assert.equals(3, call_count)
   end)
 end)
