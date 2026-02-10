@@ -214,5 +214,95 @@ describe('nit.api.parallel', function()
 
       assert.is_true(callback_called)
     end)
+
+    it('captures errors when operation function throws during setup', function()
+      local results = nil
+
+      local op1 = {
+        fn = function(_opts, callback)
+          callback({ ok = true, data = 'success' })
+          return function() end
+        end,
+        args = {},
+      }
+
+      local op2 = {
+        fn = function()
+          error('setup failure')
+        end,
+        args = {},
+      }
+
+      parallel.parallel({ op1, op2 }, function(r)
+        results = r
+      end)
+
+      vim.wait(100, function()
+        return results ~= nil
+      end)
+
+      assert.is_not_nil(results)
+      assert.is_true(results[1].ok)
+      assert.equals('success', results[1].data)
+      assert.is_false(results[2].ok)
+      assert.is_truthy(results[2].error:match('setup failure'))
+    end)
+
+    it('handles all operations failing during setup', function()
+      local results = nil
+
+      local ops = {}
+      for i = 1, 3 do
+        table.insert(ops, {
+          fn = function()
+            error('fail ' .. i)
+          end,
+          args = {},
+        })
+      end
+
+      parallel.parallel(ops, function(r)
+        results = r
+      end)
+
+      vim.wait(100, function()
+        return results ~= nil
+      end)
+
+      assert.is_not_nil(results)
+      assert.equals(3, #results)
+      for _, result in ipairs(results) do
+        assert.is_false(result.ok)
+        assert.is_truthy(result.error)
+      end
+    end)
+
+    it('ignores late callbacks after completion', function()
+      local callback_count = 0
+      local stored_callbacks = {}
+
+      local ops = {}
+      for i = 1, 2 do
+        table.insert(ops, {
+          fn = function(_opts, callback)
+            stored_callbacks[i] = callback
+            return function() end
+          end,
+          args = {},
+        })
+      end
+
+      parallel.parallel(ops, function()
+        callback_count = callback_count + 1
+      end)
+
+      stored_callbacks[1]({ ok = true })
+      stored_callbacks[2]({ ok = true })
+
+      assert.equals(1, callback_count)
+
+      stored_callbacks[1]({ ok = true })
+      assert.equals(1, callback_count)
+    end)
   end)
 end)
