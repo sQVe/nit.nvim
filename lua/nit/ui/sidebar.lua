@@ -2,11 +2,11 @@
 ---@class Nit.Ui.Sidebar
 local M = {}
 
+local actions = require('nit.ui.actions')
 local layout = require('nit.ui.layout')
 local tree = require('nit.ui.tree')
 local data = require('nit.state.data')
 local observers = require('nit.state.observers')
-local buffer = require('nit.buffer')
 
 ---@type function[]
 local unsubscribers = {}
@@ -21,17 +21,17 @@ local sidebar_bufnr = nil
 ---@type Nit.Ui.Sidebar.Opts?
 local opts = nil
 
----Open a file in the main editing window, optionally at a line
----@param filepath string
----@param line? integer
-local function open_file_in_main(filepath, line)
-  layout.open_in_main_window(function(winid)
-    vim.api.nvim_set_current_win(winid)
-    if line then
-      vim.cmd('edit +' .. line .. ' ' .. vim.fn.fnameescape(filepath))
-    else
-      vim.cmd('edit ' .. vim.fn.fnameescape(filepath))
-    end
+local cleaning_up = false
+local refresh_scheduled = false
+
+local function schedule_refresh()
+  if refresh_scheduled then
+    return
+  end
+  refresh_scheduled = true
+  vim.schedule(function()
+    refresh_scheduled = false
+    M.refresh()
   end)
 end
 
@@ -62,14 +62,9 @@ local function setup_keybindings(bufnr)
     end
 
     if node._type == 'overview' then
-      local pr_bufnr = vim.api.nvim_create_buf(false, true)
-      buffer.render(pr_bufnr)
-
-      layout.open_in_main_window(function(winid)
-        vim.api.nvim_win_set_buf(winid, pr_bufnr)
-      end)
+      actions.open_pr_buffer()
     elseif node._type == 'file' then
-      open_file_in_main(node.path)
+      actions.open_file(node.path)
     elseif node._type == 'comment' then
       local parent_id = node:get_parent_id()
       if not parent_id then
@@ -83,14 +78,7 @@ local function setup_keybindings(bufnr)
 
       local parent_node = tree_instance:get_node(parent_id)
       if parent_node and parent_node._type == 'file' then
-        layout.open_in_main_window(function(winid)
-          vim.api.nvim_set_current_win(winid)
-          if node.line then
-            vim.cmd('edit +' .. node.line .. ' ' .. vim.fn.fnameescape(parent_node.path))
-          else
-            vim.cmd('edit ' .. vim.fn.fnameescape(parent_node.path))
-          end
-        end, { stay = true })
+        actions.go_to_comment(parent_node.path, node.line)
       end
     end
   end
@@ -243,10 +231,16 @@ end
 
 ---Clean up sidebar resources (subscriptions, tree)
 local function cleanup()
+  if cleaning_up then
+    return
+  end
+  cleaning_up = true
+
   for _, unsub in ipairs(unsubscribers) do
     unsub()
   end
   unsubscribers = {}
+  refresh_scheduled = false
 
   if opts and opts.on_close then
     opts.on_close()
@@ -255,6 +249,7 @@ local function cleanup()
 
   tree.destroy()
   sidebar_bufnr = nil
+  cleaning_up = false
 end
 
 ---Open sidebar
@@ -286,7 +281,7 @@ function M.open(open_opts)
     table.insert(
       unsubscribers,
       observers.subscribe(key, function()
-        M.refresh()
+        schedule_refresh()
       end)
     )
   end

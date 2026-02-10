@@ -3,7 +3,7 @@
 local M = {}
 
 local Menu = require('nui.menu')
-local layout = require('nit.ui.layout')
+local actions = require('nit.ui.actions')
 
 ---Show context menu for node
 ---@param node any
@@ -15,13 +15,7 @@ function M.show(node)
       items,
       Menu.item('Open PR buffer', {
         action = function()
-          local buffer = require('nit.buffer')
-          local pr_bufnr = vim.api.nvim_create_buf(false, true)
-          buffer.render(pr_bufnr)
-
-          layout.open_in_main_window(function(winid)
-            vim.api.nvim_win_set_buf(winid, pr_bufnr)
-          end)
+          actions.open_pr_buffer()
         end,
       })
     )
@@ -29,8 +23,7 @@ function M.show(node)
       items,
       Menu.item('Refresh', {
         action = function()
-          local sidebar = require('nit.ui.sidebar')
-          sidebar.refresh()
+          require('nit.controller').refresh()
         end,
       })
     )
@@ -39,10 +32,7 @@ function M.show(node)
       items,
       Menu.item('Open file', {
         action = function()
-          layout.open_in_main_window(function(winid)
-            vim.api.nvim_set_current_win(winid)
-            vim.cmd('edit ' .. vim.fn.fnameescape(node.path))
-          end)
+          actions.open_file(node.path)
         end,
       })
     )
@@ -60,8 +50,8 @@ function M.show(node)
       items,
       Menu.item('Go to comment', {
         action = function()
-          local tree = require('nit.ui.tree')
-          local tree_instance = tree.get_tree()
+          local tree_mod = require('nit.ui.tree')
+          local tree_instance = tree_mod.get_tree()
           if not tree_instance then
             return
           end
@@ -76,22 +66,7 @@ function M.show(node)
             return
           end
 
-          layout.open_in_main_window(function(winid)
-            vim.api.nvim_set_current_win(winid)
-            if node.line then
-              vim.cmd('edit +' .. node.line .. ' ' .. vim.fn.fnameescape(parent_node.path))
-            else
-              vim.cmd('edit ' .. vim.fn.fnameescape(parent_node.path))
-            end
-          end, { stay = true })
-        end,
-      })
-    )
-    table.insert(
-      items,
-      Menu.item('Copy link (placeholder)', {
-        action = function()
-          vim.notify('Copy link not yet implemented', vim.log.levels.INFO)
+          actions.go_to_comment(parent_node.path, node.line)
         end,
       })
     )

@@ -7,6 +7,7 @@ local highlights = require('nit.ui.highlights')
 local SIDEBAR_WIDTH = 40
 
 local sidebar_split = nil
+local sidebar_position = 'left'
 local highlights_initialized = false
 
 ---@type fun()?
@@ -25,6 +26,7 @@ function M.open(opts)
 
   opts = opts or {}
   local position = opts.position or 'left'
+  sidebar_position = position
   on_close_callback = opts.on_close
 
   if not highlights_initialized then
@@ -128,7 +130,8 @@ function M.open_in_main_window(callback, opts)
 
   local main_winid = vim.fn.win_getid(vim.fn.winnr('#'))
   if not main_winid or main_winid == 0 or main_winid == sidebar_winid then
-    vim.cmd('wincmd l')
+    local direction = sidebar_position == 'right' and 'h' or 'l'
+    vim.cmd('wincmd ' .. direction)
     main_winid = vim.api.nvim_get_current_win()
   end
 
