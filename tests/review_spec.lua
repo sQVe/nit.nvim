@@ -3,24 +3,23 @@ describe('review session', function()
   local controller_mock = {
     load_called = false,
     cleanup_called = false,
-    refresh_called = false,
   }
 
-  local sidebar_mock = {
-    is_open_value = false,
-    open_called = false,
+  local display_manager_mock = {
+    setup_called = false,
+    detach_all_called = false,
+  }
+
+  local comment_popup_mock = {
     close_called = false,
-    captured_opts = nil,
   }
 
   before_each(function()
     controller_mock.load_called = false
     controller_mock.cleanup_called = false
-    controller_mock.refresh_called = false
-    sidebar_mock.is_open_value = false
-    sidebar_mock.open_called = false
-    sidebar_mock.close_called = false
-    sidebar_mock.captured_opts = nil
+    display_manager_mock.setup_called = false
+    display_manager_mock.detach_all_called = false
+    comment_popup_mock.close_called = false
 
     package.loaded['nit.controller'] = {
       load = function()
@@ -29,23 +28,20 @@ describe('review session', function()
       cleanup = function()
         controller_mock.cleanup_called = true
       end,
-      refresh = function()
-        controller_mock.refresh_called = true
+    }
+
+    package.loaded['nit.display.manager'] = {
+      setup = function()
+        display_manager_mock.setup_called = true
+      end,
+      detach_all = function()
+        display_manager_mock.detach_all_called = true
       end,
     }
 
-    package.loaded['nit.ui.sidebar'] = {
-      is_open = function()
-        return sidebar_mock.is_open_value
-      end,
-      open = function(opts)
-        sidebar_mock.open_called = true
-        sidebar_mock.captured_opts = opts
-        sidebar_mock.is_open_value = true
-      end,
+    package.loaded['nit.display.comment_popup'] = {
       close = function()
-        sidebar_mock.close_called = true
-        sidebar_mock.is_open_value = false
+        comment_popup_mock.close_called = true
       end,
     }
 
@@ -55,84 +51,59 @@ describe('review session', function()
 
   after_each(function()
     package.loaded['nit.controller'] = nil
-    package.loaded['nit.ui.sidebar'] = nil
+    package.loaded['nit.display.manager'] = nil
+    package.loaded['nit.display.comment_popup'] = nil
     package.loaded['nit.review'] = nil
   end)
 
   describe('start', function()
-    it('calls controller.load and sidebar.open', function()
+    it('sets up display manager and loads data', function()
       review.start()
 
+      assert.is_true(display_manager_mock.setup_called, 'Expected display_manager.setup to be called')
       assert.is_true(controller_mock.load_called, 'Expected controller.load to be called')
-      assert.is_true(sidebar_mock.open_called, 'Expected sidebar.open to be called')
     end)
 
-    it('passes on_refresh callback that calls controller.refresh', function()
+    it('is no-op when already active', function()
       review.start()
-
-      assert.is_not_nil(sidebar_mock.captured_opts, 'Expected opts to be captured')
-      assert.is_not_nil(sidebar_mock.captured_opts.on_refresh, 'Expected on_refresh callback')
-
-      sidebar_mock.captured_opts.on_refresh()
-
-      assert.is_true(controller_mock.refresh_called, 'Expected controller.refresh to be called')
-    end)
-
-    it('passes on_close callback that calls controller.cleanup', function()
-      review.start()
-
-      assert.is_not_nil(sidebar_mock.captured_opts, 'Expected opts to be captured')
-      assert.is_not_nil(sidebar_mock.captured_opts.on_close, 'Expected on_close callback')
-
-      sidebar_mock.captured_opts.on_close()
-
-      assert.is_true(controller_mock.cleanup_called, 'Expected controller.cleanup to be called')
-    end)
-
-    it('is no-op when already open', function()
-      sidebar_mock.is_open_value = true
+      controller_mock.load_called = false
+      display_manager_mock.setup_called = false
 
       review.start()
 
       assert.is_false(controller_mock.load_called, 'Expected controller.load not to be called')
-      assert.is_false(sidebar_mock.open_called, 'Expected sidebar.open not to be called')
+      assert.is_false(display_manager_mock.setup_called, 'Expected display_manager.setup not to be called')
+    end)
+
+    it('reports active after start', function()
+      assert.is_false(review.is_active())
+      review.start()
+      assert.is_true(review.is_active())
     end)
   end)
 
   describe('stop', function()
-    it('calls sidebar.close', function()
-      sidebar_mock.is_open_value = true
+    it('detaches display and cleans up controller', function()
+      review.start()
 
       review.stop()
 
-      assert.is_true(sidebar_mock.close_called, 'Expected sidebar.close to be called')
+      assert.is_true(display_manager_mock.detach_all_called, 'Expected display_manager.detach_all to be called')
+      assert.is_true(comment_popup_mock.close_called, 'Expected comment_popup.close to be called')
+      assert.is_true(controller_mock.cleanup_called, 'Expected controller.cleanup to be called')
     end)
 
-    it('is no-op when already closed', function()
-      sidebar_mock.is_open_value = false
-
+    it('is no-op when not active', function()
       review.stop()
 
-      assert.is_false(sidebar_mock.close_called, 'Expected sidebar.close not to be called')
-    end)
-  end)
-
-  describe('toggle', function()
-    it('calls start when closed', function()
-      sidebar_mock.is_open_value = false
-
-      review.toggle()
-
-      assert.is_true(controller_mock.load_called, 'Expected controller.load to be called')
-      assert.is_true(sidebar_mock.open_called, 'Expected sidebar.open to be called')
+      assert.is_false(display_manager_mock.detach_all_called, 'Expected display_manager.detach_all not to be called')
+      assert.is_false(controller_mock.cleanup_called, 'Expected controller.cleanup not to be called')
     end)
 
-    it('calls stop when open', function()
-      sidebar_mock.is_open_value = true
-
-      review.toggle()
-
-      assert.is_true(sidebar_mock.close_called, 'Expected sidebar.close to be called')
+    it('reports inactive after stop', function()
+      review.start()
+      review.stop()
+      assert.is_false(review.is_active())
     end)
   end)
 end)
