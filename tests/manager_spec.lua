@@ -154,6 +154,15 @@ describe('display.manager', function()
       assert.same({}, lines)
     end)
 
+    it('excludes resolved threads', function()
+      data_mock.threads = { { side = 'RIGHT', line = 5, isOutdated = false, isResolved = true } }
+
+      manager.attach(1, 'test.lua')
+
+      local lines = manager.get_commented_lines(1)
+      assert.same({}, lines)
+    end)
+
     it('filters mixed displayable and non-displayable threads', function()
       local good = { side = 'RIGHT', line = 5, isOutdated = false }
       data_mock.threads = {
@@ -161,6 +170,7 @@ describe('display.manager', function()
         { side = 'LEFT', line = 3, isOutdated = false },
         { side = 'RIGHT', line = nil, isOutdated = false },
         { side = 'RIGHT', line = 10, isOutdated = true },
+        { side = 'RIGHT', line = 15, isOutdated = false, isResolved = true },
       }
 
       manager.attach(1, 'test.lua')
@@ -169,6 +179,7 @@ describe('display.manager', function()
       assert.same(good, lines[5])
       assert.is_nil(lines[3])
       assert.is_nil(lines[10])
+      assert.is_nil(lines[15])
     end)
   end)
 

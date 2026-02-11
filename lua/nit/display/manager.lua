@@ -19,13 +19,13 @@ local attached_buffers = {}
 
 local augroup = vim.api.nvim_create_augroup('NitCommentDisplay', { clear = true })
 
----Filter threads to displayable ones (RIGHT side, not outdated, with line numbers)
+---Filter threads to displayable ones (RIGHT side, unresolved, not outdated, with line numbers)
 ---@param threads Nit.Api.Thread[]
 ---@return Nit.Api.Thread[]
 local function filter_displayable(threads)
   local result = {}
   for _, thread in ipairs(threads) do
-    if thread.side == 'RIGHT' and thread.line ~= nil and not thread.isOutdated then
+    if thread.side == 'RIGHT' and thread.line ~= nil and not thread.isResolved and not thread.isOutdated then
       table.insert(result, thread)
     end
   end
