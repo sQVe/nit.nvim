@@ -19,13 +19,18 @@ local attached_buffers = {}
 
 local augroup = vim.api.nvim_create_augroup('NitCommentDisplay', { clear = true })
 
----Filter threads to displayable ones (RIGHT side, not outdated, with line numbers)
+---Filter threads to displayable ones (RIGHT side, unresolved, not outdated, with line numbers)
 ---@param threads Nit.Api.Thread[]
 ---@return Nit.Api.Thread[]
 local function filter_displayable(threads)
   local result = {}
   for _, thread in ipairs(threads) do
-    if thread.side == 'RIGHT' and thread.line ~= nil and not thread.isOutdated then
+    if
+      thread.side == 'RIGHT'
+      and thread.line ~= nil
+      and not thread.isResolved
+      and not thread.isOutdated
+    then
       table.insert(result, thread)
     end
   end
@@ -194,6 +199,17 @@ function M.get_thread_at_cursor(bufnr)
 
   local current_line = cursor[1]
   return state.commented_lines[current_line]
+end
+
+---Get commented lines for a buffer
+---@param bufnr integer Buffer number
+---@return table<integer, Nit.Api.Thread>?
+function M.get_commented_lines(bufnr)
+  local state = attached_buffers[bufnr]
+  if not state then
+    return nil
+  end
+  return state.commented_lines
 end
 
 return M
