@@ -46,7 +46,7 @@ function M.next_comment()
     if line > current_line then
       local set_ok = pcall(vim.api.nvim_win_set_cursor, 0, { line, 0 })
       if set_ok then
-        pcall(vim.cmd, 'normal! ^')
+        vim.cmd('normal! ^')
       end
       return
     end
@@ -84,7 +84,7 @@ function M.prev_comment()
   if prev_line then
     local set_ok = pcall(vim.api.nvim_win_set_cursor, 0, { prev_line, 0 })
     if set_ok then
-      pcall(vim.cmd, 'normal! ^')
+      vim.cmd('normal! ^')
     end
   end
 end
