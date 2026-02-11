@@ -32,11 +32,12 @@ local function try_attach_buffer(bufnr)
     end
   end
 
-  if not bufname:find(git_root, 1, true) then
+  local prefix = git_root .. '/'
+  if bufname:sub(1, #prefix) ~= prefix then
     return
   end
 
-  local relative_path = bufname:sub(#git_root + 2)
+  local relative_path = bufname:sub(#prefix + 1)
   display_manager.attach(bufnr, relative_path)
 end
 

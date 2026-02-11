@@ -357,6 +357,18 @@ describe('review', function()
       assert.same({}, display_manager_mock.attach_calls)
     end)
 
+    it('skips buffer whose path overlaps git root as prefix', function()
+      fn_mock.git_succeeds = true
+      fn_mock.systemlist_result = { '/repo' }
+      review.start()
+      local callback = find_autocmd_callback('BufEnter')
+
+      api_mock.buf_names = { [1] = '/repo-copy/file.lua' }
+      callback({ buf = 1 })
+
+      assert.same({}, display_manager_mock.attach_calls)
+    end)
+
     it('attaches buffer under git root with relative path', function()
       fn_mock.git_succeeds = true
       fn_mock.systemlist_result = { '/repo' }
