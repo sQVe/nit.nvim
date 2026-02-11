@@ -7,6 +7,7 @@ local observers = require('nit.state.observers')
 
 local active = false
 local git_root = nil
+local git_root_failed = false
 local review_augroup = nil
 local observer_unsubscribe = nil
 
@@ -19,10 +20,14 @@ local function try_attach_buffer(bufnr)
   end
 
   if not git_root then
+    if git_root_failed then
+      return
+    end
     local result = vim.fn.systemlist('git rev-parse --show-toplevel')
     if vim.v.shell_error == 0 and result[1] then
       git_root = result[1]
     else
+      git_root_failed = true
       return
     end
   end
@@ -50,6 +55,8 @@ function M.start()
   active = true
   display_manager.setup()
 
+  -- BufEnter handles buffers opened during an active review session.
+  -- The one-shot observer below handles buffers already open when data first loads.
   review_augroup = vim.api.nvim_create_augroup('NitReviewBuffers', { clear = true })
   vim.api.nvim_create_autocmd('BufEnter', {
     group = review_augroup,
@@ -92,6 +99,7 @@ function M.stop()
   end
 
   git_root = nil
+  git_root_failed = false
 
   display_manager.detach_all()
   require('nit.display.comment_popup').close()
