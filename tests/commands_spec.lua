@@ -30,42 +30,36 @@ describe('commands', function()
       assert.is_true(called)
     end)
 
-    it('calls review subcommand', function()
+    it('calls start subcommand', function()
       local commands = require('nit.commands')
-      local toggled = false
+      local started = false
       package.loaded['nit.review'] = {
-        toggle = function()
-          toggled = true
+        start = function()
+          started = true
         end,
       }
       package.loaded['nit'] = nil
 
-      commands.dispatch({ fargs = { 'review' } })
+      commands.dispatch({ fargs = { 'start' } })
 
       package.loaded['nit.review'] = nil
-      assert.is_true(toggled)
+      assert.is_true(started)
     end)
 
-    it('passes remaining args to subcommand impl', function()
+    it('calls stop subcommand', function()
       local commands = require('nit.commands')
+      local stopped = false
+      package.loaded['nit.review'] = {
+        stop = function()
+          stopped = true
+        end,
+      }
+      package.loaded['nit'] = nil
 
-      package.loaded['nit.commands'] = nil
-      commands = require('nit.commands')
+      commands.dispatch({ fargs = { 'stop' } })
 
-      local called = false
-      local original_cmd = vim.cmd
-      vim.cmd = function(cmd)
-        if cmd == 'checkhealth nit' then
-          called = true
-        else
-          original_cmd(cmd)
-        end
-      end
-
-      commands.dispatch({ fargs = { 'healthcheck', 'extra', 'args' } })
-
-      vim.cmd = original_cmd
-      assert.is_true(called)
+      package.loaded['nit.review'] = nil
+      assert.is_true(stopped)
     end)
 
     it('shows error for unknown subcommand', function()
@@ -87,12 +81,12 @@ describe('commands', function()
       assert.are.equal(vim.log.levels.ERROR, captured_level)
     end)
 
-    it('toggles review panel when no subcommand provided', function()
+    it('starts session when no subcommand provided', function()
       local commands = require('nit.commands')
-      local toggled = false
+      local started = false
       package.loaded['nit.review'] = {
-        toggle = function()
-          toggled = true
+        start = function()
+          started = true
         end,
       }
       package.loaded['nit'] = nil
@@ -100,7 +94,7 @@ describe('commands', function()
       commands.dispatch({ fargs = {} })
 
       package.loaded['nit.review'] = nil
-      assert.is_true(toggled)
+      assert.is_true(started)
     end)
   end)
 
@@ -115,6 +109,8 @@ describe('commands', function()
       local results = commands.complete('', 'Nit ', 4)
       assert.is_table(results)
       assert.is_true(vim.tbl_contains(results, 'healthcheck'))
+      assert.is_true(vim.tbl_contains(results, 'start'))
+      assert.is_true(vim.tbl_contains(results, 'stop'))
     end)
 
     it('filters subcommands by prefix', function()
@@ -124,11 +120,12 @@ describe('commands', function()
       assert.is_true(vim.tbl_contains(results, 'healthcheck'))
     end)
 
-    it('filters subcommands by rev prefix', function()
+    it('filters subcommands by st prefix', function()
       local commands = require('nit.commands')
-      local results = commands.complete('rev', 'Nit rev', 7)
+      local results = commands.complete('st', 'Nit st', 6)
       assert.is_table(results)
-      assert.is_true(vim.tbl_contains(results, 'review'))
+      assert.is_true(vim.tbl_contains(results, 'start'))
+      assert.is_true(vim.tbl_contains(results, 'stop'))
       assert.is_false(vim.tbl_contains(results, 'healthcheck'))
     end)
 

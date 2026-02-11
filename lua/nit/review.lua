@@ -2,39 +2,37 @@
 local M = {}
 
 local controller = require('nit.controller')
-local sidebar = require('nit.ui.sidebar')
+local display_manager = require('nit.display.manager')
+
+local active = false
+
+---Check if review session is active
+---@return boolean
+function M.is_active()
+  return active
+end
 
 ---Start review session
 function M.start()
-  if sidebar.is_open() then
+  if active then
     return
   end
-  sidebar.open({
-    on_refresh = function()
-      controller.refresh()
-    end,
-    on_close = function()
-      controller.cleanup()
-    end,
-  })
+
+  active = true
+  display_manager.setup()
   controller.load()
 end
 
 ---Stop review session
 function M.stop()
-  if not sidebar.is_open() then
+  if not active then
     return
   end
-  sidebar.close()
-end
 
----Toggle review session
-function M.toggle()
-  if sidebar.is_open() then
-    M.stop()
-  else
-    M.start()
-  end
+  active = false
+  display_manager.detach_all()
+  require('nit.display.comment_popup').close()
+  controller.cleanup()
 end
 
 return M

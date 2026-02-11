@@ -12,11 +12,12 @@ function M.setup(opts)
   M.config = vim.tbl_deep_extend('force', M.config, opts or {})
 end
 
----@type Nit.Review
-M.review = setmetatable({}, {
-  __index = function(_, key)
-    return require('nit.review')[key]
-  end,
-})
+function M.start()
+  require('nit.review').start()
+end
+
+function M.stop()
+  require('nit.review').stop()
+end
 
 return M

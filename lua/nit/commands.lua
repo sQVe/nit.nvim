@@ -17,9 +17,14 @@ local subcommands = {
       require('nit.controller').refresh()
     end,
   },
-  review = {
+  start = {
     run = function(_args, _opts)
-      require('nit').review.toggle()
+      require('nit').start()
+    end,
+  },
+  stop = {
+    run = function(_args, _opts)
+      require('nit').stop()
     end,
   },
 }
@@ -30,7 +35,7 @@ function M.dispatch(opts)
   local subcmd_key = fargs[1]
 
   if not subcmd_key then
-    require('nit').review.toggle()
+    require('nit').start()
     return
   end
 
