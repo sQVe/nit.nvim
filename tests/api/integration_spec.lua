@@ -204,6 +204,17 @@ describe('nit.api integration', function()
   end)
 
   describe('type consistency', function()
+    local original_execute
+
+    before_each(function()
+      original_execute = gh.execute
+    end)
+
+    after_each(function()
+      gh.execute = original_execute
+      util.get_repo_info = original_get_repo_info
+    end)
+
     it('fetch_pr returns expected PR structure', function()
       local pr_response = vim.json.encode({
         number = 456,
@@ -268,8 +279,6 @@ describe('nit.api integration', function()
       assert.is_string(file.status)
       assert.is_number(file.additions)
       assert.is_number(file.deletions)
-
-      util.get_repo_info = original_get_repo_info
     end)
 
     it('fetch_diff returns string diff content', function()
