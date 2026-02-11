@@ -25,7 +25,12 @@ local augroup = vim.api.nvim_create_augroup('NitCommentDisplay', { clear = true 
 local function filter_displayable(threads)
   local result = {}
   for _, thread in ipairs(threads) do
-    if thread.side == 'RIGHT' and thread.line ~= nil and not thread.isResolved and not thread.isOutdated then
+    if
+      thread.side == 'RIGHT'
+      and thread.line ~= nil
+      and not thread.isResolved
+      and not thread.isOutdated
+    then
       table.insert(result, thread)
     end
   end

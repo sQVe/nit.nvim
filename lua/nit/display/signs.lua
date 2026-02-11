@@ -6,12 +6,16 @@ local SIGN_GROUP = 'nit_comments'
 ---Define signs for comment indicators
 function M.setup()
   vim.fn.sign_define('NitComment', {
-    text = '💬',
+    text = '󰆂',
     texthl = 'NitCommentSign',
   })
   vim.fn.sign_define('NitCommentResolved', {
-    text = '✓',
+    text = '󰆀',
     texthl = 'NitCommentResolvedSign',
+  })
+  vim.fn.sign_define('NitCommentOutdated', {
+    text = '󱗢',
+    texthl = 'NitCommentOutdatedSign',
   })
 end
 
@@ -21,7 +25,9 @@ end
 function M.place(bufnr, threads)
   for _, thread in ipairs(threads) do
     if thread.side == 'RIGHT' and thread.line ~= nil then
-      local sign_name = thread.isResolved and 'NitCommentResolved' or 'NitComment'
+      local sign_name = thread.isOutdated and 'NitCommentOutdated'
+        or thread.isResolved and 'NitCommentResolved'
+        or 'NitComment'
       vim.fn.sign_place(0, SIGN_GROUP, sign_name, bufnr, {
         lnum = thread.line,
         priority = 10,
