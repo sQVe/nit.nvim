@@ -196,4 +196,15 @@ function M.get_thread_at_cursor(bufnr)
   return state.commented_lines[current_line]
 end
 
+---Get commented lines for a buffer
+---@param bufnr integer Buffer number
+---@return table<integer, Nit.Api.Thread>?
+function M.get_commented_lines(bufnr)
+  local state = attached_buffers[bufnr]
+  if not state then
+    return nil
+  end
+  return state.commented_lines
+end
+
 return M
