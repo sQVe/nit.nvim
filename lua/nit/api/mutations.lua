@@ -45,7 +45,7 @@ local UNRESOLVE_MUTATION = [[
 ---@param comment_node table
 ---@return Nit.Api.Comment
 local function normalize_comment(comment_node)
-  local author = comment_node.author
+  local author = nil_if_vim_nil(comment_node.author)
   return {
     id = comment_node.databaseId,
     author = author and author.login and { login = author.login } or { login = 'unknown' },
@@ -117,6 +117,9 @@ local function validate_reply_opts(opts)
 
   if opts.body == nil then
     return nil, 'body is required'
+  end
+  if type(opts.body) ~= 'string' then
+    return nil, 'body must be a string'
   end
 
   local trimmed_body = opts.body:match('^%s*(.-)%s*$')
