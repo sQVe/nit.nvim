@@ -57,9 +57,9 @@ function M.submit_reply(opts, callback)
     mutations.reply_to_thread(
       { thread_id = tostring(thread_id), body = opts.body },
       function(result)
-        done()
-
         if not versioning.is_current(thread_id, version) then
+          done()
+          callback(false, opts.body)
           return
         end
 
@@ -75,12 +75,17 @@ function M.submit_reply(opts, callback)
             end
             rebuild_threads(updated)
           end
+          done()
           callback(true, nil)
         else
           if snap then
             snapshot.restore(snap)
           end
-          vim.notify('[nit] Reply failed: ' .. result.error, vim.log.levels.ERROR)
+          done()
+          vim.notify(
+            '[nit] Reply failed: ' .. (result.error or 'unknown error'),
+            vim.log.levels.ERROR
+          )
           callback(false, opts.body)
         end
       end
@@ -112,19 +117,24 @@ function M.toggle_resolved(opts, callback)
 
   queue.enqueue(thread_id, function(done)
     mutation_fn({ thread_id = tostring(thread_id) }, function(result)
-      done()
-
       if not versioning.is_current(thread_id, version) then
+        done()
+        callback(false)
         return
       end
 
       if result.ok then
+        done()
         callback(true)
       else
         if snap then
           snapshot.restore(snap)
         end
-        vim.notify('[nit] ' .. action_name .. ' failed: ' .. result.error, vim.log.levels.ERROR)
+        done()
+        vim.notify(
+          '[nit] ' .. action_name .. ' failed: ' .. (result.error or 'unknown error'),
+          vim.log.levels.ERROR
+        )
         callback(false)
       end
     end)

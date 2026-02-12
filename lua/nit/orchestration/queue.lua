@@ -20,9 +20,13 @@ local function process_next(thread_id)
   end
 
   local fn = table.remove(queue.items, 1)
-  fn(function()
+  local ok, err = pcall(fn, function()
     process_next(thread_id)
   end)
+  if not ok then
+    vim.notify('[nit] Queue error: ' .. tostring(err), vim.log.levels.ERROR)
+    process_next(thread_id)
+  end
 end
 
 ---Enqueue a mutation function for a thread
@@ -40,9 +44,13 @@ function M.enqueue(thread_id, fn)
 
   if not queue.processing then
     queue.processing = true
-    fn(function()
+    local ok, err = pcall(fn, function()
       process_next(thread_id)
     end)
+    if not ok then
+      vim.notify('[nit] Queue error: ' .. tostring(err), vim.log.levels.ERROR)
+      process_next(thread_id)
+    end
   else
     table.insert(queue.items, fn)
   end
