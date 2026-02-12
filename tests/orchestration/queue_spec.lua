@@ -85,6 +85,61 @@ describe('nit.orchestration.queue', function()
     end)
   end)
 
+  describe('error recovery', function()
+    local original_notify = vim.notify
+
+    after_each(function()
+      vim.notify = original_notify
+    end)
+
+    it('continues processing after immediate function throws', function()
+      local notify_msg = ''
+      vim.notify = function(msg)
+        notify_msg = msg
+      end
+
+      local second_called = false
+      queue.enqueue('thread-1', function()
+        error('boom')
+      end)
+
+      queue.enqueue('thread-1', function(done)
+        second_called = true
+        done()
+      end)
+
+      assert.is_true(second_called)
+      assert.truthy(notify_msg:find('boom'))
+    end)
+
+    it('continues processing after queued function throws', function()
+      local notify_msg = ''
+      vim.notify = function(msg)
+        notify_msg = msg
+      end
+
+      local done1
+      queue.enqueue('thread-1', function(done)
+        done1 = done
+      end)
+
+      local third_called = false
+      queue.enqueue('thread-1', function()
+        error('queued boom')
+      end)
+
+      queue.enqueue('thread-1', function(done)
+        third_called = true
+        done()
+      end)
+
+      done1()
+
+      assert.is_true(third_called)
+      assert.truthy(notify_msg:find('queued boom'))
+    end)
+  end)
+
   describe('reset', function()
     it('clears all queues', function()
       local calls = {}

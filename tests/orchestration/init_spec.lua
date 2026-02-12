@@ -2,6 +2,11 @@ describe('nit.orchestration.init', function()
   local data
   local observers
   local orchestration
+  local original_notify = vim.notify
+
+  after_each(function()
+    vim.notify = original_notify
+  end)
 
   local function reset_modules()
     package.loaded['nit.state.data'] = nil
@@ -206,7 +211,6 @@ describe('nit.orchestration.init', function()
       local notify_called = false
       local notify_msg = ''
       local notify_level = nil
-      local original_notify = vim.notify
       vim.notify = function(msg, level)
         notify_called = true
         notify_msg = msg
@@ -216,8 +220,6 @@ describe('nit.orchestration.init', function()
       orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
 
       api_callback({ ok = false, error = 'Network error' })
-
-      vim.notify = original_notify
 
       assert.is_true(notify_called)
       assert.equals('[nit] Reply failed: Network error', notify_msg)
@@ -406,7 +408,6 @@ describe('nit.orchestration.init', function()
       data.set_threads({ thread })
 
       local notify_msg = ''
-      local original_notify = vim.notify
       vim.notify = function(msg)
         notify_msg = msg
       end
@@ -415,9 +416,190 @@ describe('nit.orchestration.init', function()
 
       api_callback({ ok = false, error = 'Network error' })
 
-      vim.notify = original_notify
-
       assert.equals('[nit] Resolve failed: Network error', notify_msg)
+    end)
+
+    it('returns false immediately for missing thread', function()
+      local mutation_called = false
+      setup_with_mock({
+        reply_to_thread = function() end,
+        resolve_thread = function()
+          mutation_called = true
+          return function() end
+        end,
+        unresolve_thread = function()
+          mutation_called = true
+          return function() end
+        end,
+      })
+
+      data.set_threads({})
+
+      local callback_ok = nil
+      orchestration.toggle_resolved({ thread_id = 999 }, function(ok)
+        callback_ok = ok
+      end)
+
+      assert.is_false(callback_ok)
+      assert.is_false(mutation_called)
+    end)
+
+    it('discards stale response', function()
+      local api_callback
+      setup_with_mock({
+        reply_to_thread = function() end,
+        resolve_thread = function(_, callback)
+          api_callback = callback
+          return function() end
+        end,
+        unresolve_thread = function() end,
+      })
+
+      local thread = create_test_thread(1, false)
+      data.set_threads({ thread })
+
+      local callback_ok = nil
+      orchestration.toggle_resolved({ thread_id = 1 }, function(ok)
+        callback_ok = ok
+      end)
+
+      assert.is_true(data.get_thread(1).isResolved)
+
+      local versioning = require('nit.orchestration.versioning')
+      versioning.increment(1)
+
+      api_callback({ ok = true })
+
+      assert.is_false(callback_ok)
+    end)
+
+    it('shows Unresolve in notify when unresolve fails', function()
+      local api_callback
+      setup_with_mock({
+        reply_to_thread = function() end,
+        resolve_thread = function() end,
+        unresolve_thread = function(_, callback)
+          api_callback = callback
+          return function() end
+        end,
+      })
+
+      local thread = create_test_thread(1, true)
+      data.set_threads({ thread })
+
+      local notify_msg = ''
+      vim.notify = function(msg)
+        notify_msg = msg
+      end
+
+      orchestration.toggle_resolved({ thread_id = 1 }, function() end)
+
+      api_callback({ ok = false, error = 'Network error' })
+
+      assert.equals('[nit] Unresolve failed: Network error', notify_msg)
+    end)
+  end)
+
+  describe('submit_reply edge cases', function()
+    it('succeeds without crash when thread is deleted before success response', function()
+      local api_callback
+      setup_with_mock({
+        reply_to_thread = function(_, callback)
+          api_callback = callback
+          return function() end
+        end,
+        resolve_thread = function() end,
+        unresolve_thread = function() end,
+      })
+
+      local thread = create_test_thread(1)
+      data.set_threads({ thread })
+
+      local callback_ok = nil
+      orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function(ok)
+        callback_ok = ok
+      end)
+
+      data.set_threads({})
+
+      api_callback({
+        ok = true,
+        data = {
+          id = 200,
+          author = { login = 'user' },
+          body = 'test reply',
+          createdAt = '2026-01-01T01:00:00Z',
+        },
+      })
+
+      assert.is_true(callback_ok)
+    end)
+
+    it('shows unknown error when error message is nil', function()
+      local api_callback
+      setup_with_mock({
+        reply_to_thread = function(_, callback)
+          api_callback = callback
+          return function() end
+        end,
+        resolve_thread = function() end,
+        unresolve_thread = function() end,
+      })
+
+      local thread = create_test_thread(1)
+      data.set_threads({ thread })
+
+      local notify_msg = ''
+      vim.notify = function(msg)
+        notify_msg = msg
+      end
+
+      orchestration.submit_reply({ thread_id = 1, body = 'test' }, function() end)
+
+      api_callback({ ok = false })
+
+      assert.equals('[nit] Reply failed: unknown error', notify_msg)
+    end)
+
+    it('replaces only first optimistic comment when multiple exist', function()
+      local api_callbacks = {}
+      setup_with_mock({
+        reply_to_thread = function(_, callback)
+          table.insert(api_callbacks, callback)
+          return function() end
+        end,
+        resolve_thread = function() end,
+        unresolve_thread = function() end,
+      })
+
+      local thread = create_test_thread(1)
+      data.set_threads({ thread })
+
+      orchestration.submit_reply({ thread_id = 1, body = 'first' }, function() end)
+
+      local after_first = data.get_thread(1)
+      local updated = vim.deepcopy(after_first)
+      table.insert(updated.comments, {
+        id = 0,
+        author = { login = 'you' },
+        body = 'second',
+        createdAt = '2026-01-01T00:01:00Z',
+      })
+      data.set_threads({ updated })
+
+      api_callbacks[1]({
+        ok = true,
+        data = {
+          id = 200,
+          author = { login = 'user' },
+          body = 'first',
+          createdAt = '2026-01-01T01:00:00Z',
+        },
+      })
+
+      local final_thread = data.get_thread(1)
+      assert.equals(200, final_thread.comments[2].id)
+      assert.equals(0, final_thread.comments[3].id)
     end)
   end)
 
