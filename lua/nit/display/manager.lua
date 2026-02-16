@@ -6,7 +6,7 @@ local data = require('nit.state.data')
 local observers = require('nit.state.observers')
 local signs = require('nit.display.signs')
 local highlights = require('nit.display.highlights')
-local comment_popup = require('nit.display.comment_popup')
+local thread_panel = require('nit.display.thread_panel')
 
 ---@class Nit.Display.BufferState
 ---@field filepath string File path this buffer is attached to
@@ -163,9 +163,9 @@ function M.detach_all()
   end
 end
 
----Show comment popup for thread at cursor
+---Show thread panel for thread at cursor
 ---@param bufnr integer Buffer number
-function M.show_popup(bufnr)
+function M.show_thread_panel(bufnr)
   local state = attached_buffers[bufnr]
   if not state then
     return
@@ -179,8 +179,19 @@ function M.show_popup(bufnr)
   local current_line = cursor[1]
   local thread = state.commented_lines[current_line]
   if thread then
-    comment_popup.show(thread)
+    thread_panel.show(thread)
   end
+end
+
+---Show comment popup for thread at cursor (backward compatibility wrapper)
+---@param bufnr integer Buffer number
+function M.show_popup(bufnr)
+  M.show_thread_panel(bufnr)
+end
+
+---Close the thread panel
+function M.close_thread_panel()
+  thread_panel.close()
 end
 
 ---Get thread at cursor position

@@ -4,7 +4,7 @@ describe('review', function()
   local controller_mock = {}
   local display_manager_mock = {}
   local observers_mock = {}
-  local comment_popup_mock = {}
+  local thread_panel_mock = {}
 
   local api_mock = {
     buf_names = {},
@@ -78,15 +78,15 @@ describe('review', function()
       end
     end
 
-    comment_popup_mock.close_calls = 0
-    comment_popup_mock.close = function()
-      comment_popup_mock.close_calls = comment_popup_mock.close_calls + 1
+    thread_panel_mock.close_calls = 0
+    thread_panel_mock.close = function()
+      thread_panel_mock.close_calls = thread_panel_mock.close_calls + 1
     end
 
     package.loaded['nit.controller'] = controller_mock
     package.loaded['nit.display.manager'] = display_manager_mock
     package.loaded['nit.state.observers'] = observers_mock
-    package.loaded['nit.display.comment_popup'] = comment_popup_mock
+    package.loaded['nit.display.thread_panel'] = thread_panel_mock
 
     orig_vim.nvim_create_augroup = vim.api.nvim_create_augroup
     orig_vim.nvim_create_autocmd = vim.api.nvim_create_autocmd
@@ -150,7 +150,7 @@ describe('review', function()
     package.loaded['nit.controller'] = nil
     package.loaded['nit.display.manager'] = nil
     package.loaded['nit.state.observers'] = nil
-    package.loaded['nit.display.comment_popup'] = nil
+    package.loaded['nit.display.thread_panel'] = nil
     package.loaded['nit.review'] = nil
   end)
 
@@ -244,12 +244,12 @@ describe('review', function()
       assert.equals(1, display_manager_mock.detach_all_calls)
     end)
 
-    it('calls comment_popup.close', function()
+    it('calls thread_panel.close', function()
       review.start()
 
       review.stop()
 
-      assert.equals(1, comment_popup_mock.close_calls)
+      assert.equals(1, thread_panel_mock.close_calls)
     end)
 
     it('calls controller.cleanup', function()

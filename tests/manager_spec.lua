@@ -5,7 +5,7 @@ describe('display.manager', function()
   local signs_mock = {}
   local highlights_mock = {}
   local observers_mock = {}
-  local comment_popup_mock = {}
+  local thread_panel_mock = {}
 
   local api_mock = {
     cursor = { 1, 0 },
@@ -59,16 +59,16 @@ describe('display.manager', function()
       end
     end
 
-    comment_popup_mock.show_calls = {}
-    comment_popup_mock.show = function(thread)
-      table.insert(comment_popup_mock.show_calls, thread)
+    thread_panel_mock.show_calls = {}
+    thread_panel_mock.show = function(thread)
+      table.insert(thread_panel_mock.show_calls, thread)
     end
 
     package.loaded['nit.state.data'] = data_mock
     package.loaded['nit.state.observers'] = observers_mock
     package.loaded['nit.display.signs'] = signs_mock
     package.loaded['nit.display.highlights'] = highlights_mock
-    package.loaded['nit.display.comment_popup'] = comment_popup_mock
+    package.loaded['nit.display.thread_panel'] = thread_panel_mock
     package.loaded['nit.ui.highlights'] = { setup = function() end }
 
     orig_vim.nvim_create_augroup = vim.api.nvim_create_augroup
@@ -111,7 +111,7 @@ describe('display.manager', function()
     package.loaded['nit.state.observers'] = nil
     package.loaded['nit.display.signs'] = nil
     package.loaded['nit.display.highlights'] = nil
-    package.loaded['nit.display.comment_popup'] = nil
+    package.loaded['nit.display.thread_panel'] = nil
     package.loaded['nit.ui.highlights'] = nil
     package.loaded['nit.display.manager'] = nil
   end)
@@ -327,7 +327,7 @@ describe('display.manager', function()
     it('is no-op when buffer is not attached', function()
       manager.show_popup(999)
 
-      assert.same({}, comment_popup_mock.show_calls)
+      assert.same({}, thread_panel_mock.show_calls)
     end)
 
     it('is no-op when cursor API fails', function()
@@ -337,7 +337,7 @@ describe('display.manager', function()
 
       manager.show_popup(1)
 
-      assert.same({}, comment_popup_mock.show_calls)
+      assert.same({}, thread_panel_mock.show_calls)
     end)
 
     it('is no-op when cursor is not on commented line', function()
@@ -348,7 +348,7 @@ describe('display.manager', function()
 
       manager.show_popup(1)
 
-      assert.same({}, comment_popup_mock.show_calls)
+      assert.same({}, thread_panel_mock.show_calls)
     end)
 
     it('shows popup when cursor is on commented line', function()
@@ -360,8 +360,8 @@ describe('display.manager', function()
 
       manager.show_popup(1)
 
-      assert.equals(1, #comment_popup_mock.show_calls)
-      assert.same(thread, comment_popup_mock.show_calls[1])
+      assert.equals(1, #thread_panel_mock.show_calls)
+      assert.same(thread, thread_panel_mock.show_calls[1])
     end)
   end)
 
