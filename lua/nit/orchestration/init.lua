@@ -40,7 +40,6 @@ function M.submit_reply(opts, callback)
   end
 
   local snap = snapshot.capture(thread_id)
-  local version = versioning.increment(thread_id)
   local submitted_body = opts.body
 
   local optimistic_comment = {
@@ -60,6 +59,7 @@ function M.submit_reply(opts, callback)
   data.upsert_thread(updated_thread)
 
   queue.enqueue(thread_id, function(done)
+    local version = versioning.increment(thread_id)
     local cancel_key
     local cancel = mutations.reply_to_thread(
       { thread_id = tostring(thread_id), body = submitted_body },
@@ -118,7 +118,6 @@ function M.toggle_resolved(opts, callback)
 
   local target_state = not thread.isResolved
   local snap = snapshot.capture(thread_id)
-  local version = versioning.increment(thread_id)
 
   local updated_thread = vim.deepcopy(thread)
   updated_thread.isResolved = target_state
@@ -128,6 +127,7 @@ function M.toggle_resolved(opts, callback)
   local action_name = target_state and 'Resolve' or 'Unresolve'
 
   queue.enqueue(thread_id, function(done)
+    local version = versioning.increment(thread_id)
     local cancel_key
     local cancel = mutation_fn({ thread_id = tostring(thread_id) }, function(result)
       untrack_cancel(cancel_key)

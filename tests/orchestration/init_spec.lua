@@ -630,9 +630,22 @@ describe('nit.orchestration.init', function()
         data = { id = 200, author = { login = 'user' }, body = 'first', createdAt = '' },
       })
 
+      local after_first = data.get_thread(1)
+      assert.equals(200, after_first.comments[2].id)
+      assert.equals(0, after_first.comments[3].id)
+
       vim.wait(50)
 
       assert.equals(2, mutation_call_count)
+
+      callbacks[2]({
+        ok = true,
+        data = { id = 201, author = { login = 'user' }, body = 'second', createdAt = '' },
+      })
+
+      local after_second = data.get_thread(1)
+      assert.equals(200, after_second.comments[2].id)
+      assert.equals(201, after_second.comments[3].id)
     end)
   end)
 
