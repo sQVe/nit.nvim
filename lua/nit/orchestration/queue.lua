@@ -13,9 +13,7 @@ local queues = {}
 local function process_next(thread_id)
   local queue = queues[thread_id]
   if not queue or #queue.items == 0 then
-    if queue then
-      queue.processing = false
-    end
+    queues[thread_id] = nil
     return
   end
 
