@@ -2,8 +2,18 @@
 ---@class Nit.Display.ThreadPanel
 local M = {}
 
+local Split = require('nui.split')
+
 ---@type table<integer, {key: string, label: string}>
 local hint_registry = {}
+
+---@type any?
+local active_panel = nil
+
+---@type Nit.Api.Thread?
+local current_thread = nil
+
+local PANEL_WIDTH = 60
 
 ---@param iso_timestamp string
 ---@return string
@@ -138,6 +148,138 @@ function M.get_title_highlight(thread)
   else
     return 'NitThreadTitle'
   end
+end
+
+---Show or update the thread panel
+---@param thread Nit.Api.Thread
+function M.show(thread)
+  if active_panel and active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+    M.update(thread)
+    return
+  end
+
+  local panel = Split({
+    relative = 'editor',
+    position = 'right',
+    size = PANEL_WIDTH,
+    enter = false,
+    buf_options = {
+      filetype = 'markdown',
+      modifiable = false,
+      readonly = true,
+      buftype = 'nofile',
+    },
+    win_options = {
+      wrap = true,
+      linebreak = true,
+      cursorline = false,
+      number = false,
+      relativenumber = false,
+      signcolumn = 'no',
+      foldcolumn = '0',
+      winhighlight = 'Normal:NormalFloat,FloatBorder:FloatBorder',
+    },
+  })
+
+  panel:mount()
+
+  panel:map('n', 'q', function()
+    M.close()
+  end, { noremap = true })
+
+  panel:map('n', '<Esc>', function()
+    M.close()
+  end, { noremap = true })
+
+  active_panel = panel
+  M.update(thread)
+end
+
+---Update panel content and chrome for the given thread
+---@param thread Nit.Api.Thread
+function M.update(thread)
+  if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
+    return
+  end
+
+  current_thread = thread
+
+  local lines = {}
+  local title_line = M.format_title(thread)
+  table.insert(lines, title_line)
+  table.insert(lines, string.rep('─', PANEL_WIDTH - 4))
+  table.insert(lines, '')
+
+  local thread_content = M.format_thread(thread, PANEL_WIDTH - 4)
+  for _, line in ipairs(thread_content) do
+    table.insert(lines, line)
+  end
+
+  table.insert(lines, '')
+  local hints_line = M.format_hints()
+  table.insert(lines, hints_line)
+
+  vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
+  vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
+  vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
+
+  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, -1, 0, -1)
+
+  local title_hl = M.get_title_highlight(thread)
+  vim.api.nvim_buf_add_highlight(active_panel.bufnr, -1, title_hl, 0, 0, -1)
+
+  local hints_line_idx = #lines - 1
+  local col = 0
+  for _, hint in ipairs(hint_registry) do
+    local key_start = col + 1
+    local key_end = key_start + #hint.key
+    vim.api.nvim_buf_add_highlight(
+      active_panel.bufnr,
+      -1,
+      'NitThreadHintKey',
+      hints_line_idx,
+      key_start,
+      key_end
+    )
+
+    local label_start = key_end + 1
+    local label_end = label_start + #hint.label
+    vim.api.nvim_buf_add_highlight(
+      active_panel.bufnr,
+      -1,
+      'NitThreadHintLabel',
+      hints_line_idx,
+      label_start,
+      label_end
+    )
+
+    col = label_end + 2
+  end
+
+  vim.api.nvim_win_call(active_panel.winid, function()
+    vim.cmd('normal! G')
+  end)
+end
+
+---Close the panel
+function M.close()
+  if active_panel then
+    active_panel:unmount()
+    active_panel = nil
+    current_thread = nil
+  end
+end
+
+---Check if panel is currently open
+---@return boolean
+function M.is_open()
+  return active_panel ~= nil
+end
+
+---Get the currently displayed thread
+---@return Nit.Api.Thread?
+function M.get_current_thread()
+  return current_thread
 end
 
 M.register_hints({
