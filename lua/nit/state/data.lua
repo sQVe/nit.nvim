@@ -89,7 +89,7 @@ function M.set_threads(threads)
 end
 
 ---Get thread by ID
----@param id integer
+---@param id Nit.Api.ThreadId
 ---@return Nit.Api.Thread?
 function M.get_thread(id)
   return threads_by_id[id]
@@ -121,6 +121,22 @@ function M.get_threads_for_file(path)
     end
   end
   return result
+end
+
+---Insert or replace a thread by ID
+---@param thread Nit.Api.Thread
+function M.upsert_thread(thread)
+  threads_by_id[thread.id] = thread
+  rebuild_threads_by_file_index()
+  observers.notify('comments')
+end
+
+---Remove a thread by ID
+---@param id Nit.Api.ThreadId
+function M.remove_thread(id)
+  threads_by_id[id] = nil
+  rebuild_threads_by_file_index()
+  observers.notify('comments')
 end
 
 ---Set PR-level comments

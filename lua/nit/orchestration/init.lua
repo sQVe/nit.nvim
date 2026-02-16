@@ -7,24 +7,29 @@ local versioning = require('nit.orchestration.versioning')
 local snapshot = require('nit.orchestration.snapshot')
 local queue = require('nit.orchestration.queue')
 
----Rebuild state with updated thread
----@param thread Nit.Api.Thread
-local function rebuild_threads(thread)
-  local all_threads = data.get_threads()
-  local updated_threads = {}
+---@type table<integer, fun()>
+local cancel_fns = {}
+local cancel_counter = 0
 
-  for _, t in ipairs(all_threads) do
-    if t.id ~= thread.id then
-      table.insert(updated_threads, t)
-    end
+---Track a cancel function and return its key
+---@param cancel fun()
+---@return integer
+local function track_cancel(cancel)
+  cancel_counter = cancel_counter + 1
+  cancel_fns[cancel_counter] = cancel
+  return cancel_counter
+end
+
+---Remove a tracked cancel function
+---@param key integer?
+local function untrack_cancel(key)
+  if key ~= nil then
+    cancel_fns[key] = nil
   end
-
-  table.insert(updated_threads, thread)
-  data.set_threads(updated_threads)
 end
 
 ---Submit a reply to a review thread
----@param opts { thread_id: integer, body: string }
+---@param opts { thread_id: Nit.Api.ThreadId, body: string }
 ---@param callback fun(ok: boolean, body: string?)
 function M.submit_reply(opts, callback)
   local thread_id = opts.thread_id
@@ -36,11 +41,12 @@ function M.submit_reply(opts, callback)
 
   local snap = snapshot.capture(thread_id)
   local version = versioning.increment(thread_id)
+  local submitted_body = opts.body
 
   local optimistic_comment = {
     id = 0,
     author = { login = 'you' },
-    body = opts.body,
+    body = submitted_body,
     createdAt = os.date('!%Y-%m-%dT%H:%M:%SZ'),
     path = nil,
     line = nil,
@@ -51,15 +57,18 @@ function M.submit_reply(opts, callback)
 
   local updated_thread = vim.deepcopy(thread)
   table.insert(updated_thread.comments, optimistic_comment)
-  rebuild_threads(updated_thread)
+  data.upsert_thread(updated_thread)
 
   queue.enqueue(thread_id, function(done)
-    mutations.reply_to_thread(
-      { thread_id = tostring(thread_id), body = opts.body },
+    local cancel_key
+    local cancel = mutations.reply_to_thread(
+      { thread_id = tostring(thread_id), body = submitted_body },
       function(result)
+        untrack_cancel(cancel_key)
+
         if not versioning.is_current(thread_id, version) then
           done()
-          callback(false, opts.body)
+          callback(false, submitted_body)
           return
         end
 
@@ -68,12 +77,14 @@ function M.submit_reply(opts, callback)
           if current_thread then
             local updated = vim.deepcopy(current_thread)
             for i, comment in ipairs(updated.comments) do
-              if comment.id == 0 then
+              if comment.id == 0 and comment.body == submitted_body then
                 updated.comments[i] = result.data
                 break
               end
             end
-            rebuild_threads(updated)
+            data.upsert_thread(updated)
+          else
+            vim.notify('[nit] Reply succeeded but thread was removed locally', vim.log.levels.WARN)
           end
           done()
           callback(true, nil)
@@ -86,15 +97,16 @@ function M.submit_reply(opts, callback)
             '[nit] Reply failed: ' .. (result.error or 'unknown error'),
             vim.log.levels.ERROR
           )
-          callback(false, opts.body)
+          callback(false, submitted_body)
         end
       end
     )
+    cancel_key = track_cancel(cancel)
   end)
 end
 
 ---Toggle resolved state of a review thread
----@param opts { thread_id: integer }
+---@param opts { thread_id: Nit.Api.ThreadId }
 ---@param callback fun(ok: boolean)
 function M.toggle_resolved(opts, callback)
   local thread_id = opts.thread_id
@@ -110,13 +122,16 @@ function M.toggle_resolved(opts, callback)
 
   local updated_thread = vim.deepcopy(thread)
   updated_thread.isResolved = target_state
-  rebuild_threads(updated_thread)
+  data.upsert_thread(updated_thread)
 
   local mutation_fn = target_state and mutations.resolve_thread or mutations.unresolve_thread
   local action_name = target_state and 'Resolve' or 'Unresolve'
 
   queue.enqueue(thread_id, function(done)
-    mutation_fn({ thread_id = tostring(thread_id) }, function(result)
+    local cancel_key
+    local cancel = mutation_fn({ thread_id = tostring(thread_id) }, function(result)
+      untrack_cancel(cancel_key)
+
       if not versioning.is_current(thread_id, version) then
         done()
         callback(false)
@@ -138,11 +153,17 @@ function M.toggle_resolved(opts, callback)
         callback(false)
       end
     end)
+    cancel_key = track_cancel(cancel)
   end)
 end
 
 ---Clean up orchestration state
 function M.cleanup()
+  for _, cancel in pairs(cancel_fns) do
+    cancel()
+  end
+  cancel_fns = {}
+  cancel_counter = 0
   versioning.reset()
   queue.reset()
 end

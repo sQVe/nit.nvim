@@ -1,5 +1,5 @@
 ---@class Nit.Orchestration.Snapshot
----@field thread_id integer
+---@field thread_id Nit.Api.ThreadId
 ---@field thread Nit.Api.Thread?
 
 ---@class Nit.Orchestration.SnapshotModule
@@ -7,8 +7,7 @@ local M = {}
 
 local data = require('nit.state.data')
 
----Capture a thread-level state snapshot
----@param thread_id integer?
+---@param thread_id Nit.Api.ThreadId?
 ---@return Nit.Orchestration.Snapshot?
 function M.capture(thread_id)
   if thread_id == nil then
@@ -24,23 +23,13 @@ function M.capture(thread_id)
   }
 end
 
----Restore a captured thread state snapshot
 ---@param snap Nit.Orchestration.Snapshot
 function M.restore(snap)
-  local all_threads = data.get_threads()
-  local updated_threads = {}
-
-  for _, thread in ipairs(all_threads) do
-    if thread.id ~= snap.thread_id then
-      table.insert(updated_threads, thread)
-    end
-  end
-
   if snap.thread ~= nil then
-    table.insert(updated_threads, snap.thread)
+    data.upsert_thread(snap.thread)
+  else
+    data.remove_thread(snap.thread_id)
   end
-
-  data.set_threads(updated_threads)
 end
 
 return M
