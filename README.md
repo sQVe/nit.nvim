@@ -42,9 +42,9 @@ Tests run in an isolated environment using [lazy.minit](https://github.com/folke
 ### Linting and formatting
 
 ```bash
-make lint          # Run selene
-make format        # Format with stylua
-make format-check  # Check formatting
+make lint         # Run selene
+make format       # Format with stylua
+make format-check # Check formatting
 ```
 
 ## License
