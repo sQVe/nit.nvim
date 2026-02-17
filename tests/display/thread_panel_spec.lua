@@ -20,12 +20,12 @@ describe('thread_panel', function()
       assert.is_true(#lines > 0)
 
       local combined = table.concat(lines, '\n')
-      assert.matches('@testuser', combined, 1, true)
+      assert.matches(' @testuser', combined, 1, true)
       assert.matches('·', combined, 1, true)
       assert.matches('Test body', combined, 1, true)
     end)
 
-    it('renders horizontal rule separators between comments', function()
+    it('separates multiple comments with blank lines', function()
       local thread = {
         comments = {
           {
@@ -48,19 +48,10 @@ describe('thread_panel', function()
 
       local lines = thread_panel.format_thread(thread)
 
-      local separator_count = 0
-      for _, line in ipairs(lines) do
-        if line:find('─') and vim.fn.strchars(line) >= 10 then
-          separator_count = separator_count + 1
-        end
-      end
-
-      assert.equals(2, separator_count)
-
       local combined = table.concat(lines, '\n')
-      assert.matches('@alice', combined, 1, true)
-      assert.matches('@bob', combined, 1, true)
-      assert.matches('@charlie', combined, 1, true)
+      assert.matches(' @alice', combined, 1, true)
+      assert.matches(' @bob', combined, 1, true)
+      assert.matches(' @charlie', combined, 1, true)
     end)
 
     it('splits multi-line body correctly', function()
@@ -97,10 +88,10 @@ describe('thread_panel', function()
 
       assert.is_table(lines)
       local combined = table.concat(lines, '\n')
-      assert.matches('@alice', combined, 1, true)
+      assert.matches(' @alice', combined, 1, true)
     end)
 
-    it('respects custom width for horizontal rule', function()
+    it('does not produce horizontal rule lines', function()
       local thread = {
         comments = {
           {
@@ -116,22 +107,16 @@ describe('thread_panel', function()
         },
       }
 
-      local lines = thread_panel.format_thread(thread, 20)
+      local lines = thread_panel.format_thread(thread)
 
-      local found_separator = false
       for _, line in ipairs(lines) do
-        if line:find('─') and vim.fn.strchars(line) == 20 then
-          found_separator = true
-          break
-        end
+        assert.is_nil(line:match('^─+$'))
       end
-
-      assert.is_true(found_separator)
     end)
   end)
 
   describe('format_title', function()
-    it('returns " Thread " for unresolved single comment', function()
+    it('returns " Thread" for unresolved single comment', function()
       local thread = {
         isResolved = false,
         comments = {
@@ -145,10 +130,10 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread ', title)
+      assert.equals(' Thread', title)
     end)
 
-    it('returns " Thread · Resolved " for resolved single comment', function()
+    it('returns " Thread · Resolved" for resolved single comment', function()
       local thread = {
         isResolved = true,
         comments = {
@@ -162,10 +147,10 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved ', title)
+      assert.equals(' Thread · Resolved', title)
     end)
 
-    it('returns " Thread (1 reply) " for unresolved 2-comment thread', function()
+    it('returns " Thread (1 reply)" for unresolved 2-comment thread', function()
       local thread = {
         isResolved = false,
         comments = {
@@ -176,10 +161,10 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (1 reply) ', title)
+      assert.equals(' Thread (1 reply)', title)
     end)
 
-    it('returns " Thread (2 replies) " for unresolved 3-comment thread', function()
+    it('returns " Thread (2 replies)" for unresolved 3-comment thread', function()
       local thread = {
         isResolved = false,
         comments = {
@@ -191,10 +176,10 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (2 replies) ', title)
+      assert.equals(' Thread (2 replies)', title)
     end)
 
-    it('returns " Thread · Resolved (2 replies) " for resolved multi-comment thread', function()
+    it('returns " Thread · Resolved (2 replies)" for resolved multi-comment thread', function()
       local thread = {
         isResolved = true,
         comments = {
@@ -206,7 +191,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved (2 replies) ', title)
+      assert.equals(' Thread · Resolved (2 replies)', title)
     end)
   end)
 

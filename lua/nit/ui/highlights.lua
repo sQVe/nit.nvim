@@ -38,6 +38,7 @@ function M.setup()
 
   vim.api.nvim_set_hl(0, 'NitThreadTitle', { link = 'Title', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadTitleResolved', { link = 'DiagnosticOk', default = true })
+  vim.api.nvim_set_hl(0, 'NitThreadAuthor', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintKey', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintLabel', { link = 'Comment', default = true })
 

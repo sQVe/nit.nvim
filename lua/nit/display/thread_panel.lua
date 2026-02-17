@@ -14,6 +14,7 @@ local active_panel = nil
 local current_thread = nil
 
 local PANEL_WIDTH = 60
+local ns = vim.api.nvim_create_namespace('nit_thread_panel')
 
 ---@param iso_timestamp string
 ---@return string
@@ -58,19 +59,16 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@param width? integer Width for horizontal rule (default 40)
 ---@return string[]
-function M.format_thread(thread, width)
-  width = width or 40
+function M.format_thread(thread)
   local lines = {}
 
   for i, comment in ipairs(thread.comments) do
     if i > 1 then
-      table.insert(lines, string.rep('─', width))
       table.insert(lines, '')
     end
 
-    local author_line = '@'
+    local author_line = ' @'
       .. comment.author.login
       .. ' · '
       .. format_relative_time(comment.createdAt)
@@ -79,7 +77,11 @@ function M.format_thread(thread, width)
 
     local body_lines = vim.split(comment.body, '\n', { plain = true })
     for _, body_line in ipairs(body_lines) do
-      table.insert(lines, body_line)
+      if body_line == '' then
+        table.insert(lines, '')
+      else
+        table.insert(lines, ' ' .. body_line)
+      end
     end
   end
 
@@ -94,19 +96,19 @@ function M.format_title(thread)
 
   if thread.isResolved then
     if reply_count == 0 then
-      return ' Thread · Resolved '
+      return ' Thread · Resolved'
     elseif reply_count == 1 then
-      return ' Thread · Resolved (1 reply) '
+      return ' Thread · Resolved (1 reply)'
     else
-      return ' Thread · Resolved (' .. reply_count .. ' replies) '
+      return ' Thread · Resolved (' .. reply_count .. ' replies)'
     end
   else
     if reply_count == 0 then
-      return ' Thread '
+      return ' Thread'
     elseif reply_count == 1 then
-      return ' Thread (1 reply) '
+      return ' Thread (1 reply)'
     else
-      return ' Thread (' .. reply_count .. ' replies) '
+      return ' Thread (' .. reply_count .. ' replies)'
     end
   end
 end
@@ -166,7 +168,6 @@ function M.show(thread)
     buf_options = {
       filetype = 'markdown',
       modifiable = false,
-      readonly = true,
       buftype = 'nofile',
     },
     win_options = {
@@ -207,10 +208,9 @@ function M.update(thread)
   local lines = {}
   local title_line = M.format_title(thread)
   table.insert(lines, title_line)
-  table.insert(lines, string.rep('─', PANEL_WIDTH - 4))
   table.insert(lines, '')
 
-  local thread_content = M.format_thread(thread, PANEL_WIDTH - 4)
+  local thread_content = M.format_thread(thread)
   for _, line in ipairs(thread_content) do
     table.insert(lines, line)
   end
@@ -223,42 +223,50 @@ function M.update(thread)
   vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
 
-  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, -1, 0, -1)
+  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, ns, 0, -1)
 
   local title_hl = M.get_title_highlight(thread)
-  vim.api.nvim_buf_add_highlight(active_panel.bufnr, -1, title_hl, 0, 0, -1)
+  vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, 0, 0, {
+    end_col = #title_line,
+    hl_group = title_hl,
+    line_hl_group = 'CursorLine',
+    hl_eol = true,
+  })
+
+  for i, line in ipairs(lines) do
+    if line:match('^ @.+ · ') then
+      vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, i - 1, 1, {
+        end_col = #line,
+        hl_group = 'NitThreadAuthor',
+      })
+    end
+  end
 
   local hints_line_idx = #lines - 1
   local col = 0
   for _, hint in ipairs(hint_registry) do
     local key_start = col + 1
     local key_end = key_start + #hint.key
-    vim.api.nvim_buf_add_highlight(
-      active_panel.bufnr,
-      -1,
-      'NitThreadHintKey',
-      hints_line_idx,
-      key_start,
-      key_end
-    )
+    vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, hints_line_idx, key_start, {
+      end_col = key_end,
+      hl_group = 'NitThreadHintKey',
+    })
 
     local label_start = key_end + 1
     local label_end = label_start + #hint.label
-    vim.api.nvim_buf_add_highlight(
-      active_panel.bufnr,
-      -1,
-      'NitThreadHintLabel',
-      hints_line_idx,
-      label_start,
-      label_end
-    )
+    vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, hints_line_idx, label_start, {
+      end_col = label_end,
+      hl_group = 'NitThreadHintLabel',
+    })
 
     col = label_end + 2
   end
 
-  vim.api.nvim_win_call(active_panel.winid, function()
-    vim.cmd('normal! G')
-  end)
+  if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+    vim.api.nvim_win_call(active_panel.winid, function()
+      vim.cmd('normal! G')
+    end)
+  end
 end
 
 ---Close the panel
