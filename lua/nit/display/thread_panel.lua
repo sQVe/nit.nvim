@@ -3,6 +3,7 @@
 local M = {}
 
 local Split = require('nui.split')
+local help_popup = require('nit.display.help_popup')
 
 ---@type table<integer, {key: string, label: string}>
 local hint_registry = {}
@@ -75,7 +76,8 @@ function M.format_thread(thread)
     table.insert(lines, author_line)
     table.insert(lines, '')
 
-    local body_lines = vim.split(comment.body, '\n', { plain = true })
+    local body = comment.body:gsub('\r', '')
+    local body_lines = vim.split(body, '\n', { plain = true })
     for _, body_line in ipairs(body_lines) do
       if body_line == '' then
         table.insert(lines, '')
@@ -141,6 +143,22 @@ function M.clear_hints()
   hint_registry = {}
 end
 
+---Get current hint registry
+---@return {key: string, label: string}[]
+function M.get_hints()
+  return hint_registry
+end
+
+---Build winbar string with title and ? help indicator
+---@param thread Nit.Api.Thread
+---@return string
+function M.build_winbar(thread)
+  local title_hl = M.get_title_highlight(thread)
+  local title = '%#' .. title_hl .. '#' .. M.format_title(thread) .. '%*'
+  local help_hint = '%#NitThreadHintKey# ?%#NitThreadHintLabel# Help%*'
+  return title .. '%=' .. help_hint .. ' '
+end
+
 ---Get title highlight group for thread
 ---@param thread Nit.Api.Thread
 ---@return string
@@ -173,11 +191,16 @@ function M.show(thread)
     win_options = {
       wrap = true,
       linebreak = true,
+      breakindent = true,
+      showbreak = 'NONE',
+      list = false,
+      winfixwidth = true,
       cursorline = false,
       number = false,
       relativenumber = false,
       signcolumn = 'no',
       foldcolumn = '0',
+      fillchars = 'eob: ',
       winhighlight = 'Normal:NormalFloat,FloatBorder:FloatBorder',
     },
   })
@@ -190,6 +213,10 @@ function M.show(thread)
 
   panel:map('n', '<Esc>', function()
     M.close()
+  end, { noremap = true })
+
+  panel:map('n', '?', function()
+    help_popup.toggle(hint_registry)
   end, { noremap = true })
 
   active_panel = panel
@@ -205,19 +232,7 @@ function M.update(thread)
 
   current_thread = thread
 
-  local lines = {}
-  local title_line = M.format_title(thread)
-  table.insert(lines, title_line)
-  table.insert(lines, '')
-
-  local thread_content = M.format_thread(thread)
-  for _, line in ipairs(thread_content) do
-    table.insert(lines, line)
-  end
-
-  table.insert(lines, '')
-  local hints_line = M.format_hints()
-  table.insert(lines, hints_line)
+  local lines = M.format_thread(thread)
 
   vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
   vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
@@ -225,47 +240,19 @@ function M.update(thread)
 
   vim.api.nvim_buf_clear_namespace(active_panel.bufnr, ns, 0, -1)
 
-  local title_hl = M.get_title_highlight(thread)
-  vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, 0, 0, {
-    end_col = #title_line,
-    hl_group = title_hl,
-    line_hl_group = 'CursorLine',
-    hl_eol = true,
-  })
-
   for i, line in ipairs(lines) do
     if line:match('^ @.+ · ') then
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, i - 1, 1, {
+      vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, i - 1, 0, {
         end_col = #line,
         hl_group = 'NitThreadAuthor',
+        line_hl_group = 'CursorLine',
+        hl_eol = true,
       })
     end
   end
 
-  local hints_line_idx = #lines - 1
-  local col = 0
-  for _, hint in ipairs(hint_registry) do
-    local key_start = col + 1
-    local key_end = key_start + #hint.key
-    vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, hints_line_idx, key_start, {
-      end_col = key_end,
-      hl_group = 'NitThreadHintKey',
-    })
-
-    local label_start = key_end + 1
-    local label_end = label_start + #hint.label
-    vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, hints_line_idx, label_start, {
-      end_col = label_end,
-      hl_group = 'NitThreadHintLabel',
-    })
-
-    col = label_end + 2
-  end
-
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
-    vim.api.nvim_win_call(active_panel.winid, function()
-      vim.cmd('normal! G')
-    end)
+    vim.wo[active_panel.winid].winbar = M.build_winbar(thread)
   end
 end
 
@@ -293,6 +280,7 @@ end
 M.register_hints({
   { key = 'q', label = 'Close' },
   { key = 'Esc', label = 'Close' },
+  { key = '?', label = 'Help' },
 })
 
 return M

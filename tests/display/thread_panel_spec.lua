@@ -52,6 +52,14 @@ describe('thread_panel', function()
       assert.matches(' @alice', combined, 1, true)
       assert.matches(' @bob', combined, 1, true)
       assert.matches(' @charlie', combined, 1, true)
+
+      local blank_count = 0
+      for _, line in ipairs(lines) do
+        if line == '' then
+          blank_count = blank_count + 1
+        end
+      end
+      assert.is_true(blank_count >= 2)
     end)
 
     it('splits multi-line body correctly', function()
@@ -91,7 +99,7 @@ describe('thread_panel', function()
       assert.matches(' @alice', combined, 1, true)
     end)
 
-    it('does not produce horizontal rule lines', function()
+    it('does not produce separator lines between comments', function()
       local thread = {
         comments = {
           {
@@ -110,7 +118,7 @@ describe('thread_panel', function()
       local lines = thread_panel.format_thread(thread)
 
       for _, line in ipairs(lines) do
-        assert.is_nil(line:match('^─+$'))
+        assert.is_nil(line:find('─'))
       end
     end)
   end)
@@ -264,6 +272,78 @@ describe('thread_panel', function()
       local hints_new = thread_panel.format_hints()
       assert.matches('x New', hints_new, 1, true)
       assert.not_matches('q Close', hints_new, 1, true)
+    end)
+  end)
+
+  describe('build_winbar', function()
+    local thread
+
+    before_each(function()
+      thread_panel.clear_hints()
+      thread_panel.register_hints({
+        { key = 'q', label = 'Close' },
+        { key = '?', label = 'Help' },
+      })
+      thread = {
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'test', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end)
+
+    it('contains the thread title', function()
+      local winbar = thread_panel.build_winbar(thread)
+
+      assert.is_string(winbar)
+      assert.matches('Thread', winbar, 1, true)
+    end)
+
+    it('shows ? Help indicator', function()
+      local winbar = thread_panel.build_winbar(thread)
+
+      assert.matches('?', winbar, 1, true)
+      assert.matches('Help', winbar, 1, true)
+    end)
+
+    it('does not show q or Esc hints inline', function()
+      local winbar = thread_panel.build_winbar(thread)
+
+      assert.not_matches(' q ', winbar, 1, true)
+      assert.not_matches('Esc', winbar, 1, true)
+    end)
+  end)
+
+  describe('get_hints', function()
+    before_each(function()
+      thread_panel.clear_hints()
+    end)
+
+    it('returns registered hints', function()
+      thread_panel.register_hints({ { key = 'q', label = 'Close' } })
+
+      local hints = thread_panel.get_hints()
+
+      assert.is_table(hints)
+      assert.equals(1, #hints)
+      assert.equals('q', hints[1].key)
+      assert.equals('Close', hints[1].label)
+    end)
+
+    it('default hints include ? Help entry', function()
+      -- Reload module to get default-registered hints
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local has_help = false
+      for _, hint in ipairs(hints) do
+        if hint.key == '?' and hint.label == 'Help' then
+          has_help = true
+        end
+      end
+      assert.is_true(has_help)
     end)
   end)
 
