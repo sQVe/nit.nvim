@@ -187,8 +187,8 @@ function M.show(thread)
     win_options = {
       wrap = true,
       linebreak = true,
-      breakindent = true,
-      showbreak = 'NONE',
+      breakindent = false,
+      showbreak = ' ',
       list = false,
       winfixwidth = true,
       cursorline = false,
@@ -235,13 +235,11 @@ function M.get_line_highlights(lines, author_indices)
 
     if comment_index > 0 then
       local is_even = comment_index % 2 == 0
+      local line_hl = is_even and 'NitThreadCommentAlt' or 'NitThreadComment'
       if author_indices[i] then
-        result[i] = {
-          hl_group = 'NitThreadAuthor',
-          line_hl_group = is_even and 'NitThreadCommentAlt' or 'CursorLine',
-        }
-      elseif is_even then
-        result[i] = { line_hl_group = 'NitThreadCommentAlt' }
+        result[i] = { hl_group = 'NitThreadAuthor', line_hl_group = line_hl }
+      else
+        result[i] = { line_hl_group = line_hl }
       end
     end
   end

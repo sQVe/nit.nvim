@@ -409,7 +409,7 @@ describe('thread_panel', function()
       assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
     end)
 
-    it('author line in odd comment uses CursorLine for line_hl_group', function()
+    it('author line in odd comment uses NitThreadComment for line_hl_group', function()
       local lines = {
         ' @alice · just now',
         '',
@@ -421,7 +421,7 @@ describe('thread_panel', function()
 
       assert.not_nil(result[1])
       assert.equals('NitThreadAuthor', result[1].hl_group)
-      assert.equals('CursorLine', result[1].line_hl_group)
+      assert.equals('NitThreadComment', result[1].line_hl_group)
     end)
 
     it('separator blank before even comment gets no alt (belongs to odd comment)', function()
