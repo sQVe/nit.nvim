@@ -154,32 +154,34 @@ describe('display.manager', function()
       assert.same({}, lines)
     end)
 
-    it('excludes resolved threads', function()
-      data_mock.threads = { { side = 'RIGHT', line = 5, isOutdated = false, isResolved = true } }
+    it('includes resolved threads', function()
+      local resolved = { side = 'RIGHT', line = 5, isOutdated = false, isResolved = true }
+      data_mock.threads = { resolved }
 
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same({}, lines)
+      assert.same(resolved, lines[5])
     end)
 
     it('filters mixed displayable and non-displayable threads', function()
       local good = { side = 'RIGHT', line = 5, isOutdated = false }
+      local resolved = { side = 'RIGHT', line = 15, isOutdated = false, isResolved = true }
       data_mock.threads = {
         good,
         { side = 'LEFT', line = 3, isOutdated = false },
         { side = 'RIGHT', line = nil, isOutdated = false },
         { side = 'RIGHT', line = 10, isOutdated = true },
-        { side = 'RIGHT', line = 15, isOutdated = false, isResolved = true },
+        resolved,
       }
 
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
       assert.same(good, lines[5])
+      assert.same(resolved, lines[15])
       assert.is_nil(lines[3])
       assert.is_nil(lines[10])
-      assert.is_nil(lines[15])
     end)
   end)
 
