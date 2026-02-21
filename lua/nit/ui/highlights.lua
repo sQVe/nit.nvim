@@ -63,7 +63,7 @@ function M.setup()
     vim.api.nvim_set_hl(
       0,
       'NitThreadComment',
-      { bg = blend(accent, float_bg, 0.05), default = true }
+      { bg = blend(accent, base_bg or float_bg, 0.1), default = true }
     )
     vim.api.nvim_set_hl(
       0,
@@ -71,8 +71,8 @@ function M.setup()
       { bg = blend(accent, float_bg, 0.1), default = true }
     )
   else
-    vim.api.nvim_set_hl(0, 'NitThreadComment', { link = 'NormalFloat', default = true })
-    vim.api.nvim_set_hl(0, 'NitThreadCommentAlt', { link = 'CursorLine', default = true })
+    vim.api.nvim_set_hl(0, 'NitThreadComment', { link = 'CursorLine', default = true })
+    vim.api.nvim_set_hl(0, 'NitThreadCommentAlt', { link = 'NormalFloat', default = true })
   end
 end
 

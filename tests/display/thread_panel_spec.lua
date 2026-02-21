@@ -339,29 +339,30 @@ describe('thread_panel', function()
       end
     end)
 
-    it('two comments: second comment lines get NitThreadCommentAlt', function()
-      local lines = {
-        ' @alice · just now',
-        '',
-        ' First comment',
-        '',
-        ' @bob · 1 day ago',
-        '',
-        ' Second comment',
-      }
-      local author_indices = { [1] = true, [5] = true }
+    it(
+      'second comment author line gets NitThreadCommentAlt, body lines are unhighlighted',
+      function()
+        local lines = {
+          ' @alice · just now',
+          '',
+          ' First comment',
+          '',
+          ' @bob · 1 day ago',
+          '',
+          ' Second comment',
+        }
+        local author_indices = { [1] = true, [5] = true }
 
-      local result = thread_panel.get_line_highlights(lines, author_indices)
+        local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[5])
-      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
-      assert.equals('NitThreadAuthor', result[5].hl_group)
+        assert.not_nil(result[5])
+        assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+        assert.equals('NitThreadAuthor', result[5].hl_group)
 
-      assert.not_nil(result[6])
-      assert.equals('NitThreadCommentAlt', result[6].line_hl_group)
-      assert.not_nil(result[7])
-      assert.equals('NitThreadCommentAlt', result[7].line_hl_group)
-    end)
+        assert.is_nil(result[6])
+        assert.is_nil(result[7])
+      end
+    )
 
     it('three comments: comments 1 and 3 use default, comment 2 uses alt', function()
       local lines = {

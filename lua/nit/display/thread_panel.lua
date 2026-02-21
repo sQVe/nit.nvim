@@ -219,11 +219,11 @@ function M.show(thread)
   M.update(thread)
 end
 
----Compute per-line highlight assignments for zebra-stripe backgrounds.
+---Compute per-line highlight assignments for author header lines.
 ---Returns a table mapping 1-based line index to highlight options.
 ---@param lines string[]
 ---@param author_indices table<integer, true>
----@return table<integer, {hl_group?: string, line_hl_group: string}>
+---@return table<integer, {hl_group: string, line_hl_group: string}>
 function M.get_line_highlights(lines, author_indices)
   local result = {}
   local comment_index = 0
@@ -231,16 +231,9 @@ function M.get_line_highlights(lines, author_indices)
   for i = 1, #lines do
     if author_indices[i] then
       comment_index = comment_index + 1
-    end
-
-    if comment_index > 0 then
       local is_even = comment_index % 2 == 0
       local line_hl = is_even and 'NitThreadCommentAlt' or 'NitThreadComment'
-      if author_indices[i] then
-        result[i] = { hl_group = 'NitThreadAuthor', line_hl_group = line_hl }
-      else
-        result[i] = { line_hl_group = line_hl }
-      end
+      result[i] = { hl_group = 'NitThreadAuthor', line_hl_group = line_hl }
     end
   end
 
@@ -269,12 +262,16 @@ function M.update(thread)
   for i = 1, #lines do
     local hl = line_highlights[i]
     if hl then
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, 0, {
-        end_col = hl.hl_group and #lines[i] or nil,
-        hl_group = hl.hl_group,
+      local opts = {
         line_hl_group = hl.line_hl_group,
         hl_eol = true,
-      })
+        priority = 200,
+      }
+      if hl.hl_group then
+        opts.hl_group = hl.hl_group
+        opts.end_col = #lines[i]
+      end
+      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, 0, opts)
     end
   end
 
