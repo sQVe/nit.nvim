@@ -347,6 +347,125 @@ describe('thread_panel', function()
     end)
   end)
 
+  describe('get_line_highlights', function()
+    it('single comment: no lines get alt background', function()
+      local lines = {
+        ' @alice · just now',
+        '',
+        ' Body text',
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      for _, hl in pairs(result) do
+        assert.not_equals('NitThreadCommentAlt', hl.line_hl_group)
+      end
+    end)
+
+    it('two comments: second comment lines get NitThreadCommentAlt', function()
+      local lines = {
+        ' @alice · just now',
+        '',
+        ' First comment',
+        '',
+        ' @bob · 1 day ago',
+        '',
+        ' Second comment',
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      -- Line 5 is bob's author line (even comment)
+      assert.not_nil(result[5])
+      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+      assert.equals('NitThreadAuthor', result[5].hl_group)
+
+      -- Lines 6 and 7 (body) also get alt
+      assert.not_nil(result[6])
+      assert.equals('NitThreadCommentAlt', result[6].line_hl_group)
+      assert.not_nil(result[7])
+      assert.equals('NitThreadCommentAlt', result[7].line_hl_group)
+    end)
+
+    it('three comments: comments 1 and 3 use default, comment 2 uses alt', function()
+      local lines = {
+        ' @alice · just now', -- 1: comment 1 author
+        '', -- 2: blank
+        ' First', -- 3: body
+        '', -- 4: separator
+        ' @bob · 1 day ago', -- 5: comment 2 author
+        '', -- 6: blank
+        ' Second', -- 7: body
+        '', -- 8: separator
+        ' @charlie · 2 days ago', -- 9: comment 3 author
+        '', -- 10: blank
+        ' Third', -- 11: body
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      -- Comment 1 (odd): author gets CursorLine, not alt
+      assert.not_nil(result[1])
+      assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
+
+      -- Comment 2 (even): alt on author + body + blank after author
+      assert.not_nil(result[5])
+      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+
+      -- Comment 3 (odd): no alt on author line
+      if result[9] then
+        assert.not_equals('NitThreadCommentAlt', result[9].line_hl_group)
+      end
+    end)
+
+    it('author line in even comment uses NitThreadCommentAlt for line_hl_group', function()
+      local lines = {
+        ' @alice · just now',
+        '',
+        ' First',
+        '',
+        ' @bob · 1 day ago',
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      assert.not_nil(result[5])
+      assert.equals('NitThreadAuthor', result[5].hl_group)
+      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+    end)
+
+    it('author line in odd comment uses CursorLine for line_hl_group', function()
+      local lines = {
+        ' @alice · just now',
+        '',
+        ' Body',
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      assert.not_nil(result[1])
+      assert.equals('NitThreadAuthor', result[1].hl_group)
+      assert.equals('CursorLine', result[1].line_hl_group)
+    end)
+
+    it('separator blank before even comment gets no alt (belongs to odd comment)', function()
+      local lines = {
+        ' @alice · just now',
+        '',
+        ' First',
+        '', -- line 4: separator before comment 2
+        ' @bob · 1 day ago',
+      }
+
+      local result = thread_panel.get_line_highlights(lines)
+
+      -- Line 4 is still in comment_index=1 territory (separator before author of comment 2)
+      if result[4] then
+        assert.not_equals('NitThreadCommentAlt', result[4].line_hl_group)
+      end
+    end)
+  end)
+
   describe('get_title_highlight', function()
     it('returns NitThreadTitle for unresolved thread', function()
       local thread = {

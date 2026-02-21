@@ -223,6 +223,36 @@ function M.show(thread)
   M.update(thread)
 end
 
+---Compute per-line highlight assignments for zebra-stripe backgrounds.
+---Returns a table mapping 1-based line index to highlight options.
+---@param lines string[]
+---@return table<integer, {hl_group?: string, line_hl_group: string}>
+function M.get_line_highlights(lines)
+  local result = {}
+  local comment_index = 0
+
+  for i, line in ipairs(lines) do
+    local is_author = line:match('^ @.+ · ') ~= nil
+    if is_author then
+      comment_index = comment_index + 1
+    end
+
+    if comment_index > 0 then
+      local is_even = comment_index % 2 == 0
+      if is_author then
+        result[i] = {
+          hl_group = 'NitThreadAuthor',
+          line_hl_group = is_even and 'NitThreadCommentAlt' or 'CursorLine',
+        }
+      elseif is_even then
+        result[i] = { line_hl_group = 'NitThreadCommentAlt' }
+      end
+    end
+  end
+
+  return result
+end
+
 ---Update panel content and chrome for the given thread
 ---@param thread Nit.Api.Thread
 function M.update(thread)
@@ -240,12 +270,15 @@ function M.update(thread)
 
   vim.api.nvim_buf_clear_namespace(active_panel.bufnr, ns, 0, -1)
 
-  for i, line in ipairs(lines) do
-    if line:match('^ @.+ · ') then
+  local line_highlights = M.get_line_highlights(lines)
+
+  for i = 1, #lines do
+    local hl = line_highlights[i]
+    if hl then
       vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, i - 1, 0, {
-        end_col = #line,
-        hl_group = 'NitThreadAuthor',
-        line_hl_group = 'CursorLine',
+        end_col = hl.hl_group and #lines[i] or nil,
+        hl_group = hl.hl_group,
+        line_hl_group = hl.line_hl_group,
         hl_eol = true,
       })
     end
