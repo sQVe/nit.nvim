@@ -59,6 +59,19 @@ function M.setup()
   else
     vim.api.nvim_set_hl(0, 'NitCommentHighlight', { link = 'CursorLine', default = true })
   end
+
+  local float_hl = vim.api.nvim_get_hl(0, { name = 'NormalFloat', link = false })
+  local float_bg = float_hl.bg
+
+  if float_bg and accent then
+    vim.api.nvim_set_hl(
+      0,
+      'NitThreadCommentAlt',
+      { bg = blend(accent, float_bg, 0.1), default = true }
+    )
+  else
+    vim.api.nvim_set_hl(0, 'NitThreadCommentAlt', { link = 'CursorLine', default = true })
+  end
 end
 
 return M
