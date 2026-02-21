@@ -42,10 +42,6 @@ function M.setup()
   vim.api.nvim_set_hl(0, 'NitThreadHintKey', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintLabel', { link = 'Comment', default = true })
 
-  vim.api.nvim_set_hl(0, 'NitHelpKey', { link = 'Special', default = true })
-  vim.api.nvim_set_hl(0, 'NitHelpLabel', { link = 'Normal', default = true })
-  vim.api.nvim_set_hl(0, 'NitHelpTitle', { link = 'Title', default = true })
-
   local cursor_line_hl = vim.api.nvim_get_hl(0, { name = 'CursorLine', link = false })
   local base_bg = cursor_line_hl.bg
   local accent = get_accent_color()

@@ -186,7 +186,7 @@ function M.show_thread_panel(bufnr)
 end
 
 ---Show comment popup for thread at cursor (backward compatibility wrapper)
----@param bufnr integer Buffer number
+---@param bufnr integer Buffer number (0 for current buffer)
 function M.show_popup(bufnr)
   M.show_thread_panel(bufnr)
 end

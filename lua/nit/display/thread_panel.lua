@@ -5,8 +5,12 @@ local M = {}
 local Split = require('nui.split')
 local help_popup = require('nit.display.help_popup')
 
----@type table<integer, {key: string, label: string}>
-local hint_registry = {}
+---@type {key: string, label: string}[]
+local hint_registry = {
+  { key = 'q', label = 'Close' },
+  { key = 'Esc', label = 'Close' },
+  { key = '?', label = 'Help' },
+}
 
 ---@type any?
 local active_panel = nil
@@ -60,9 +64,10 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@return string[]
+---@return string[], table<integer, true>
 function M.format_thread(thread)
   local lines = {}
+  local author_indices = {}
 
   for i, comment in ipairs(thread.comments) do
     if i > 1 then
@@ -74,6 +79,7 @@ function M.format_thread(thread)
       .. ' · '
       .. format_relative_time(comment.createdAt)
     table.insert(lines, author_line)
+    author_indices[#lines] = true
     table.insert(lines, '')
 
     local body = comment.body:gsub('\r', '')
@@ -87,7 +93,7 @@ function M.format_thread(thread)
     end
   end
 
-  return lines
+  return lines, author_indices
 end
 
 ---Format popup title based on thread state
@@ -113,21 +119,6 @@ function M.format_title(thread)
       return ' Thread (' .. reply_count .. ' replies)'
     end
   end
-end
-
----Format keybinding hints from registry
----@return string
-function M.format_hints()
-  if #hint_registry == 0 then
-    return ''
-  end
-
-  local parts = {}
-  for _, hint in ipairs(hint_registry) do
-    table.insert(parts, ' ' .. hint.key .. ' ' .. hint.label)
-  end
-
-  return table.concat(parts, '  ')
 end
 
 ---Register keybinding hints
@@ -173,9 +164,14 @@ end
 ---Show or update the thread panel
 ---@param thread Nit.Api.Thread
 function M.show(thread)
-  if active_panel and active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
-    M.update(thread)
-    return
+  if active_panel then
+    if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+      M.update(thread)
+      return
+    end
+    active_panel:unmount()
+    active_panel = nil
+    current_thread = nil
   end
 
   local panel = Split({
@@ -226,20 +222,20 @@ end
 ---Compute per-line highlight assignments for zebra-stripe backgrounds.
 ---Returns a table mapping 1-based line index to highlight options.
 ---@param lines string[]
+---@param author_indices table<integer, true>
 ---@return table<integer, {hl_group?: string, line_hl_group: string}>
-function M.get_line_highlights(lines)
+function M.get_line_highlights(lines, author_indices)
   local result = {}
   local comment_index = 0
 
-  for i, line in ipairs(lines) do
-    local is_author = line:match('^ @.+ · ') ~= nil
-    if is_author then
+  for i = 1, #lines do
+    if author_indices[i] then
       comment_index = comment_index + 1
     end
 
     if comment_index > 0 then
       local is_even = comment_index % 2 == 0
-      if is_author then
+      if author_indices[i] then
         result[i] = {
           hl_group = 'NitThreadAuthor',
           line_hl_group = is_even and 'NitThreadCommentAlt' or 'CursorLine',
@@ -262,7 +258,7 @@ function M.update(thread)
 
   current_thread = thread
 
-  local lines = M.format_thread(thread)
+  local lines, author_indices = M.format_thread(thread)
 
   vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
   vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
@@ -270,7 +266,7 @@ function M.update(thread)
 
   vim.api.nvim_buf_clear_namespace(active_panel.bufnr, ns, 0, -1)
 
-  local line_highlights = M.get_line_highlights(lines)
+  local line_highlights = M.get_line_highlights(lines, author_indices)
 
   for i = 1, #lines do
     local hl = line_highlights[i]
@@ -302,6 +298,8 @@ end
 ---@return boolean
 function M.is_open()
   return active_panel ~= nil
+    and active_panel.winid ~= nil
+    and vim.api.nvim_win_is_valid(active_panel.winid)
 end
 
 ---Get the currently displayed thread
@@ -309,11 +307,5 @@ end
 function M.get_current_thread()
   return current_thread
 end
-
-M.register_hints({
-  { key = 'q', label = 'Close' },
-  { key = 'Esc', label = 'Close' },
-  { key = '?', label = 'Help' },
-})
 
 return M

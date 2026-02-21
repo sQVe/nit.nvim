@@ -14,7 +14,7 @@ describe('thread_panel', function()
         },
       }
 
-      local lines = thread_panel.format_thread(thread)
+      local lines, author_indices = thread_panel.format_thread(thread)
 
       assert.is_table(lines)
       assert.is_true(#lines > 0)
@@ -23,6 +23,8 @@ describe('thread_panel', function()
       assert.matches(' @testuser', combined, 1, true)
       assert.matches('·', combined, 1, true)
       assert.matches('Test body', combined, 1, true)
+
+      assert.is_true(author_indices[1])
     end)
 
     it('separates multiple comments with blank lines', function()
@@ -203,37 +205,12 @@ describe('thread_panel', function()
     end)
   end)
 
-  describe('format_hints', function()
-    before_each(function()
-      thread_panel.clear_hints()
-    end)
-
-    it('returns formatted hint string with default close hints', function()
-      thread_panel.register_hints({
-        { key = 'q', label = 'Close' },
-        { key = 'Esc', label = 'Close' },
-      })
-
-      local hints = thread_panel.format_hints()
-
-      assert.is_string(hints)
-      assert.matches('q Close', hints, 1, true)
-      assert.matches('Esc Close', hints, 1, true)
-    end)
-
-    it('returns empty string when no hints registered', function()
-      local hints = thread_panel.format_hints()
-
-      assert.equals('', hints)
-    end)
-  end)
-
   describe('register_hints', function()
     before_each(function()
       thread_panel.clear_hints()
     end)
 
-    it('appends additional hints to output', function()
+    it('appends additional hints to registry', function()
       thread_panel.register_hints({
         { key = 'q', label = 'Close' },
       })
@@ -243,35 +220,35 @@ describe('thread_panel', function()
         { key = 't', label = 'Resolve' },
       })
 
-      local hints = thread_panel.format_hints()
+      local hints = thread_panel.get_hints()
 
-      assert.matches('q Close', hints, 1, true)
-      assert.matches('r Reply', hints, 1, true)
-      assert.matches('t Resolve', hints, 1, true)
+      assert.equals(3, #hints)
+      assert.equals('q', hints[1].key)
+      assert.equals('r', hints[2].key)
+      assert.equals('t', hints[3].key)
     end)
   end)
 
   describe('clear_hints', function()
     it('resets hint registry correctly', function()
+      thread_panel.clear_hints()
       thread_panel.register_hints({
         { key = 'q', label = 'Close' },
       })
 
-      local hints_before = thread_panel.format_hints()
-      assert.matches('q Close', hints_before, 1, true)
+      assert.equals(1, #thread_panel.get_hints())
 
       thread_panel.clear_hints()
 
-      local hints_after = thread_panel.format_hints()
-      assert.equals('', hints_after)
+      assert.equals(0, #thread_panel.get_hints())
 
       thread_panel.register_hints({
         { key = 'x', label = 'New' },
       })
 
-      local hints_new = thread_panel.format_hints()
-      assert.matches('x New', hints_new, 1, true)
-      assert.not_matches('q Close', hints_new, 1, true)
+      local hints = thread_panel.get_hints()
+      assert.equals(1, #hints)
+      assert.equals('x', hints[1].key)
     end)
   end)
 
@@ -354,8 +331,9 @@ describe('thread_panel', function()
         '',
         ' Body text',
       }
+      local author_indices = { [1] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       for _, hl in pairs(result) do
         assert.not_equals('NitThreadCommentAlt', hl.line_hl_group)
@@ -372,8 +350,9 @@ describe('thread_panel', function()
         '',
         ' Second comment',
       }
+      local author_indices = { [1] = true, [5] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       -- Line 5 is bob's author line (even comment)
       assert.not_nil(result[5])
@@ -401,8 +380,9 @@ describe('thread_panel', function()
         '', -- 10: blank
         ' Third', -- 11: body
       }
+      local author_indices = { [1] = true, [5] = true, [9] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       -- Comment 1 (odd): author gets CursorLine, not alt
       assert.not_nil(result[1])
@@ -426,8 +406,9 @@ describe('thread_panel', function()
         '',
         ' @bob · 1 day ago',
       }
+      local author_indices = { [1] = true, [5] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[5])
       assert.equals('NitThreadAuthor', result[5].hl_group)
@@ -440,8 +421,9 @@ describe('thread_panel', function()
         '',
         ' Body',
       }
+      local author_indices = { [1] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[1])
       assert.equals('NitThreadAuthor', result[1].hl_group)
@@ -456,8 +438,9 @@ describe('thread_panel', function()
         '', -- line 4: separator before comment 2
         ' @bob · 1 day ago',
       }
+      local author_indices = { [1] = true, [5] = true }
 
-      local result = thread_panel.get_line_highlights(lines)
+      local result = thread_panel.get_line_highlights(lines, author_indices)
 
       -- Line 4 is still in comment_index=1 territory (separator before author of comment 2)
       if result[4] then
