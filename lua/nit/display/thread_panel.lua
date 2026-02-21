@@ -4,9 +4,16 @@ local M = {}
 
 local Split = require('nui.split')
 local help_popup = require('nit.display.help_popup')
+local reply_input = require('nit.display.reply_input')
+local thread_menu = require('nit.display.thread_menu')
+local data = require('nit.state.data')
+local observers = require('nit.state.observers')
+local orchestration = require('nit.orchestration')
 
 ---@type {key: string, label: string}[]
 local hint_registry = {
+  { key = 'C-s', label = 'Submit reply' },
+  { key = 'C-a', label = 'Actions' },
   { key = 'q', label = 'Close' },
   { key = 'Esc', label = 'Close' },
   { key = '?', label = 'Help' },
@@ -17,6 +24,9 @@ local active_panel = nil
 
 ---@type Nit.Api.Thread?
 local current_thread = nil
+
+---@type (fun())?
+local unsubscribe_comments = nil
 
 local PANEL_WIDTH = 60
 local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
@@ -161,6 +171,51 @@ function M.get_title_highlight(thread)
   end
 end
 
+---Submit the reply from the input area
+local function submit_reply()
+  if not current_thread then
+    return
+  end
+  local body = reply_input.get_text()
+  if body == '' then
+    return
+  end
+  reply_input.clear()
+  orchestration.submit_reply({ thread_id = current_thread.id, body = body }, function(ok, returned_body)
+    if not ok and returned_body then
+      reply_input.set_text(returned_body)
+    end
+  end)
+end
+
+---Toggle resolved state of the current thread
+local function toggle_resolved()
+  if not current_thread then
+    return
+  end
+  orchestration.toggle_resolved({ thread_id = current_thread.id }, function(_ok)
+  end)
+end
+
+---Open the action menu
+local function open_menu()
+  if not current_thread then
+    return
+  end
+  thread_menu.open(current_thread, { on_toggle_resolved = toggle_resolved })
+end
+
+---Re-render panel when comments state changes
+local function on_comments_changed()
+  if not current_thread then
+    return
+  end
+  local updated = data.get_thread(current_thread.id)
+  if updated then
+    M.update(updated)
+  end
+end
+
 ---Show or update the thread panel
 ---@param thread Nit.Api.Thread
 function M.show(thread)
@@ -203,6 +258,8 @@ function M.show(thread)
 
   panel:mount()
 
+  unsubscribe_comments = observers.subscribe('comments', on_comments_changed)
+
   panel:map('n', 'q', function()
     M.close()
   end, { noremap = true })
@@ -215,8 +272,41 @@ function M.show(thread)
     help_popup.toggle(hint_registry)
   end, { noremap = true })
 
+  panel:map('n', '<C-s>', function()
+    submit_reply()
+  end, { noremap = true })
+
+  panel:map('n', '<C-a>', function()
+    open_menu()
+  end, { noremap = true })
+
   active_panel = panel
   M.update(thread)
+
+  if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+    reply_input.open(active_panel.winid)
+
+    reply_input.map({ 'n', 'i' }, '<C-s>', function()
+      vim.cmd('stopinsert')
+      submit_reply()
+    end, { noremap = true })
+
+    reply_input.map('n', '<C-a>', function()
+      open_menu()
+    end, { noremap = true })
+
+    reply_input.map('n', 'q', function()
+      M.close()
+    end, { noremap = true })
+
+    reply_input.map('n', '<Esc>', function()
+      M.close()
+    end, { noremap = true })
+
+    reply_input.map('n', '?', function()
+      help_popup.toggle(hint_registry)
+    end, { noremap = true })
+  end
 end
 
 ---Compute per-line highlight assignments for author header lines.
@@ -247,7 +337,12 @@ function M.update(thread)
     return
   end
 
+  local thread_changed = current_thread == nil or current_thread.id ~= thread.id
   current_thread = thread
+
+  if thread_changed then
+    reply_input.clear()
+  end
 
   local lines, author_indices = M.format_thread(thread)
 
@@ -282,6 +377,14 @@ end
 
 ---Close the panel
 function M.close()
+  if unsubscribe_comments then
+    unsubscribe_comments()
+    unsubscribe_comments = nil
+  end
+
+  thread_menu.close()
+  reply_input.close()
+
   if active_panel then
     active_panel:unmount()
     active_panel = nil

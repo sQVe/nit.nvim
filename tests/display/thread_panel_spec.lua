@@ -321,6 +321,36 @@ describe('thread_panel', function()
       end
       assert.is_true(has_help)
     end)
+
+    it('default hints include C-s Submit entry', function()
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local found = false
+      for _, hint in ipairs(hints) do
+        if hint.key == 'C-s' and hint.label == 'Submit reply' then
+          found = true
+        end
+      end
+      assert.is_true(found)
+    end)
+
+    it('default hints include C-a Actions entry', function()
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local found = false
+      for _, hint in ipairs(hints) do
+        if hint.key == 'C-a' and hint.label == 'Actions' then
+          found = true
+        end
+      end
+      assert.is_true(found)
+    end)
   end)
 
   describe('get_line_highlights', function()
