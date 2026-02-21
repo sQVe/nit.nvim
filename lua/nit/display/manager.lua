@@ -6,7 +6,7 @@ local data = require('nit.state.data')
 local observers = require('nit.state.observers')
 local signs = require('nit.display.signs')
 local highlights = require('nit.display.highlights')
-local comment_popup = require('nit.display.comment_popup')
+local thread_panel = require('nit.display.thread_panel')
 
 ---@class Nit.Display.BufferState
 ---@field filepath string File path this buffer is attached to
@@ -19,18 +19,13 @@ local attached_buffers = {}
 
 local augroup = vim.api.nvim_create_augroup('NitCommentDisplay', { clear = true })
 
----Filter threads to displayable ones (RIGHT side, unresolved, not outdated, with line numbers)
+---Filter threads to displayable ones (RIGHT side, not outdated, with line numbers)
 ---@param threads Nit.Api.Thread[]
 ---@return Nit.Api.Thread[]
 local function filter_displayable(threads)
   local result = {}
   for _, thread in ipairs(threads) do
-    if
-      thread.side == 'RIGHT'
-      and thread.line ~= nil
-      and not thread.isResolved
-      and not thread.isOutdated
-    then
+    if thread.side == 'RIGHT' and thread.line ~= nil and not thread.isOutdated then
       table.insert(result, thread)
     end
   end
@@ -112,8 +107,12 @@ function M.attach(bufnr, filepath)
       end
       local current_line = cursor[1]
       highlights.clear(bufnr)
-      if commented_lines[current_line] then
-        highlights.set(bufnr, commented_lines[current_line])
+      local thread = commented_lines[current_line]
+      if thread then
+        highlights.set(bufnr, thread)
+        if thread_panel.is_open() then
+          thread_panel.show(thread)
+        end
       end
     end,
   })
@@ -163,9 +162,12 @@ function M.detach_all()
   end
 end
 
----Show comment popup for thread at cursor
----@param bufnr integer Buffer number
-function M.show_popup(bufnr)
+---Show thread panel for thread at cursor
+---@param bufnr integer Buffer number (0 for current buffer)
+function M.show_thread_panel(bufnr)
+  if bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local state = attached_buffers[bufnr]
   if not state then
     return
@@ -179,14 +181,22 @@ function M.show_popup(bufnr)
   local current_line = cursor[1]
   local thread = state.commented_lines[current_line]
   if thread then
-    comment_popup.show(thread)
+    thread_panel.show(thread)
   end
 end
 
+---Close the thread panel
+function M.close_thread_panel()
+  thread_panel.close()
+end
+
 ---Get thread at cursor position
----@param bufnr integer Buffer number
+---@param bufnr integer Buffer number (0 for current buffer)
 ---@return Nit.Api.Thread?
 function M.get_thread_at_cursor(bufnr)
+  if bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local state = attached_buffers[bufnr]
   if not state then
     return nil
@@ -202,9 +212,12 @@ function M.get_thread_at_cursor(bufnr)
 end
 
 ---Get commented lines for a buffer
----@param bufnr integer Buffer number
+---@param bufnr integer Buffer number (0 for current buffer)
 ---@return table<integer, Nit.Api.Thread>?
 function M.get_commented_lines(bufnr)
+  if bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local state = attached_buffers[bufnr]
   if not state then
     return nil

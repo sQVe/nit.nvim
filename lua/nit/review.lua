@@ -103,7 +103,7 @@ function M.stop()
   git_root_failed = false
 
   display_manager.detach_all()
-  require('nit.display.comment_popup').close()
+  require('nit.display.thread_panel').close()
   controller.cleanup()
 end
 
