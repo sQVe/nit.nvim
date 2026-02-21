@@ -325,9 +325,9 @@ describe('display.manager', function()
     end)
   end)
 
-  describe('show_popup', function()
+  describe('show_thread_panel', function()
     it('is no-op when buffer is not attached', function()
-      manager.show_popup(999)
+      manager.show_thread_panel(999)
 
       assert.same({}, thread_panel_mock.show_calls)
     end)
@@ -337,7 +337,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
       api_mock.cursor_fails = true
 
-      manager.show_popup(1)
+      manager.show_thread_panel(1)
 
       assert.same({}, thread_panel_mock.show_calls)
     end)
@@ -348,19 +348,19 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
       api_mock.cursor = { 3, 0 }
 
-      manager.show_popup(1)
+      manager.show_thread_panel(1)
 
       assert.same({}, thread_panel_mock.show_calls)
     end)
 
-    it('shows popup when cursor is on commented line', function()
+    it('shows panel when cursor is on commented line', function()
       local thread = { side = 'RIGHT', line = 5, isOutdated = false }
       data_mock.threads = { thread }
       api_mock.cursor = { 1, 0 }
       manager.attach(1, 'test.lua')
       api_mock.cursor = { 5, 0 }
 
-      manager.show_popup(1)
+      manager.show_thread_panel(1)
 
       assert.equals(1, #thread_panel_mock.show_calls)
       assert.same(thread, thread_panel_mock.show_calls[1])
