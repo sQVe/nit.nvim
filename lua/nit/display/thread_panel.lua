@@ -19,7 +19,7 @@ local active_panel = nil
 local current_thread = nil
 
 local PANEL_WIDTH = 60
-local ns = vim.api.nvim_create_namespace('nit_thread_panel')
+local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
 
 ---@param iso_timestamp string
 ---@return string
@@ -264,14 +264,14 @@ function M.update(thread)
   vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
 
-  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, ns, 0, -1)
+  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, highlight_ns, 0, -1)
 
   local line_highlights = M.get_line_highlights(lines, author_indices)
 
   for i = 1, #lines do
     local hl = line_highlights[i]
     if hl then
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, ns, i - 1, 0, {
+      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, 0, {
         end_col = hl.hl_group and #lines[i] or nil,
         hl_group = hl.hl_group,
         line_hl_group = hl.line_hl_group,

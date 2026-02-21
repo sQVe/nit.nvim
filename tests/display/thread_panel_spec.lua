@@ -308,7 +308,6 @@ describe('thread_panel', function()
     end)
 
     it('default hints include ? Help entry', function()
-      -- Reload module to get default-registered hints
       package.loaded['nit.display.thread_panel'] = nil
       local tp = require('nit.display.thread_panel')
 
@@ -354,12 +353,10 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      -- Line 5 is bob's author line (even comment)
       assert.not_nil(result[5])
       assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
       assert.equals('NitThreadAuthor', result[5].hl_group)
 
-      -- Lines 6 and 7 (body) also get alt
       assert.not_nil(result[6])
       assert.equals('NitThreadCommentAlt', result[6].line_hl_group)
       assert.not_nil(result[7])
@@ -368,31 +365,28 @@ describe('thread_panel', function()
 
     it('three comments: comments 1 and 3 use default, comment 2 uses alt', function()
       local lines = {
-        ' @alice · just now', -- 1: comment 1 author
-        '', -- 2: blank
-        ' First', -- 3: body
-        '', -- 4: separator
-        ' @bob · 1 day ago', -- 5: comment 2 author
-        '', -- 6: blank
-        ' Second', -- 7: body
-        '', -- 8: separator
-        ' @charlie · 2 days ago', -- 9: comment 3 author
-        '', -- 10: blank
-        ' Third', -- 11: body
+        ' @alice · just now',
+        '',
+        ' First',
+        '',
+        ' @bob · 1 day ago',
+        '',
+        ' Second',
+        '',
+        ' @charlie · 2 days ago',
+        '',
+        ' Third',
       }
       local author_indices = { [1] = true, [5] = true, [9] = true }
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      -- Comment 1 (odd): author gets CursorLine, not alt
       assert.not_nil(result[1])
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
-      -- Comment 2 (even): alt on author + body + blank after author
       assert.not_nil(result[5])
       assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
 
-      -- Comment 3 (odd): no alt on author line
       if result[9] then
         assert.not_equals('NitThreadCommentAlt', result[9].line_hl_group)
       end
@@ -435,14 +429,13 @@ describe('thread_panel', function()
         ' @alice · just now',
         '',
         ' First',
-        '', -- line 4: separator before comment 2
+        '',
         ' @bob · 1 day ago',
       }
       local author_indices = { [1] = true, [5] = true }
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      -- Line 4 is still in comment_index=1 territory (separator before author of comment 2)
       if result[4] then
         assert.not_equals('NitThreadCommentAlt', result[4].line_hl_group)
       end
