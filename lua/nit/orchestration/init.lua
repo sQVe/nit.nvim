@@ -44,7 +44,7 @@ function M.submit_reply(opts, callback)
 
   local optimistic_comment = {
     id = 0,
-    author = { login = 'you' },
+    author = { login = data.get_viewer_login() or 'you' },
     body = submitted_body,
     createdAt = os.date('!%Y-%m-%dT%H:%M:%SZ'),
     path = nil,

@@ -1,5 +1,6 @@
 local assert = require('luassert')
 local thread_panel = require('nit.display.thread_panel')
+local data = require('nit.state.data')
 
 describe('thread_panel', function()
   describe('format_thread', function()
@@ -99,6 +100,67 @@ describe('thread_panel', function()
       assert.is_table(lines)
       local combined = table.concat(lines, '\n')
       assert.matches(' @alice', combined, 1, true)
+    end)
+
+    describe('viewer header alignment', function()
+      after_each(function()
+        data.clear()
+      end)
+
+      it('right-aligns header when comment author matches viewer login', function()
+        data.set_viewer_login('me')
+        local thread = {
+          comments = {
+            {
+              author = { login = 'me' },
+              body = 'My comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, author_indices = thread_panel.format_thread(thread)
+
+        assert.is_true(author_indices[1])
+        assert.equals(60, #lines[1])
+        assert.is_true(#lines[1] - #vim.trim(lines[1]) > 1, 'viewer header should have many leading spaces')
+        assert.equals('@', vim.trim(lines[1]):sub(1, 1))
+      end)
+
+      it('left-aligns header when comment author does not match viewer login', function()
+        data.set_viewer_login('me')
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Their comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, _ = thread_panel.format_thread(thread)
+
+        assert.equals(' ', lines[1]:sub(1, 1))
+        assert.equals('@', lines[1]:sub(2, 2))
+      end)
+
+      it('left-aligns all headers when viewer login is nil', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, _ = thread_panel.format_thread(thread)
+
+        assert.equals(' ', lines[1]:sub(1, 1))
+        assert.equals('@', lines[1]:sub(2, 2))
+      end)
     end)
 
     it('does not produce separator lines between comments', function()
@@ -453,6 +515,28 @@ describe('thread_panel', function()
       assert.not_nil(result[1])
       assert.equals('NitThreadAuthor', result[1].hl_group)
       assert.equals('NitThreadComment', result[1].line_hl_group)
+    end)
+
+    it('returns text_col matching leading whitespace count for right-aligned header', function()
+      local padding = string.rep(' ', 42)
+      local right_line = padding .. '@alice - 1 hour ago'
+      local lines = { right_line }
+      local author_indices = { [1] = true }
+
+      local result = thread_panel.get_line_highlights(lines, author_indices)
+
+      assert.not_nil(result[1])
+      assert.equals(42, result[1].text_col)
+    end)
+
+    it('returns text_col of 1 for left-aligned header', function()
+      local lines = { ' @alice - 1 hour ago' }
+      local author_indices = { [1] = true }
+
+      local result = thread_panel.get_line_highlights(lines, author_indices)
+
+      assert.not_nil(result[1])
+      assert.equals(1, result[1].text_col)
     end)
 
     it('separator blank before even comment gets no alt (belongs to odd comment)', function()

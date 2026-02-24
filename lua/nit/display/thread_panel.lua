@@ -78,6 +78,7 @@ end
 function M.format_thread(thread)
   local lines = {}
   local author_indices = {}
+  local viewer_login = data.get_viewer_login()
 
   for i, comment in ipairs(thread.comments) do
     if i > 1 then
@@ -88,6 +89,15 @@ function M.format_thread(thread)
       .. comment.author.login
       .. ' · '
       .. format_relative_time(comment.createdAt)
+
+    if viewer_login ~= nil and comment.author.login == viewer_login then
+      local trimmed = vim.trim(author_line)
+      local padding = PANEL_WIDTH - #trimmed
+      if padding > 0 then
+        author_line = string.rep(' ', padding) .. trimmed
+      end
+    end
+
     table.insert(lines, author_line)
     author_indices[#lines] = true
     table.insert(lines, '')
@@ -313,7 +323,7 @@ end
 ---Returns a table mapping 1-based line index to highlight options.
 ---@param lines string[]
 ---@param author_indices table<integer, true>
----@return table<integer, {hl_group: string, line_hl_group: string}>
+---@return table<integer, {hl_group: string, line_hl_group: string, text_col: integer}>
 function M.get_line_highlights(lines, author_indices)
   local result = {}
   local comment_index = 0
@@ -323,7 +333,8 @@ function M.get_line_highlights(lines, author_indices)
       comment_index = comment_index + 1
       local is_even = comment_index % 2 == 0
       local line_hl = is_even and 'NitThreadCommentAlt' or 'NitThreadComment'
-      result[i] = { hl_group = 'NitThreadAuthor', line_hl_group = line_hl }
+      local text_col = #lines[i] - #vim.trim(lines[i])
+      result[i] = { hl_group = 'NitThreadAuthor', line_hl_group = line_hl, text_col = text_col }
     end
   end
 
@@ -366,7 +377,7 @@ function M.update(thread)
         opts.hl_group = hl.hl_group
         opts.end_col = #lines[i]
       end
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, 0, opts)
+      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, hl.text_col, opts)
     end
   end
 

@@ -105,6 +105,25 @@ describe('nit.orchestration.init', function()
       assert.is_not_nil(optimistic.createdAt)
     end)
 
+    it('uses viewer login for optimistic comment author when set', function()
+      setup_with_mock({
+        reply_to_thread = function()
+          return function() end
+        end,
+        resolve_thread = function() end,
+        unresolve_thread = function() end,
+      })
+
+      data.set_viewer_login('octocat')
+      local thread = create_test_thread(1)
+      data.set_threads({ thread })
+
+      orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
+
+      local updated_thread = data.get_thread(1)
+      assert.equals('octocat', updated_thread.comments[2].author.login)
+    end)
+
     it('notifies observers of optimistic update', function()
       setup_with_mock({
         reply_to_thread = function()

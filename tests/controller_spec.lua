@@ -8,6 +8,7 @@ describe('nit.controller', function()
     package.loaded['nit.api.comments'] = nil
     package.loaded['nit.api.parallel'] = nil
     package.loaded['nit.api.tracker'] = nil
+    package.loaded['nit.api.viewer'] = nil
     package.loaded['nit.state.data'] = nil
 
     package.loaded['nit.api.pr'] = {
@@ -35,6 +36,13 @@ describe('nit.controller', function()
       cancel_all = function() end,
     }
 
+    package.loaded['nit.api.viewer'] = {
+      fetch_viewer = function(_opts, callback)
+        callback({ ok = true, data = 'octocat' })
+        return function() end
+      end,
+    }
+
     package.loaded['nit.state.data'] = {
       set_loading = function() end,
       set_error = function() end,
@@ -42,6 +50,7 @@ describe('nit.controller', function()
       set_comments = function() end,
       set_files = function() end,
       set_threads = function() end,
+      set_viewer_login = function() end,
       clear = function() end,
     }
 
@@ -55,6 +64,7 @@ describe('nit.controller', function()
     package.loaded['nit.api.comments'] = nil
     package.loaded['nit.api.parallel'] = nil
     package.loaded['nit.api.tracker'] = nil
+    package.loaded['nit.api.viewer'] = nil
     package.loaded['nit.state.data'] = nil
   end)
 
@@ -349,6 +359,44 @@ describe('nit.controller', function()
 
       assert.is_nil(set_error_value, 'error should be cleared (set to nil)')
     end)
+
+    it('fetches viewer login and stores it in state', function()
+      local viewer_api = require('nit.api.viewer')
+      local data = require('nit.state.data')
+
+      local viewer_login_stored = nil
+      viewer_api.fetch_viewer = function(_opts, callback)
+        callback({ ok = true, data = 'octocat' })
+        return function() end
+      end
+      data.set_viewer_login = function(login)
+        viewer_login_stored = login
+      end
+
+      controller.load()
+
+      assert.equals('octocat', viewer_login_stored)
+    end)
+
+    it('silently degrades when viewer fetch fails', function()
+      local viewer_api = require('nit.api.viewer')
+      local data = require('nit.state.data')
+
+      local error_set = false
+      viewer_api.fetch_viewer = function(_opts, callback)
+        callback({ ok = false, error = 'Not authenticated' })
+        return function() end
+      end
+      data.set_error = function(msg)
+        if msg ~= nil then
+          error_set = true
+        end
+      end
+
+      controller.load()
+
+      assert.is_false(error_set, 'viewer failure should not set error state')
+    end)
   end)
 
   describe('cleanup', function()
@@ -392,6 +440,22 @@ describe('nit.controller', function()
       controller.cleanup()
 
       assert.is_true(clear_called)
+    end)
+
+    it('cancels in-flight viewer fetch', function()
+      local viewer_api = require('nit.api.viewer')
+
+      local viewer_cancel_count = 0
+      viewer_api.fetch_viewer = function()
+        return function()
+          viewer_cancel_count = viewer_cancel_count + 1
+        end
+      end
+
+      controller.load()
+      controller.cleanup()
+
+      assert.equals(1, viewer_cancel_count)
     end)
   end)
 

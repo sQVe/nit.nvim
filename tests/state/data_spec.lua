@@ -459,6 +459,23 @@ describe('nit.state.data', function()
     end)
   end)
 
+  describe('Viewer login operations', function()
+    it('get_viewer_login returns nil by default', function()
+      assert.is_nil(data.get_viewer_login())
+    end)
+
+    it('set_viewer_login and get_viewer_login round-trip a login string', function()
+      data.set_viewer_login('octocat')
+      assert.equals('octocat', data.get_viewer_login())
+    end)
+
+    it('clear resets viewer_login to nil', function()
+      data.set_viewer_login('octocat')
+      data.clear()
+      assert.is_nil(data.get_viewer_login())
+    end)
+  end)
+
   describe('clear with loading and error', function()
     it('resets loading to false and error to nil', function()
       data.set_loading(true)
