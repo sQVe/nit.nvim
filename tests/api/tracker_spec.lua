@@ -15,8 +15,8 @@ describe('nit.api.tracker', function()
       assert.is_number(id1)
       assert.is_number(id2)
       assert.is_number(id3)
-      assert.equals(id1 + 1, id2)
-      assert.equals(id2 + 1, id3)
+      assert.are.equal(id1 + 1, id2)
+      assert.are.equal(id2 + 1, id3)
     end)
   end)
 
@@ -28,7 +28,7 @@ describe('nit.api.tracker', function()
 
       tracker.untrack(id2)
 
-      assert.equals(2, tracker.get_count())
+      assert.are.equal(2, tracker.get_count())
     end)
 
     it('does nothing for nonexistent ID', function()
@@ -36,7 +36,7 @@ describe('nit.api.tracker', function()
 
       tracker.untrack(999)
 
-      assert.equals(1, tracker.get_count())
+      assert.are.equal(1, tracker.get_count())
     end)
   end)
 
@@ -56,8 +56,8 @@ describe('nit.api.tracker', function()
 
       tracker.cancel_all()
 
-      assert.equals(3, #cancelled)
-      assert.equals(0, tracker.get_count())
+      assert.are.equal(3, #cancelled)
+      assert.are.equal(0, tracker.get_count())
     end)
 
     it('does not double-cancel on second call', function()
@@ -70,22 +70,22 @@ describe('nit.api.tracker', function()
       tracker.cancel_all()
       tracker.cancel_all()
 
-      assert.equals(1, cancel_count)
+      assert.are.equal(1, cancel_count)
     end)
   end)
 
   describe('get_count', function()
     it('returns 0 when empty', function()
-      assert.equals(0, tracker.get_count())
+      assert.are.equal(0, tracker.get_count())
     end)
 
     it('reflects current tracked count after track and untrack', function()
       local id1 = tracker.track(function() end)
       tracker.track(function() end)
-      assert.equals(2, tracker.get_count())
+      assert.are.equal(2, tracker.get_count())
 
       tracker.untrack(id1)
-      assert.equals(1, tracker.get_count())
+      assert.are.equal(1, tracker.get_count())
     end)
   end)
 end)

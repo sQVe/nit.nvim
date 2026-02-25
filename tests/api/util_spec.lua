@@ -68,8 +68,8 @@ describe('util.get_repo_info', function()
       return owner ~= nil
     end)
 
-    assert.equals('owner', owner)
-    assert.equals('repo', repo)
+    assert.are.equal('owner', owner)
+    assert.are.equal('repo', repo)
   end)
 
   it('parses HTTPS remote URL', function()
@@ -89,8 +89,8 @@ describe('util.get_repo_info', function()
       return owner ~= nil
     end)
 
-    assert.equals('myorg', owner)
-    assert.equals('myrepo', repo)
+    assert.are.equal('myorg', owner)
+    assert.are.equal('myrepo', repo)
   end)
 
   it('strips .git suffix from repo name', function()
@@ -109,7 +109,7 @@ describe('util.get_repo_info', function()
       return repo ~= nil
     end)
 
-    assert.equals('project', repo)
+    assert.are.equal('project', repo)
   end)
 
   it('handles URL without .git suffix', function()
@@ -128,7 +128,7 @@ describe('util.get_repo_info', function()
       return repo ~= nil
     end)
 
-    assert.equals('project', repo)
+    assert.are.equal('project', repo)
   end)
 
   it('returns nil for non-GitHub remote', function()

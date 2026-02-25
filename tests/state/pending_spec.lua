@@ -60,9 +60,9 @@ describe('nit.state.pending', function()
       })
 
       local comments = pending_module.get_pending()
-      assert.equals(1, #comments)
+      assert.are.equal(1, #comments)
       assert.is_string(comments[1].created_at)
-      assert.truthy(comments[1].created_at:match('^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%dZ$'))
+      assert.is_truthy(comments[1].created_at:match('^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%dZ$'))
     end)
 
     it('generates incrementing IDs', function()
@@ -80,7 +80,7 @@ describe('nit.state.pending', function()
         body = 'Second',
       })
 
-      assert.equals(id1 + 1, id2)
+      assert.are.equal(id1 + 1, id2)
     end)
 
     it('continues ID sequence from max loaded ID', function()
@@ -121,7 +121,7 @@ describe('nit.state.pending', function()
         body = 'New comment',
       })
 
-      assert.equals(11, new_id)
+      assert.are.equal(11, new_id)
     end)
 
     it('triggers observer notification', function()
@@ -142,7 +142,7 @@ describe('nit.state.pending', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('pending', notified_key)
+      assert.are.equal('pending', notified_key)
     end)
 
     it('auto-persists to disk', function()
@@ -154,8 +154,8 @@ describe('nit.state.pending', function()
       })
 
       assert.is_not_nil(saved_data)
-      assert.equals(1, #saved_data)
-      assert.equals('src/main.lua', saved_data[1].path)
+      assert.are.equal(1, #saved_data)
+      assert.are.equal('src/main.lua', saved_data[1].path)
     end)
   end)
 
@@ -164,7 +164,7 @@ describe('nit.state.pending', function()
       local result = pending_module.get_pending()
 
       assert.is_table(result)
-      assert.equals(0, #result)
+      assert.are.equal(0, #result)
     end)
 
     it('returns added comments', function()
@@ -183,9 +183,9 @@ describe('nit.state.pending', function()
 
       local result = pending_module.get_pending()
 
-      assert.equals(2, #result)
-      assert.equals('file1.lua', result[1].path)
-      assert.equals('file2.lua', result[2].path)
+      assert.are.equal(2, #result)
+      assert.are.equal('file1.lua', result[1].path)
+      assert.are.equal('file2.lua', result[2].path)
     end)
 
     it('lazy-loads from persistence on first access', function()
@@ -205,9 +205,9 @@ describe('nit.state.pending', function()
 
       local result = pending_module.get_pending()
 
-      assert.equals(1, #result)
-      assert.equals('loaded.lua', result[1].path)
-      assert.equals('Loaded from disk', result[1].body)
+      assert.are.equal(1, #result)
+      assert.are.equal('loaded.lua', result[1].path)
+      assert.are.equal('Loaded from disk', result[1].body)
     end)
 
     it('returns copy to prevent mutation of internal state', function()
@@ -223,8 +223,8 @@ describe('nit.state.pending', function()
       table.insert(result, { id = 999, path = 'fake.lua' })
 
       local fresh = pending_module.get_pending()
-      assert.equals('Original', fresh[1].body)
-      assert.equals(1, #fresh)
+      assert.are.equal('Original', fresh[1].body)
+      assert.are.equal(1, #fresh)
     end)
   end)
 
@@ -240,8 +240,8 @@ describe('nit.state.pending', function()
       pending_module.update_pending(id, 'Updated body')
 
       local comments = pending_module.get_pending()
-      assert.equals(1, #comments)
-      assert.equals('Updated body', comments[1].body)
+      assert.are.equal(1, #comments)
+      assert.are.equal('Updated body', comments[1].body)
     end)
 
     it('triggers observer notification', function()
@@ -278,7 +278,7 @@ describe('nit.state.pending', function()
       pending_module.update_pending(id, 'Updated')
 
       assert.is_not_nil(saved_data)
-      assert.equals('Updated', saved_data[1].body)
+      assert.are.equal('Updated', saved_data[1].body)
     end)
 
     it('does nothing for nonexistent ID', function()
@@ -292,7 +292,7 @@ describe('nit.state.pending', function()
       pending_module.update_pending(999, 'Should not apply')
 
       local comments = pending_module.get_pending()
-      assert.equals('Original', comments[1].body)
+      assert.are.equal('Original', comments[1].body)
     end)
 
     it('returns true when comment is found and updated', function()
@@ -329,8 +329,8 @@ describe('nit.state.pending', function()
       pending_module.remove_pending(id1)
 
       local comments = pending_module.get_pending()
-      assert.equals(1, #comments)
-      assert.equals('file2.lua', comments[1].path)
+      assert.are.equal(1, #comments)
+      assert.are.equal('file2.lua', comments[1].path)
     end)
 
     it('triggers observer notification', function()
@@ -367,7 +367,7 @@ describe('nit.state.pending', function()
       pending_module.remove_pending(id)
 
       assert.is_not_nil(saved_data)
-      assert.equals(0, #saved_data)
+      assert.are.equal(0, #saved_data)
     end)
 
     it('does nothing for nonexistent ID', function()
@@ -381,7 +381,7 @@ describe('nit.state.pending', function()
       pending_module.remove_pending(999)
 
       local comments = pending_module.get_pending()
-      assert.equals(1, #comments)
+      assert.are.equal(1, #comments)
     end)
 
     it('returns true when comment is found and removed', function()
@@ -412,7 +412,7 @@ describe('nit.state.pending', function()
       pending_module.clear()
 
       local comments = pending_module.get_pending()
-      assert.equals(0, #comments)
+      assert.are.equal(0, #comments)
     end)
 
     it('resets loaded flag for lazy loading', function()
@@ -437,8 +437,8 @@ describe('nit.state.pending', function()
       }
 
       local comments = pending_module.get_pending()
-      assert.equals(1, #comments)
-      assert.equals('from-disk.lua', comments[1].path)
+      assert.are.equal(1, #comments)
+      assert.are.equal('from-disk.lua', comments[1].path)
     end)
   end)
 end)

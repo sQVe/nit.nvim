@@ -29,10 +29,10 @@ describe('nit.orchestration.queue', function()
         done()
       end)
 
-      assert.same({ 'first' }, calls)
+      assert.are.same({ 'first' }, calls)
 
       done1()
-      assert.same({ 'first', 'second' }, calls)
+      assert.are.same({ 'first', 'second' }, calls)
     end)
 
     it('processes items in FIFO order', function()
@@ -54,16 +54,16 @@ describe('nit.orchestration.queue', function()
         table.insert(done_callbacks, done)
       end)
 
-      assert.same({ 'first' }, calls)
+      assert.are.same({ 'first' }, calls)
 
       done_callbacks[1]()
-      assert.same({ 'first', 'second' }, calls)
+      assert.are.same({ 'first', 'second' }, calls)
 
       done_callbacks[2]()
-      assert.same({ 'first', 'second', 'third' }, calls)
+      assert.are.same({ 'first', 'second', 'third' }, calls)
 
       done_callbacks[3]()
-      assert.same({ 'first', 'second', 'third' }, calls)
+      assert.are.same({ 'first', 'second', 'third' }, calls)
     end)
 
     it('allows different thread_ids to have independent queues', function()
@@ -79,7 +79,7 @@ describe('nit.orchestration.queue', function()
         done()
       end)
 
-      assert.equals(2, #calls)
+      assert.are.equal(2, #calls)
       assert.is_true(vim.tbl_contains(calls, 'thread-1'))
       assert.is_true(vim.tbl_contains(calls, 'thread-2'))
     end)
@@ -109,7 +109,7 @@ describe('nit.orchestration.queue', function()
       end)
 
       assert.is_true(second_called)
-      assert.truthy(notify_msg:find('boom'))
+      assert.is_truthy(notify_msg:find('boom'))
     end)
 
     it('continues processing after queued function throws', function()
@@ -136,7 +136,7 @@ describe('nit.orchestration.queue', function()
       done1()
 
       assert.is_true(third_called)
-      assert.truthy(notify_msg:find('queued boom'))
+      assert.is_truthy(notify_msg:find('queued boom'))
     end)
   end)
 
@@ -159,7 +159,7 @@ describe('nit.orchestration.queue', function()
 
       done1()
 
-      assert.same({ 'first' }, calls)
+      assert.are.same({ 'first' }, calls)
     end)
   end)
 end)

@@ -54,9 +54,9 @@ describe('nit.state.persistence', function()
       local path = persistence.get_persistence_path()
 
       assert.is_string(path)
-      assert.truthy(path:match(test_data_dir))
-      assert.truthy(path:match('/nit/'))
-      assert.truthy(path:match('%.json$'))
+      assert.is_truthy(path:match(test_data_dir))
+      assert.is_truthy(path:match('/nit/'))
+      assert.is_truthy(path:match('%.json$'))
     end)
 
     it('returns different path for different repos', function()
@@ -79,18 +79,18 @@ describe('nit.state.persistence', function()
 
       local path = persistence.get_persistence_path()
 
-      assert.truthy(path:match('/nit/unknown%.json$'))
+      assert.is_truthy(path:match('/nit/unknown%.json$'))
     end)
   end)
 
   describe('save_pending', function()
     it('creates nit directory if missing', function()
       local nit_dir = test_data_dir .. '/nit'
-      assert.equals(0, vim.fn.isdirectory(nit_dir))
+      assert.are.equal(0, vim.fn.isdirectory(nit_dir))
 
       persistence.save_pending({})
 
-      assert.equals(1, vim.fn.isdirectory(nit_dir))
+      assert.are.equal(1, vim.fn.isdirectory(nit_dir))
     end)
 
     it('writes JSON file with version field', function()
@@ -100,7 +100,7 @@ describe('nit.state.persistence', function()
       local content = table.concat(vim.fn.readfile(path), '\n')
       local decoded = vim.json.decode(content)
 
-      assert.equals(1, decoded.version)
+      assert.are.equal(1, decoded.version)
     end)
 
     it('writes pending comments to file', function()
@@ -121,12 +121,12 @@ describe('nit.state.persistence', function()
       local content = table.concat(vim.fn.readfile(path), '\n')
       local decoded = vim.json.decode(content)
 
-      assert.equals(1, #decoded.pending)
-      assert.equals(1, decoded.pending[1].id)
-      assert.equals('src/main.lua', decoded.pending[1].path)
-      assert.equals(10, decoded.pending[1].line)
-      assert.equals('RIGHT', decoded.pending[1].side)
-      assert.equals('Test comment', decoded.pending[1].body)
+      assert.are.equal(1, #decoded.pending)
+      assert.are.equal(1, decoded.pending[1].id)
+      assert.are.equal('src/main.lua', decoded.pending[1].path)
+      assert.are.equal(10, decoded.pending[1].line)
+      assert.are.equal('RIGHT', decoded.pending[1].side)
+      assert.are.equal('Test comment', decoded.pending[1].body)
     end)
   end)
 
@@ -134,7 +134,7 @@ describe('nit.state.persistence', function()
     it('returns empty array when file does not exist', function()
       local result = persistence.load_pending()
 
-      assert.same({}, result)
+      assert.are.same({}, result)
     end)
 
     it('returns empty array for invalid JSON', function()
@@ -144,7 +144,7 @@ describe('nit.state.persistence', function()
 
       local result = persistence.load_pending()
 
-      assert.same({}, result)
+      assert.are.same({}, result)
     end)
 
     it('returns empty array for wrong version', function()
@@ -154,7 +154,7 @@ describe('nit.state.persistence', function()
 
       local result = persistence.load_pending()
 
-      assert.same({}, result)
+      assert.are.same({}, result)
     end)
 
     it('returns pending comments from valid file', function()
@@ -172,12 +172,12 @@ describe('nit.state.persistence', function()
       persistence.save_pending(pending)
       local result = persistence.load_pending()
 
-      assert.equals(1, #result)
-      assert.equals(1, result[1].id)
-      assert.equals('lib/utils.lua', result[1].path)
-      assert.equals(25, result[1].line)
-      assert.equals('LEFT', result[1].side)
-      assert.equals('Another comment', result[1].body)
+      assert.are.equal(1, #result)
+      assert.are.equal(1, result[1].id)
+      assert.are.equal('lib/utils.lua', result[1].path)
+      assert.are.equal(25, result[1].line)
+      assert.are.equal('LEFT', result[1].side)
+      assert.are.equal('Another comment', result[1].body)
     end)
 
     it('round-trips multiple pending comments', function()
@@ -211,10 +211,10 @@ describe('nit.state.persistence', function()
       persistence.save_pending(pending)
       local result = persistence.load_pending()
 
-      assert.equals(3, #result)
-      assert.equals(1, result[1].id)
-      assert.equals(2, result[2].id)
-      assert.equals(3, result[3].id)
+      assert.are.equal(3, #result)
+      assert.are.equal(1, result[1].id)
+      assert.are.equal(2, result[2].id)
+      assert.are.equal(3, result[3].id)
     end)
   end)
 end)

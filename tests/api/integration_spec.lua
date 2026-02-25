@@ -84,12 +84,12 @@ describe('nit.api integration', function()
         return results ~= nil
       end)
 
-      assert.equals(2, execute_count)
-      assert.equals(2, #results)
+      assert.are.equal(2, execute_count)
+      assert.are.equal(2, #results)
       assert.is_true(results[1].ok)
-      assert.equals(123, results[1].data.number)
+      assert.are.equal(123, results[1].data.number)
       assert.is_true(results[2].ok)
-      assert.equals(2, #results[2].data)
+      assert.are.equal(2, #results[2].data)
 
       util.get_repo_info = original_get_repo_info
     end)
@@ -113,11 +113,11 @@ describe('nit.api integration', function()
         results = r
       end)
 
-      assert.equals(2, #results)
+      assert.are.equal(2, #results)
       assert.is_false(results[1].ok)
-      assert.equals('PR not found', results[1].error)
+      assert.are.equal('PR not found', results[1].error)
       assert.is_true(results[2].ok)
-      assert.equals('diff content', results[2].data)
+      assert.are.equal('diff content', results[2].data)
     end)
   end)
 
@@ -152,12 +152,12 @@ describe('nit.api integration', function()
       files_api.fetch_files({ number = 1 }, function() end)
       files_api.fetch_diff({}, function() end)
 
-      assert.equals(3, tracker.get_count())
+      assert.are.equal(3, tracker.get_count())
 
       tracker.cancel_all()
 
-      assert.equals(3, cancelled_count)
-      assert.equals(0, tracker.get_count())
+      assert.are.equal(3, cancelled_count)
+      assert.are.equal(0, tracker.get_count())
 
       gh.execute = original_execute
       util.get_repo_info = original_get_repo_info
@@ -272,7 +272,7 @@ describe('nit.api integration', function()
       end)
 
       assert.is_true(result.ok)
-      assert.equals(1, #result.data)
+      assert.are.equal(1, #result.data)
 
       local file = result.data[1]
       assert.is_string(file.filename)

@@ -42,9 +42,9 @@ describe('signs', function()
       assert.is_table(placed)
       assert.is_true(#placed > 0)
       local signs_list = placed[1].signs
-      assert.equals(1, #signs_list)
-      assert.equals(5, signs_list[1].lnum)
-      assert.equals('NitComment', signs_list[1].name)
+      assert.are.equal(1, #signs_list)
+      assert.are.equal(5, signs_list[1].lnum)
+      assert.are.equal('NitComment', signs_list[1].name)
     end)
 
     it('uses NitCommentResolved for resolved threads', function()
@@ -55,7 +55,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals('NitCommentResolved', signs_list[1].name)
+      assert.are.equal('NitCommentResolved', signs_list[1].name)
     end)
 
     it('skips LEFT-side threads', function()
@@ -66,7 +66,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals(0, #signs_list)
+      assert.are.equal(0, #signs_list)
     end)
 
     it('skips threads with nil line', function()
@@ -77,7 +77,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals(0, #signs_list)
+      assert.are.equal(0, #signs_list)
     end)
 
     it('places multiple signs for multiple threads', function()
@@ -89,7 +89,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals(2, #signs_list)
+      assert.are.equal(2, #signs_list)
     end)
   end)
 
@@ -103,7 +103,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals(0, #signs_list)
+      assert.are.equal(0, #signs_list)
     end)
 
     it('is idempotent on buffer with no signs', function()
@@ -111,7 +111,7 @@ describe('signs', function()
 
       local placed = vim.fn.sign_getplaced(bufnr, { group = 'nit_comments' })
       local signs_list = placed[1].signs
-      assert.equals(0, #signs_list)
+      assert.are.equal(0, #signs_list)
     end)
   end)
 end)

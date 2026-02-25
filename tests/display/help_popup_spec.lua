@@ -9,7 +9,7 @@ describe('help_popup', function()
       local lines = help_popup.format_hint_lines(hints)
 
       assert.is_table(lines)
-      assert.equals(1, #lines)
+      assert.are.equal(1, #lines)
       assert.matches('q', lines[1], 1, true)
       assert.matches('Close', lines[1], 1, true)
     end)
@@ -18,7 +18,7 @@ describe('help_popup', function()
       local lines = help_popup.format_hint_lines({})
 
       assert.is_table(lines)
-      assert.equals(0, #lines)
+      assert.are.equal(0, #lines)
     end)
 
     it('right-aligns keys by padding shorter keys', function()
@@ -30,7 +30,7 @@ describe('help_popup', function()
 
       local lines = help_popup.format_hint_lines(hints)
 
-      assert.equals(3, #lines)
+      assert.are.equal(3, #lines)
       -- All lines should start with the same number of spaces (aligned keys)
       -- Find where 'q' appears vs 'Esc' — q should be right-padded to match Esc width
       local q_line = lines[1]
@@ -38,7 +38,7 @@ describe('help_popup', function()
       -- The label 'Close' should start at the same column in both lines
       local q_close_pos = q_line:find('Close')
       local esc_close_pos = esc_line:find('Close')
-      assert.equals(q_close_pos, esc_close_pos)
+      assert.are.equal(q_close_pos, esc_close_pos)
     end)
 
     it('includes key and label text in each line', function()
