@@ -1,0 +1,12 @@
+id: state-layer-boundary
+language: Lua
+severity: error
+files:
+  - "lua/nit/state/**"
+message: >
+  state/ must not import from api/, display/, orchestration/, or ui/.
+  The state layer is a pure data store.
+rule:
+  all:
+    - pattern: require($MOD)
+    - regex: "nit\\.(api|display|orchestration|ui)\\."
