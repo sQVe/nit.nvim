@@ -49,8 +49,11 @@ function M.open(thread, callbacks)
   popup:map('n', 'r', actions[1], { noremap = true })
 
   popup:map('n', '<CR>', function()
-    local line_index = vim.api.nvim_win_get_cursor(popup.winid)[1]
-    local action = actions[line_index]
+    local ok, cursor = pcall(vim.api.nvim_win_get_cursor, popup.winid)
+    if not ok then
+      return
+    end
+    local action = actions[cursor[1]]
     if action ~= nil then
       action()
     end
