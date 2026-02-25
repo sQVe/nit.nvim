@@ -59,7 +59,11 @@ function M.save_pending(pending)
     pending = pending,
   }
 
-  local json = vim.json.encode(data)
+  local ok, json = pcall(vim.json.encode, data)
+  if not ok then
+    vim.notify('[nit] failed to encode pending comments', vim.log.levels.WARN)
+    return
+  end
   local result = vim.fn.writefile({ json }, M.get_persistence_path())
   if result == -1 then
     vim.notify('[nit] failed to save pending comments', vim.log.levels.WARN)

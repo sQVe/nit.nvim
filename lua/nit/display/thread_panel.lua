@@ -39,10 +39,11 @@ local function equalize_windows()
   local reply_winid = reply_input.get_winid()
 
   local other_wins = vim.tbl_filter(function(w)
-    return w ~= panel_winid
-      and w ~= reply_winid
-      and vim.api.nvim_win_is_valid(w)
-      and vim.api.nvim_win_get_config(w).relative == ''
+    if w == panel_winid or w == reply_winid or not vim.api.nvim_win_is_valid(w) then
+      return false
+    end
+    local ok, config = pcall(vim.api.nvim_win_get_config, w)
+    return ok and config.relative == ''
   end, vim.api.nvim_list_wins())
 
   if #other_wins < 2 then
@@ -55,7 +56,7 @@ local function equalize_windows()
   local each = math.floor(available / #other_wins)
 
   for _, w in ipairs(other_wins) do
-    vim.api.nvim_win_set_width(w, each)
+    pcall(vim.api.nvim_win_set_width, w, each)
   end
 
   if panel_winid ~= nil and vim.api.nvim_win_is_valid(panel_winid) then
@@ -418,10 +419,10 @@ function M.update(thread)
   local lines, author_indices = M.format_thread(thread)
 
   vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
-  vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
+  pcall(vim.api.nvim_buf_set_lines, active_panel.bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
 
-  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, highlight_ns, 0, -1)
+  pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, highlight_ns, 0, -1)
 
   local line_highlights = M.get_line_highlights(lines, author_indices)
 
@@ -437,7 +438,7 @@ function M.update(thread)
         opts.hl_group = hl.hl_group
         opts.end_col = #lines[i]
       end
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, hl.text_col, opts)
+      pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, highlight_ns, i - 1, hl.text_col, opts)
     end
   end
 

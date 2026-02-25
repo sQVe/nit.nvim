@@ -127,7 +127,7 @@ function M.show(thread)
 
   popup:mount()
 
-  vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, content)
+  pcall(vim.api.nvim_buf_set_lines, popup.bufnr, 0, -1, false, content)
   vim.api.nvim_set_option_value('modifiable', false, { buf = popup.bufnr })
   vim.api.nvim_set_option_value('readonly', true, { buf = popup.bufnr })
 

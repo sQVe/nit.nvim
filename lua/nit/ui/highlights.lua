@@ -21,8 +21,8 @@ end
 ---@return integer?
 local function get_accent_color()
   for _, name in ipairs({ 'DiagnosticInfo', 'DiagnosticHint', 'Comment' }) do
-    local hl = vim.api.nvim_get_hl(0, { name = name, link = false })
-    if hl.fg then
+    local ok, hl = pcall(vim.api.nvim_get_hl, 0, { name = name, link = false })
+    if ok and hl.fg then
       return hl.fg
     end
   end
@@ -42,7 +42,10 @@ function M.setup()
   vim.api.nvim_set_hl(0, 'NitThreadHintKey', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintLabel', { link = 'Comment', default = true })
 
-  local cursor_line_hl = vim.api.nvim_get_hl(0, { name = 'CursorLine', link = false })
+  local ok, cursor_line_hl = pcall(vim.api.nvim_get_hl, 0, { name = 'CursorLine', link = false })
+  if not ok then
+    cursor_line_hl = {}
+  end
   local base_bg = cursor_line_hl.bg
   local accent = get_accent_color()
 
@@ -56,7 +59,10 @@ function M.setup()
     vim.api.nvim_set_hl(0, 'NitCommentHighlight', { link = 'CursorLine', default = true })
   end
 
-  local float_hl = vim.api.nvim_get_hl(0, { name = 'NormalFloat', link = false })
+  local _, float_hl = pcall(vim.api.nvim_get_hl, 0, { name = 'NormalFloat', link = false })
+  if type(float_hl) ~= 'table' then
+    float_hl = {}
+  end
   local float_bg = float_hl.bg
 
   if float_bg and accent then
