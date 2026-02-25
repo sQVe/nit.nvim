@@ -17,10 +17,10 @@ function M.open(panel_winid)
   end
 
   local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
-  vim.api.nvim_set_option_value('filetype', 'markdown', { buf = bufnr })
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = bufnr })
+  vim.bo[bufnr].buftype = 'nofile'
+  vim.bo[bufnr].filetype = 'markdown'
+  vim.bo[bufnr].modifiable = true
+  vim.bo[bufnr].bufhidden = 'wipe'
 
   local ok, winid = pcall(vim.api.nvim_open_win, bufnr, false, {
     split = 'below',

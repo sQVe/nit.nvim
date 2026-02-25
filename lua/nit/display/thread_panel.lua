@@ -74,17 +74,19 @@ local function format_relative_time(iso_timestamp)
   end
 
   local parsed_as_local = os.time({
-    year = assert(tonumber(year)),
-    month = assert(tonumber(month)),
-    day = assert(tonumber(day)),
-    hour = assert(tonumber(hour)),
-    min = assert(tonumber(min)),
-    sec = assert(tonumber(sec)),
+    year = tonumber(year) or 0,
+    month = tonumber(month) or 0,
+    day = tonumber(day) or 0,
+    hour = tonumber(hour) or 0,
+    min = tonumber(min) or 0,
+    sec = tonumber(sec) or 0,
   })
 
   local now = os.time()
   local utc_table = os.date('!*t', now)
-  assert(type(utc_table) == 'table', 'os.date failed to return table')
+  if type(utc_table) ~= 'table' then
+    return iso_timestamp
+  end
   local utc_offset = now - os.time(utc_table)
   local parsed_utc = parsed_as_local - utc_offset
 
@@ -418,9 +420,9 @@ function M.update(thread)
 
   local lines, author_indices = M.format_thread(thread)
 
-  vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
+  vim.bo[active_panel.bufnr].modifiable = true
   pcall(vim.api.nvim_buf_set_lines, active_panel.bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
+  vim.bo[active_panel.bufnr].modifiable = false
 
   pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, highlight_ns, 0, -1)
 

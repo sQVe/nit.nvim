@@ -59,7 +59,7 @@ function M.show(hints)
   popup:mount()
 
   pcall(vim.api.nvim_buf_set_lines, popup.bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = popup.bufnr })
+  vim.bo[popup.bufnr].modifiable = false
 
   popup:map('n', 'q', function()
     M.close()

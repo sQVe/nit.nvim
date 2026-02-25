@@ -92,7 +92,7 @@ end
 
 ---Validate thread_id is present, a string, and non-empty
 ---@param thread_id any
----@return string|nil error
+---@return string? error
 local function validate_thread_id(thread_id)
   if thread_id == nil then
     return 'thread_id is required'

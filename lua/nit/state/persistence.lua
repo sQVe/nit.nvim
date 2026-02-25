@@ -78,7 +78,10 @@ function M.load_pending()
     return {}
   end
 
-  local lines = vim.fn.readfile(path)
+  local ok_read, lines = pcall(vim.fn.readfile, path)
+  if not ok_read then
+    return {}
+  end
   local content = table.concat(lines, '\n')
 
   local ok, decoded = pcall(vim.json.decode, content)

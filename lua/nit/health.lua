@@ -8,28 +8,28 @@ function M.is_gh_installed()
 end
 
 ---Get gh CLI version
----@return string|nil version Version string like "2.45.0", or nil if not installed or on error
+---@return string? version Version string like "2.45.0", or nil if not installed or on error
 function M.get_gh_version()
   if not M.is_gh_installed() then
     return nil
   end
   local output = vim.fn.system('gh --version')
-  if vim.api.nvim_get_vvar('shell_error') ~= 0 then
+  if vim.v.shell_error ~= 0 then
     return nil
   end
   return output:match('gh version ([%d%.]+)')
 end
 
 ---Get GitHub authentication status
----@return table|nil hosts Hosts table with authentication info, or nil if not authenticated
----@return string|nil error Error message if not authenticated
+---@return table? hosts Hosts table with authentication info, or nil if not authenticated
+---@return string? error Error message if not authenticated
 function M.get_auth_status()
   if not M.is_gh_installed() then
     return nil, 'gh CLI not installed'
   end
 
   local output = vim.fn.system('gh auth status --json hosts 2>&1')
-  local exit_code = vim.api.nvim_get_vvar('shell_error')
+  local exit_code = vim.v.shell_error
 
   if exit_code ~= 0 then
     return nil, 'Not authenticated'
