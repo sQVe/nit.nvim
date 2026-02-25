@@ -446,7 +446,14 @@ function M.update(thread)
         opts.hl_group = hl.hl_group
         opts.end_col = #lines[i]
       end
-      pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, highlight_ns, i - 1, hl.text_col, opts)
+      pcall(
+        vim.api.nvim_buf_set_extmark,
+        active_panel.bufnr,
+        highlight_ns,
+        i - 1,
+        hl.text_col,
+        opts
+      )
     end
   end
 

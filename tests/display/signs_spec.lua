@@ -41,7 +41,14 @@ describe('signs', function()
 
     it('uses NitCommentOutdatedSign for outdated threads', function()
       local threads = {
-        { id = '1', line = 5, side = 'RIGHT', isOutdated = true, isResolved = false, comments = {} },
+        {
+          id = '1',
+          line = 5,
+          side = 'RIGHT',
+          isOutdated = true,
+          isResolved = false,
+          comments = {},
+        },
       }
       signs.place(bufnr, threads)
 
