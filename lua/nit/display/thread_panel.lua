@@ -30,6 +30,38 @@ local unsubscribe_comments = nil
 
 local PANEL_WIDTH = 60
 local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
+local closing = false
+local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
+
+---Equalize non-panel windows while preserving panel width
+local function equalize_windows()
+  local panel_winid = active_panel and active_panel.winid
+  local reply_winid = reply_input.get_winid()
+
+  local other_wins = vim.tbl_filter(function(w)
+    return w ~= panel_winid
+      and w ~= reply_winid
+      and vim.api.nvim_win_is_valid(w)
+      and vim.api.nvim_win_get_config(w).relative == ''
+  end, vim.api.nvim_list_wins())
+
+  if #other_wins < 2 then
+    return
+  end
+
+  local separators = #other_wins - 1 + (panel_winid and 1 or 0)
+  local panel_width = panel_winid and PANEL_WIDTH or 0
+  local available = vim.o.columns - panel_width - separators
+  local each = math.floor(available / #other_wins)
+
+  for _, w in ipairs(other_wins) do
+    vim.api.nvim_win_set_width(w, each)
+  end
+
+  if panel_winid and vim.api.nvim_win_is_valid(panel_winid) then
+    vim.api.nvim_win_set_width(panel_winid, PANEL_WIDTH)
+  end
+end
 
 ---@param iso_timestamp string
 ---@return string
@@ -191,11 +223,14 @@ local function submit_reply()
     return
   end
   reply_input.clear()
-  orchestration.submit_reply({ thread_id = current_thread.id, body = body }, function(ok, returned_body)
-    if not ok and returned_body then
-      reply_input.set_text(returned_body)
+  orchestration.submit_reply(
+    { thread_id = current_thread.id, body = body },
+    function(ok, returned_body)
+      if not ok and returned_body then
+        reply_input.set_text(returned_body)
+      end
     end
-  end)
+  )
 end
 
 ---Toggle resolved state of the current thread
@@ -203,8 +238,7 @@ local function toggle_resolved()
   if not current_thread then
     return
   end
-  orchestration.toggle_resolved({ thread_id = current_thread.id }, function(_ok)
-  end)
+  orchestration.toggle_resolved({ thread_id = current_thread.id }, function(_ok) end)
 end
 
 ---Open the action menu
@@ -316,7 +350,27 @@ function M.show(thread)
     reply_input.map('n', '?', function()
       help_popup.toggle(hint_registry)
     end, { noremap = true })
+
+    vim.api.nvim_create_autocmd('WinClosed', {
+      group = augroup,
+      pattern = tostring(active_panel.winid),
+      callback = function()
+        M.close()
+      end,
+    })
+    local reply_winid = reply_input.get_winid()
+    if reply_winid then
+      vim.api.nvim_create_autocmd('WinClosed', {
+        group = augroup,
+        pattern = tostring(reply_winid),
+        callback = function()
+          M.close()
+        end,
+      })
+    end
   end
+
+  equalize_windows()
 end
 
 ---Compute per-line highlight assignments for author header lines.
@@ -388,6 +442,13 @@ end
 
 ---Close the panel
 function M.close()
+  if closing then
+    return
+  end
+  closing = true
+
+  pcall(vim.api.nvim_clear_autocmds, { group = augroup })
+
   if unsubscribe_comments then
     unsubscribe_comments()
     unsubscribe_comments = nil
@@ -401,6 +462,10 @@ function M.close()
     active_panel = nil
     current_thread = nil
   end
+
+  pcall(vim.cmd, 'wincmd =')
+
+  closing = false
 end
 
 ---Check if panel is currently open
@@ -409,6 +474,15 @@ function M.is_open()
   return active_panel ~= nil
     and active_panel.winid ~= nil
     and vim.api.nvim_win_is_valid(active_panel.winid)
+end
+
+---Get the panel window ID
+---@return integer?
+function M.get_winid()
+  if not M.is_open() then
+    return nil
+  end
+  return active_panel.winid
 end
 
 ---Get the currently displayed thread

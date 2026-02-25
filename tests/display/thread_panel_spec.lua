@@ -123,7 +123,10 @@ describe('thread_panel', function()
 
         assert.is_true(author_indices[1])
         assert.equals(60, #lines[1])
-        assert.is_true(#lines[1] - #vim.trim(lines[1]) > 1, 'viewer header should have many leading spaces')
+        assert.is_true(
+          #lines[1] - #vim.trim(lines[1]) > 1,
+          'viewer header should have many leading spaces'
+        )
         assert.equals('@', vim.trim(lines[1]):sub(1, 1))
       end)
 
@@ -578,6 +581,255 @@ describe('thread_panel', function()
       local hl = thread_panel.get_title_highlight(thread)
 
       assert.equals('NitThreadTitleResolved', hl)
+    end)
+  end)
+
+  describe('window lifecycle', function()
+    local orig_observers, orig_data, orig_orchestration
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+    end)
+
+    after_each(function()
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    it('closing panel window externally also closes reply input', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+      assert.is_true(tp.is_open())
+
+      local panel_winid = tp.get_winid()
+      assert.is_not_nil(panel_winid)
+
+      vim.api.nvim_win_close(panel_winid, true)
+
+      vim.wait(100, function()
+        return not tp.is_open()
+      end)
+
+      assert.is_false(tp.is_open())
+      assert.is_false(ri.is_open())
+
+      tp.close()
+    end)
+
+    it('closing reply input window externally also closes panel', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+      assert.is_true(tp.is_open())
+      assert.is_true(ri.is_open())
+
+      local reply_winid = ri.get_winid()
+      assert.is_not_nil(reply_winid)
+
+      vim.api.nvim_win_close(reply_winid, true)
+
+      vim.wait(100, function()
+        return not tp.is_open()
+      end)
+
+      assert.is_false(tp.is_open())
+      assert.is_false(ri.is_open())
+
+      tp.close()
+    end)
+
+    it('calling M.close() twice does not error', function()
+      local tp = require('nit.display.thread_panel')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      assert.has_no.errors(function()
+        tp.close()
+        tp.close()
+      end)
+    end)
+  end)
+
+  describe('window equalization', function()
+    local orig_observers, orig_data, orig_orchestration
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+    end)
+
+    after_each(function()
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    it('panel width is 60 after mount', function()
+      local tp = require('nit.display.thread_panel')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local panel_winid = tp.get_winid()
+      assert.is_not_nil(panel_winid)
+      assert.equals(60, vim.api.nvim_win_get_width(panel_winid))
+
+      tp.close()
+    end)
+
+    it('other windows are equalized after panel mounts in multi-window layout', function()
+      local tp = require('nit.display.thread_panel')
+
+      vim.cmd('vsplit')
+      vim.cmd('vsplit')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local ri = require('nit.display.reply_input')
+      local panel_winid = tp.get_winid()
+      local reply_winid = ri.get_winid()
+      local all_wins = vim.api.nvim_list_wins()
+      local non_panel_wins = vim.tbl_filter(function(w)
+        return w ~= panel_winid
+          and w ~= reply_winid
+          and vim.api.nvim_win_is_valid(w)
+          and vim.api.nvim_win_get_config(w).relative == ''
+      end, all_wins)
+
+      if #non_panel_wins >= 2 then
+        local widths = vim.tbl_map(vim.api.nvim_win_get_width, non_panel_wins)
+        local min_w = math.min(unpack(widths))
+        local max_w = math.max(unpack(widths))
+        assert.is_true(max_w - min_w <= 2, 'non-panel windows should be equalized')
+      end
+
+      tp.close()
+      pcall(vim.cmd, 'only')
+    end)
+
+    it('windows are re-equalized after panel closes', function()
+      local tp = require('nit.display.thread_panel')
+
+      vim.cmd('vsplit')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp.close()
+      vim.wait(20)
+
+      local all_wins = vim.api.nvim_list_wins()
+      local normal_wins = vim.tbl_filter(function(w)
+        return vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w).relative == ''
+      end, all_wins)
+
+      if #normal_wins >= 2 then
+        local widths = vim.tbl_map(vim.api.nvim_win_get_width, normal_wins)
+        local min_w = math.min(unpack(widths))
+        local max_w = math.max(unpack(widths))
+        assert.is_true(max_w - min_w <= 2, 'windows should equalize after close')
+      end
+
+      pcall(vim.cmd, 'only')
     end)
   end)
 end)

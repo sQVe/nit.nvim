@@ -19,6 +19,13 @@ function M.open(thread, callbacks)
   local resolve_label = thread.isResolved and 'r  Unresolve thread' or 'r  Resolve thread'
   local lines = { resolve_label }
 
+  local actions = {
+    function()
+      M.close()
+      callbacks.on_toggle_resolved()
+    end,
+  }
+
   local popup = Popup({
     position = '50%',
     size = { width = 30, height = #lines },
@@ -39,9 +46,14 @@ function M.open(thread, callbacks)
   vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, lines)
   vim.api.nvim_set_option_value('modifiable', false, { buf = popup.bufnr })
 
-  popup:map('n', 'r', function()
-    M.close()
-    callbacks.on_toggle_resolved()
+  popup:map('n', 'r', actions[1], { noremap = true })
+
+  popup:map('n', '<CR>', function()
+    local line_index = vim.api.nvim_win_get_cursor(popup.winid)[1]
+    local action = actions[line_index]
+    if action then
+      action()
+    end
   end, { noremap = true })
 
   popup:map('n', 'q', function()
