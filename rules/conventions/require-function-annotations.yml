@@ -1,0 +1,15 @@
+id: require-function-annotations
+language: Lua
+severity: warning
+message: >
+  Public module functions with parameters must have LuaCATS ---@param annotations.
+  Add ---@param name type before the function declaration.
+ignores:
+  - "tests/**"
+rule:
+  pattern: "function M.$NAME($FIRST, $$$) $$$BODY end"
+  not:
+    follows:
+      stopBy: neighbor
+      kind: comment
+      regex: "@param|@return"

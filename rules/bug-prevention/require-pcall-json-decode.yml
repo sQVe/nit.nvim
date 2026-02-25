@@ -1,0 +1,11 @@
+id: require-pcall-json-decode
+language: Lua
+severity: error
+message: >
+  vim.json.decode must be wrapped in pcall to handle malformed JSON.
+  Use: local ok, result = pcall(vim.json.decode, str)
+rule:
+  pattern: vim.json.decode($ARG)
+  not:
+    inside:
+      pattern: pcall($$$)

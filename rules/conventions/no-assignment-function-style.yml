@@ -1,0 +1,8 @@
+id: no-assignment-function-style
+language: Lua
+severity: warning
+message: >
+  Use 'function M.name()' declaration style instead of 'M.name = function()'.
+  The declaration form is idiomatic Lua and aligns with the LuaCATS annotation style.
+rule:
+  pattern: "M.$NAME = function($$$) $$$BODY end"

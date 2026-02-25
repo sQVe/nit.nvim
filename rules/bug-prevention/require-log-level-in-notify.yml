@@ -1,0 +1,12 @@
+id: require-log-level-in-notify
+language: Lua
+severity: error
+message: >
+  vim.notify must use vim.log.levels.* for the severity argument.
+  Use: vim.notify('[nit] message', vim.log.levels.ERROR)
+rule:
+  all:
+    - pattern: vim.notify($$$)
+    - not:
+        has:
+          regex: "vim\\.log\\.levels"

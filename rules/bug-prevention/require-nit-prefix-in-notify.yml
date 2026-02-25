@@ -1,0 +1,11 @@
+id: require-nit-prefix-in-notify
+language: Lua
+severity: warning
+message: >
+  vim.notify messages must contain '[nit]' to identify the source.
+  Use: vim.notify('[nit] message', vim.log.levels.ERROR)
+rule:
+  all:
+    - pattern: vim.notify($$$)
+    - not:
+        regex: "\\[nit\\]"
