@@ -1,0 +1,13 @@
+id: require-pcall-nvim-get-hl
+language: Lua
+severity: error
+message: >
+  vim.api.nvim_get_hl must be wrapped in pcall — it throws on invalid highlight groups.
+  Use: local ok, hl = pcall(vim.api.nvim_get_hl, 0, { name = 'GroupName' })
+ignores:
+  - "tests/**"
+rule:
+  pattern: vim.api.nvim_get_hl($$$)
+  not:
+    inside:
+      pattern: pcall($$$)

@@ -1,0 +1,22 @@
+id: require-pcall-nvim-win-ops
+language: Lua
+severity: error
+message: >
+  nvim_win_* operations must be wrapped in pcall — window handles become invalid when
+  windows are closed. Use: local ok = pcall(vim.api.nvim_win_close, winid, true)
+ignores:
+  - "tests/**"
+rule:
+  all:
+    - any:
+        - pattern: vim.api.nvim_win_set_cursor($$$)
+        - pattern: vim.api.nvim_win_close($$$)
+        - pattern: vim.api.nvim_win_get_config($$$)
+        - pattern: vim.api.nvim_win_set_width($$$)
+        - pattern: vim.api.nvim_win_set_height($$$)
+        - pattern: vim.api.nvim_win_set_config($$$)
+        - pattern: vim.api.nvim_win_set_buf($$$)
+        - pattern: vim.api.nvim_win_call($$$)
+    - not:
+        inside:
+          pattern: pcall($$$)

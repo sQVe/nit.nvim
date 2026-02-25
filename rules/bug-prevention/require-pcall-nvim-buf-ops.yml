@@ -1,0 +1,22 @@
+id: require-pcall-nvim-buf-ops
+language: Lua
+severity: error
+message: >
+  nvim_buf_* operations must be wrapped in pcall — buffer handles become invalid when
+  buffers are deleted. Use: local ok, result = pcall(vim.api.nvim_buf_get_lines, buf, ...)
+ignores:
+  - "tests/**"
+rule:
+  all:
+    - any:
+        - pattern: vim.api.nvim_buf_get_lines($$$)
+        - pattern: vim.api.nvim_buf_set_lines($$$)
+        - pattern: vim.api.nvim_buf_delete($$$)
+        - pattern: vim.api.nvim_buf_set_extmark($$$)
+        - pattern: vim.api.nvim_buf_clear_namespace($$$)
+        - pattern: vim.api.nvim_buf_set_text($$$)
+        - pattern: vim.api.nvim_buf_get_text($$$)
+        - pattern: vim.api.nvim_buf_add_highlight($$$)
+    - not:
+        inside:
+          pattern: pcall($$$)
