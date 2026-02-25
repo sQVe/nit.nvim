@@ -1,0 +1,10 @@
+id: no-print-in-source
+language: Lua
+severity: error
+message: >
+  print() calls must not appear in source code — use vim.notify() with an appropriate
+  log level instead. print() is for debugging only and should not be committed.
+ignores:
+  - "tests/**"
+rule:
+  pattern: print($$$)
