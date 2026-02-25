@@ -1,0 +1,14 @@
+id: require-module-bookends
+language: Lua
+severity: error
+message: "Module files must declare 'local M = {}'"
+ignores:
+  - "lua/nit/api/types.lua"
+  - "lua/nit/state/types.lua"
+  - "tests/**"
+  - "plugin/**"
+rule:
+  kind: chunk
+  not:
+    has:
+      pattern: local M = {}

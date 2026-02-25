@@ -450,7 +450,7 @@ describe('thread_panel', function()
 
         local result = thread_panel.get_line_highlights(lines, author_indices)
 
-        assert.not_nil(result[5])
+        assert.is_not_nil(result[5])
         assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
         assert.are.equal('NitThreadAuthor', result[5].hl_group)
 
@@ -477,10 +477,10 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[1])
+      assert.is_not_nil(result[1])
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
-      assert.not_nil(result[5])
+      assert.is_not_nil(result[5])
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
 
       if result[9] then
@@ -500,7 +500,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[5])
+      assert.is_not_nil(result[5])
       assert.are.equal('NitThreadAuthor', result[5].hl_group)
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
     end)
@@ -515,7 +515,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[1])
+      assert.is_not_nil(result[1])
       assert.are.equal('NitThreadAuthor', result[1].hl_group)
       assert.are.equal('NitThreadComment', result[1].line_hl_group)
     end)
@@ -528,7 +528,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[1])
+      assert.is_not_nil(result[1])
       assert.are.equal(42, result[1].text_col)
     end)
 
@@ -538,7 +538,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.not_nil(result[1])
+      assert.is_not_nil(result[1])
       assert.are.equal(1, result[1].text_col)
     end)
 

@@ -14,7 +14,7 @@ function M.nil_if_vim_nil(value)
 end
 
 ---Get owner and repo from git remote asynchronously
----@param callback fun(owner: string|nil, repo: string|nil)
+---@param callback fun(owner: string?, repo: string?)
 ---@return fun() cancel Cancel function
 function M.get_repo_info(callback)
   local completed = false

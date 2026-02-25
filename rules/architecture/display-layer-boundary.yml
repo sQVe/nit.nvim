@@ -1,0 +1,12 @@
+id: display-layer-boundary
+language: Lua
+severity: error
+files:
+  - "lua/nit/display/**"
+message: >
+  display/ must not import from api/.
+  Display reads state and triggers actions through orchestration, never directly calling the API.
+rule:
+  all:
+    - pattern: require($MOD)
+    - regex: "nit\\.api\\."

@@ -61,7 +61,7 @@ describe('comment_popup', function()
           separator_count = separator_count + 1
         end
       end
-      assert.equals(2, separator_count)
+      assert.are.equal(2, separator_count)
     end)
 
     it('handles multi-line comment body', function()

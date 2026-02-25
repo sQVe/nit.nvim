@@ -226,7 +226,7 @@ describe('nit.state.data', function()
         table.insert(ids, t.id)
       end
       table.sort(ids)
-      assert.same({ 1, 2 }, ids)
+      assert.are.same({ 1, 2 }, ids)
     end)
 
     it('get_threads_for_file returns empty table for path with no threads', function()

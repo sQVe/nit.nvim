@@ -62,7 +62,7 @@ end
 ---Parse GraphQL response and extract mutation data
 ---@param result Nit.Api.Result
 ---@param mutation_key string
----@param callback fun(err: string|nil, data: any)
+---@param callback fun(err: string?, data: any)
 local function parse_graphql_response(result, mutation_key, callback)
   if not result.ok then
     callback(result.error, nil)
@@ -92,7 +92,7 @@ end
 
 ---Validate thread_id is present, a string, and non-empty
 ---@param thread_id any
----@return string|nil error
+---@return string? error
 local function validate_thread_id(thread_id)
   if thread_id == nil then
     return 'thread_id is required'
@@ -108,7 +108,7 @@ end
 
 ---Validate reply options and trim body
 ---@param opts table
----@return { thread_id: string, body: string }|nil, string|nil error
+---@return { thread_id: string, body: string }?, string? error
 local function validate_reply_opts(opts)
   local err = validate_thread_id(opts.thread_id)
   if err then

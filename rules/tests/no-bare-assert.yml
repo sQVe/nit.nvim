@@ -1,0 +1,11 @@
+id: no-bare-assert
+language: Lua
+severity: error
+message: >
+  Use luassert assertions instead of bare assert() in tests — bare assert() produces
+  no useful failure message. Use: assert.are.equal(expected, actual) or assert.is_true(val)
+ignores:
+  - "lua/**"
+  - "plugin/**"
+rule:
+  pattern: assert($$$)

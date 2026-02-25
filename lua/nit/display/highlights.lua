@@ -20,7 +20,7 @@ function M.set(bufnr, thread)
   local start_row = (thread.start_line or thread.line) - 1
   local end_row = thread.line
 
-  vim.api.nvim_buf_set_extmark(bufnr, ns_id, start_row, 0, {
+  pcall(vim.api.nvim_buf_set_extmark, bufnr, ns_id, start_row, 0, {
     end_row = end_row,
     end_col = 0,
     hl_group = 'NitCommentHighlight',
@@ -31,7 +31,7 @@ end
 ---Clear all highlights from buffer
 ---@param bufnr integer Buffer number
 function M.clear(bufnr)
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+  pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
 return M

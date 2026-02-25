@@ -1,0 +1,14 @@
+id: require-return-m
+language: Lua
+severity: error
+message: "Module files must end with 'return M'"
+ignores:
+  - "lua/nit/api/types.lua"
+  - "lua/nit/state/types.lua"
+  - "tests/**"
+  - "plugin/**"
+rule:
+  kind: chunk
+  not:
+    has:
+      pattern: return M

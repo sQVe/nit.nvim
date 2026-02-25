@@ -43,14 +43,17 @@ function M.open(thread, callbacks)
 
   popup:mount()
 
-  vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = popup.bufnr })
+  pcall(vim.api.nvim_buf_set_lines, popup.bufnr, 0, -1, false, lines)
+  vim.bo[popup.bufnr].modifiable = false
 
   popup:map('n', 'r', actions[1], { noremap = true })
 
   popup:map('n', '<CR>', function()
-    local line_index = vim.api.nvim_win_get_cursor(popup.winid)[1]
-    local action = actions[line_index]
+    local ok, cursor = pcall(vim.api.nvim_win_get_cursor, popup.winid)
+    if not ok then
+      return
+    end
+    local action = actions[cursor[1]]
     if action ~= nil then
       action()
     end

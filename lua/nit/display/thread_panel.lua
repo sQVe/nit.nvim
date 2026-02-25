@@ -39,10 +39,11 @@ local function equalize_windows()
   local reply_winid = reply_input.get_winid()
 
   local other_wins = vim.tbl_filter(function(w)
-    return w ~= panel_winid
-      and w ~= reply_winid
-      and vim.api.nvim_win_is_valid(w)
-      and vim.api.nvim_win_get_config(w).relative == ''
+    if w == panel_winid or w == reply_winid or not vim.api.nvim_win_is_valid(w) then
+      return false
+    end
+    local ok, config = pcall(vim.api.nvim_win_get_config, w)
+    return ok and config.relative == ''
   end, vim.api.nvim_list_wins())
 
   if #other_wins < 2 then
@@ -55,11 +56,11 @@ local function equalize_windows()
   local each = math.floor(available / #other_wins)
 
   for _, w in ipairs(other_wins) do
-    vim.api.nvim_win_set_width(w, each)
+    pcall(vim.api.nvim_win_set_width, w, each)
   end
 
   if panel_winid ~= nil and vim.api.nvim_win_is_valid(panel_winid) then
-    vim.api.nvim_win_set_width(panel_winid, PANEL_WIDTH)
+    pcall(vim.api.nvim_win_set_width, panel_winid, PANEL_WIDTH)
   end
 end
 
@@ -72,18 +73,26 @@ local function format_relative_time(iso_timestamp)
     return iso_timestamp
   end
 
+  local y, mo, d, h, mi, s =
+    tonumber(year), tonumber(month), tonumber(day), tonumber(hour), tonumber(min), tonumber(sec)
+  if not (y and mo and d and h and mi and s) then
+    return iso_timestamp
+  end
+
   local parsed_as_local = os.time({
-    year = assert(tonumber(year)),
-    month = assert(tonumber(month)),
-    day = assert(tonumber(day)),
-    hour = assert(tonumber(hour)),
-    min = assert(tonumber(min)),
-    sec = assert(tonumber(sec)),
+    year = y,
+    month = mo,
+    day = d,
+    hour = h,
+    min = mi,
+    sec = s,
   })
 
   local now = os.time()
   local utc_table = os.date('!*t', now)
-  assert(type(utc_table) == 'table', 'os.date failed to return table')
+  if type(utc_table) ~= 'table' then
+    return iso_timestamp
+  end
   local utc_offset = now - os.time(utc_table)
   local parsed_utc = parsed_as_local - utc_offset
 
@@ -417,11 +426,11 @@ function M.update(thread)
 
   local lines, author_indices = M.format_thread(thread)
 
-  vim.api.nvim_set_option_value('modifiable', true, { buf = active_panel.bufnr })
-  vim.api.nvim_buf_set_lines(active_panel.bufnr, 0, -1, false, lines)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = active_panel.bufnr })
+  vim.bo[active_panel.bufnr].modifiable = true
+  pcall(vim.api.nvim_buf_set_lines, active_panel.bufnr, 0, -1, false, lines)
+  vim.bo[active_panel.bufnr].modifiable = false
 
-  vim.api.nvim_buf_clear_namespace(active_panel.bufnr, highlight_ns, 0, -1)
+  pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, highlight_ns, 0, -1)
 
   local line_highlights = M.get_line_highlights(lines, author_indices)
 
@@ -437,7 +446,14 @@ function M.update(thread)
         opts.hl_group = hl.hl_group
         opts.end_col = #lines[i]
       end
-      vim.api.nvim_buf_set_extmark(active_panel.bufnr, highlight_ns, i - 1, hl.text_col, opts)
+      pcall(
+        vim.api.nvim_buf_set_extmark,
+        active_panel.bufnr,
+        highlight_ns,
+        i - 1,
+        hl.text_col,
+        opts
+      )
     end
   end
 

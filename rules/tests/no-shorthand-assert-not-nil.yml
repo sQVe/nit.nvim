@@ -1,0 +1,11 @@
+id: no-shorthand-assert-not-nil
+language: Lua
+severity: error
+message: >
+  Use assert.is_not_nil() not assert.not_nil() — full form per luassert convention.
+  Change: assert.not_nil(val)  →  assert.is_not_nil(val)
+ignores:
+  - "lua/**"
+  - "plugin/**"
+rule:
+  pattern: assert.not_nil($$$)

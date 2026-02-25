@@ -35,13 +35,13 @@ describe('nit.orchestration.snapshot', function()
       local snap = snapshot.capture('thread-1')
 
       assert.is_not_nil(snap)
-      assert.equals('thread-1', snap.thread_id)
+      assert.are.equal('thread-1', snap.thread_id)
       assert.is_not_nil(snap.thread)
-      assert.equals('thread-1', snap.thread.id)
-      assert.equals('Original', snap.thread.comments[1].body)
+      assert.are.equal('thread-1', snap.thread.id)
+      assert.are.equal('Original', snap.thread.comments[1].body)
 
       thread.comments[1].body = 'Modified'
-      assert.equals('Original', snap.thread.comments[1].body)
+      assert.are.equal('Original', snap.thread.comments[1].body)
     end)
 
     it('returns snapshot with nil thread when thread_id does not exist', function()
@@ -50,7 +50,7 @@ describe('nit.orchestration.snapshot', function()
       local snap = snapshot.capture('nonexistent')
 
       assert.is_not_nil(snap)
-      assert.equals('nonexistent', snap.thread_id)
+      assert.are.equal('nonexistent', snap.thread_id)
       assert.is_nil(snap.thread)
     end)
 
@@ -71,13 +71,13 @@ describe('nit.orchestration.snapshot', function()
       all_threads[1].comments[1].body = 'Modified'
       data.set_threads(all_threads)
 
-      assert.equals('Modified', data.get_thread('thread-1').comments[1].body)
+      assert.are.equal('Modified', data.get_thread('thread-1').comments[1].body)
 
       snapshot.restore(snap)
 
       local restored = data.get_thread('thread-1')
       assert.is_not_nil(restored)
-      assert.equals('Original', restored.comments[1].body)
+      assert.are.equal('Original', restored.comments[1].body)
     end)
 
     it('removes a thread that did not exist at capture time', function()
@@ -104,7 +104,7 @@ describe('nit.orchestration.snapshot', function()
 
       local restored = data.get_thread('thread-1')
       assert.is_not_nil(restored)
-      assert.equals('thread-1', restored.id)
+      assert.are.equal('thread-1', restored.id)
     end)
 
     it('triggers observer notification', function()
@@ -140,8 +140,8 @@ describe('nit.orchestration.snapshot', function()
       all_threads[1].comments[1].body = 'Modified'
       data.set_threads(all_threads)
 
-      assert.equals('Original', snap.thread.comments[1].body)
-      assert.equals('Modified', data.get_thread('thread-1').comments[1].body)
+      assert.are.equal('Original', snap.thread.comments[1].body)
+      assert.are.equal('Modified', data.get_thread('thread-1').comments[1].body)
     end)
   end)
 end)

@@ -1,0 +1,11 @@
+id: require-nit-highlight-prefix
+language: Lua
+severity: error
+message: >
+  nvim_set_hl() group names must start with 'Nit' to avoid collisions with other plugins.
+  Change: vim.api.nvim_set_hl(0, 'MyGroup', { ... })  ->  vim.api.nvim_set_hl(0, 'NitMyGroup', { ... })
+rule:
+  all:
+    - pattern: vim.api.nvim_set_hl($$$)
+    - not:
+        regex: "nvim_set_hl\\(\\s*\\d+,\\s*['\"]Nit"

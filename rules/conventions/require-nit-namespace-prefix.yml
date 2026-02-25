@@ -1,0 +1,11 @@
+id: require-nit-namespace-prefix
+language: Lua
+severity: error
+message: >
+  nvim_create_namespace() names must start with 'nit_' to avoid collisions with other plugins.
+  Change: vim.api.nvim_create_namespace('my_ns')  ->  vim.api.nvim_create_namespace('nit_my_ns')
+rule:
+  all:
+    - pattern: vim.api.nvim_create_namespace($NAME)
+    - not:
+        regex: "nvim_create_namespace\\(['\"]nit_"

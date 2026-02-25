@@ -23,7 +23,7 @@ describe('nit.state.observers', function()
       end)
 
       assert.is_true(ok, 'callback was not invoked')
-      assert.equals('comments', received_key)
+      assert.are.equal('comments', received_key)
     end)
 
     it('unsubscribe prevents future callbacks', function()
@@ -37,13 +37,13 @@ describe('nit.state.observers', function()
         return call_count > 0
       end)
       assert.is_true(ok, 'callback was not invoked')
-      assert.equals(1, call_count)
+      assert.are.equal(1, call_count)
 
       unsub()
 
       observers.notify('files')
       vim.wait(50)
-      assert.equals(1, call_count, 'callback should not be called after unsubscribe')
+      assert.are.equal(1, call_count, 'callback should not be called after unsubscribe')
     end)
 
     it('multiple subscribers on same key all called', function()
@@ -61,7 +61,7 @@ describe('nit.state.observers', function()
       end)
 
       assert.is_true(ok, 'callbacks were not invoked')
-      assert.equals(2, #calls)
+      assert.are.equal(2, #calls)
     end)
   end)
 
@@ -81,7 +81,7 @@ describe('nit.state.observers', function()
       end)
 
       assert.is_true(ok, 'callback was not invoked')
-      assert.equals(1, call_count, 'rapid notifies should batch into single callback')
+      assert.are.equal(1, call_count, 'rapid notifies should batch into single callback')
     end)
 
     it('different keys both dirty run in same scheduled pass', function()
@@ -101,7 +101,7 @@ describe('nit.state.observers', function()
       end)
 
       assert.is_true(ok, 'callbacks were not invoked')
-      assert.equals(2, #calls)
+      assert.are.equal(2, #calls)
     end)
 
     it('errors in one callback do not prevent others', function()

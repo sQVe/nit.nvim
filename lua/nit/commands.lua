@@ -44,7 +44,7 @@ function M.dispatch(opts)
   if subcmd then
     subcmd.run(args, opts)
   else
-    vim.notify('Unknown subcommand: ' .. subcmd_key, vim.log.levels.ERROR)
+    vim.notify('[nit] Unknown subcommand: ' .. subcmd_key, vim.log.levels.ERROR)
   end
 end
 

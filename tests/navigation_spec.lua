@@ -99,8 +99,8 @@ describe('navigation', function()
       navigation.next_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
-      assert.same({ 'normal! ^' }, cmd_calls)
+      assert.are.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 'normal! ^' }, cmd_calls)
     end)
 
     it('jumps to immediate next when between comments', function()
@@ -110,8 +110,8 @@ describe('navigation', function()
       navigation.next_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 20, 0 }, api_mock.cursor_set_calls[1].pos)
-      assert.same({ 'normal! ^' }, cmd_calls)
+      assert.are.same({ 20, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 'normal! ^' }, cmd_calls)
     end)
 
     it('is silent no-op at last comment', function()
@@ -120,8 +120,8 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, cmd_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, cmd_calls)
     end)
 
     it('is silent no-op past last comment', function()
@@ -130,8 +130,8 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, cmd_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, cmd_calls)
     end)
 
     it('is silent no-op with no comments', function()
@@ -140,8 +140,8 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('is silent no-op when active review but buffer unattached', function()
@@ -150,8 +150,8 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('is silent no-op when nvim_win_get_cursor fails', function()
@@ -160,8 +160,8 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('handles unsorted commented_lines keys deterministically', function()
@@ -171,7 +171,7 @@ describe('navigation', function()
       navigation.next_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
     end)
 
     it('notifies when no active review', function()
@@ -180,10 +180,10 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
       assert.is_not_nil(notify_calls[1])
-      assert.equal('[nit] no active review', notify_calls[1].msg)
-      assert.equal(vim.log.levels.WARN, notify_calls[1].level)
+      assert.are.equal('[nit] no active review', notify_calls[1].msg)
+      assert.are.equal(vim.log.levels.WARN, notify_calls[1].level)
     end)
   end)
 
@@ -195,8 +195,8 @@ describe('navigation', function()
       navigation.prev_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
-      assert.same({ 'normal! ^' }, cmd_calls)
+      assert.are.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 'normal! ^' }, cmd_calls)
     end)
 
     it('jumps to immediate previous when between comments', function()
@@ -206,8 +206,8 @@ describe('navigation', function()
       navigation.prev_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
-      assert.same({ 'normal! ^' }, cmd_calls)
+      assert.are.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 'normal! ^' }, cmd_calls)
     end)
 
     it('is silent no-op at first comment', function()
@@ -216,8 +216,8 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, cmd_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, cmd_calls)
     end)
 
     it('is silent no-op before first comment', function()
@@ -226,8 +226,8 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, cmd_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, cmd_calls)
     end)
 
     it('is silent no-op with no comments', function()
@@ -236,8 +236,8 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('is silent no-op when active review but buffer unattached', function()
@@ -246,8 +246,8 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('is silent no-op when nvim_win_get_cursor fails', function()
@@ -256,8 +256,8 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
-      assert.same({}, notify_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, notify_calls)
     end)
 
     it('handles unsorted commented_lines keys deterministically', function()
@@ -267,7 +267,7 @@ describe('navigation', function()
       navigation.prev_comment()
 
       assert.is_not_nil(api_mock.cursor_set_calls[1])
-      assert.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
+      assert.are.same({ 10, 0 }, api_mock.cursor_set_calls[1].pos)
     end)
 
     it('notifies when no active review', function()
@@ -276,10 +276,10 @@ describe('navigation', function()
 
       navigation.prev_comment()
 
-      assert.same({}, api_mock.cursor_set_calls)
+      assert.are.same({}, api_mock.cursor_set_calls)
       assert.is_not_nil(notify_calls[1])
-      assert.equal('[nit] no active review', notify_calls[1].msg)
-      assert.equal(vim.log.levels.WARN, notify_calls[1].level)
+      assert.are.equal('[nit] no active review', notify_calls[1].msg)
+      assert.are.equal(vim.log.levels.WARN, notify_calls[1].level)
     end)
   end)
 
@@ -290,7 +290,7 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({ 'normal! ^' }, cmd_calls)
+      assert.are.same({ 'normal! ^' }, cmd_calls)
     end)
 
     it('does not run normal! ^ if nvim_win_set_cursor fails', function()
@@ -300,7 +300,7 @@ describe('navigation', function()
 
       navigation.next_comment()
 
-      assert.same({}, cmd_calls)
+      assert.are.same({}, cmd_calls)
     end)
   end)
 end)

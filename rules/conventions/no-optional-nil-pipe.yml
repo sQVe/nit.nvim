@@ -1,0 +1,9 @@
+id: no-optional-nil-pipe
+language: Lua
+severity: error
+message: >
+  Use the '?' suffix for optional types instead of '|nil' in LuaCATS annotations.
+  Change: ---@param name string|nil  →  ---@param name string?
+rule:
+  kind: comment
+  regex: '@(return|param|type|field).*\|nil'

@@ -1,0 +1,15 @@
+id: require-pcall-readfile
+language: Lua
+severity: error
+message: >
+  vim.fn.readfile() throws on I/O errors and must be wrapped in pcall.
+  Use: local ok, result = pcall(vim.fn.readfile, path)
+ignores:
+  - "tests/**"
+rule:
+  all:
+    - pattern: vim.fn.readfile($$$)
+    - not:
+        inside:
+          pattern: pcall($$$)
+          stopBy: end

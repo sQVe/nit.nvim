@@ -13,17 +13,25 @@ local function format_relative_time(iso_timestamp)
     return iso_timestamp
   end
 
+  local y, mo, d, h, mi, s =
+    tonumber(year), tonumber(month), tonumber(day), tonumber(hour), tonumber(min), tonumber(sec)
+  if not (y and mo and d and h and mi and s) then
+    return iso_timestamp
+  end
+
   local parsed_as_local = os.time({
-    year = assert(tonumber(year)),
-    month = assert(tonumber(month)),
-    day = assert(tonumber(day)),
-    hour = assert(tonumber(hour)),
-    min = assert(tonumber(min)),
-    sec = assert(tonumber(sec)),
+    year = y,
+    month = mo,
+    day = d,
+    hour = h,
+    min = mi,
+    sec = s,
   })
 
   local utc_table = os.date('!*t', parsed_as_local)
-  assert(type(utc_table) == 'table', 'os.date failed to return table')
+  if type(utc_table) ~= 'table' then
+    return iso_timestamp
+  end
   local utc_offset = parsed_as_local - os.time(utc_table)
   local parsed_utc = parsed_as_local + utc_offset
 
@@ -127,9 +135,9 @@ function M.show(thread)
 
   popup:mount()
 
-  vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, content)
-  vim.api.nvim_set_option_value('modifiable', false, { buf = popup.bufnr })
-  vim.api.nvim_set_option_value('readonly', true, { buf = popup.bufnr })
+  pcall(vim.api.nvim_buf_set_lines, popup.bufnr, 0, -1, false, content)
+  vim.bo[popup.bufnr].modifiable = false
+  vim.bo[popup.bufnr].readonly = true
 
   popup:map('n', 'q', function()
     popup:unmount()

@@ -1,0 +1,11 @@
+id: require-augroup-clear
+language: Lua
+severity: error
+message: >
+  nvim_create_augroup must use { clear = true } to prevent duplicate autocmds when
+  the module is reloaded. Use: vim.api.nvim_create_augroup('name', { clear = true })
+rule:
+  pattern: vim.api.nvim_create_augroup($NAME, $OPTS)
+  not:
+    has:
+      regex: 'clear\s*=\s*true'

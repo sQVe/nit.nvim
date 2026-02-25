@@ -1,0 +1,35 @@
+id: require-pcall-nvim-win-ops
+language: Lua
+severity: error
+message: >
+  nvim_win_* operations must be wrapped in pcall — window handles become invalid when
+  windows are closed. Use: local ok = pcall(vim.api.nvim_win_close, winid, true)
+note: >
+  The is_valid-guard exemption checks for nvim_win_is_valid anywhere in the if block,
+  not just in the condition. A call on a different window handle inside the same guard
+  is silently accepted. This is an accepted approximation for this codebase.
+ignores:
+  - "tests/**"
+rule:
+  all:
+    - any:
+        - pattern: vim.api.nvim_win_get_cursor($$$)
+        - pattern: vim.api.nvim_win_set_cursor($$$)
+        - pattern: vim.api.nvim_win_close($$$)
+        - pattern: vim.api.nvim_win_get_config($$$)
+        - pattern: vim.api.nvim_win_set_width($$$)
+        - pattern: vim.api.nvim_win_set_height($$$)
+        - pattern: vim.api.nvim_win_set_config($$$)
+        - pattern: vim.api.nvim_win_set_buf($$$)
+        - pattern: vim.api.nvim_win_call($$$)
+    - not:
+        any:
+          - inside:
+              pattern: pcall($$$)
+              stopBy: end
+          - inside:
+              pattern: "if $COND then $$$BODY end"
+              stopBy: end
+              has:
+                pattern: vim.api.nvim_win_is_valid($$$)
+                stopBy: end

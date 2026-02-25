@@ -19,6 +19,13 @@ repos:
         types: [lua]
         pass_filenames: true
 
+      - id: ast-grep
+        name: ast-grep
+        entry: ast-grep scan lua/ plugin/ tests/
+        language: system
+        types: [lua]
+        pass_filenames: false
+
       - id: typecheck
         name: typecheck (informational)
         entry: bash -c 'lua-language-server --check lua/ --checklevel=Warning || true'

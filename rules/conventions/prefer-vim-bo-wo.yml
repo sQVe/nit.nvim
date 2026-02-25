@@ -1,0 +1,11 @@
+id: prefer-vim-bo-wo
+language: Lua
+severity: error
+message: >
+  Prefer vim.bo[bufnr].opt = val over nvim_set_option_value for buffer/window options.
+  Change: vim.api.nvim_set_option_value('opt', val, { buf = bufnr })
+      ->  vim.bo[bufnr].opt = val
+ignores:
+  - "tests/**"
+rule:
+  pattern: vim.api.nvim_set_option_value($$$)

@@ -1,0 +1,10 @@
+id: no-assert-in-source
+language: Lua
+severity: error
+message: >
+  Do not use assert() in plugin source — it throws on failure and crashes the plugin.
+  Use explicit error handling: if not condition then vim.notify(..., vim.log.levels.ERROR) return end
+ignores:
+  - "tests/**"
+rule:
+  pattern: assert($$$)

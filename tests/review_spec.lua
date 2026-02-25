@@ -180,26 +180,26 @@ describe('review', function()
 
       review.start()
 
-      assert.equals(load_count, controller_mock.load_calls)
+      assert.are.equal(load_count, controller_mock.load_calls)
     end)
 
     it('calls display_manager.setup', function()
       review.start()
 
-      assert.equals(1, display_manager_mock.setup_calls)
+      assert.are.equal(1, display_manager_mock.setup_calls)
     end)
 
     it('subscribes to comments observer', function()
       review.start()
 
-      assert.equals(1, #observers_mock.subscribe_calls)
-      assert.equals('comments', observers_mock.subscribe_calls[1].event)
+      assert.are.equal(1, #observers_mock.subscribe_calls)
+      assert.are.equal('comments', observers_mock.subscribe_calls[1].event)
     end)
 
     it('calls controller.load', function()
       review.start()
 
-      assert.equals(1, controller_mock.load_calls)
+      assert.are.equal(1, controller_mock.load_calls)
     end)
 
     it('observer unsubscribes itself after first fire', function()
@@ -223,9 +223,9 @@ describe('review', function()
       local observer = observers_mock.subscribe_calls[1]
       observer.callback()
 
-      assert.equals(1, #display_manager_mock.attach_calls)
-      assert.equals(1, display_manager_mock.attach_calls[1].bufnr)
-      assert.equals('src/file.lua', display_manager_mock.attach_calls[1].filepath)
+      assert.are.equal(1, #display_manager_mock.attach_calls)
+      assert.are.equal(1, display_manager_mock.attach_calls[1].bufnr)
+      assert.are.equal('src/file.lua', display_manager_mock.attach_calls[1].filepath)
     end)
   end)
 
@@ -233,7 +233,7 @@ describe('review', function()
     it('is no-op when not active', function()
       review.stop()
 
-      assert.equals(0, controller_mock.cleanup_calls)
+      assert.are.equal(0, controller_mock.cleanup_calls)
     end)
 
     it('calls display_manager.detach_all', function()
@@ -241,7 +241,7 @@ describe('review', function()
 
       review.stop()
 
-      assert.equals(1, display_manager_mock.detach_all_calls)
+      assert.are.equal(1, display_manager_mock.detach_all_calls)
     end)
 
     it('calls thread_panel.close', function()
@@ -249,7 +249,7 @@ describe('review', function()
 
       review.stop()
 
-      assert.equals(1, thread_panel_mock.close_calls)
+      assert.are.equal(1, thread_panel_mock.close_calls)
     end)
 
     it('calls controller.cleanup', function()
@@ -257,7 +257,7 @@ describe('review', function()
 
       review.stop()
 
-      assert.equals(1, controller_mock.cleanup_calls)
+      assert.are.equal(1, controller_mock.cleanup_calls)
     end)
 
     it('unsubscribes observer if not yet fired', function()
@@ -276,7 +276,7 @@ describe('review', function()
       local callback = find_autocmd_callback('BufEnter')
       api_mock.buf_names = { [1] = '/repo/file.lua' }
       callback({ buf = 1 })
-      assert.equals(0, #display_manager_mock.attach_calls)
+      assert.are.equal(0, #display_manager_mock.attach_calls)
 
       review.stop()
 
@@ -288,7 +288,7 @@ describe('review', function()
       callback = find_autocmd_callback('BufEnter')
       api_mock.buf_names = { [1] = '/repo/file.lua' }
       callback({ buf = 1 })
-      assert.equals(1, #display_manager_mock.attach_calls)
+      assert.are.equal(1, #display_manager_mock.attach_calls)
     end)
   end)
 
@@ -300,7 +300,7 @@ describe('review', function()
       api_mock.buf_names = { [1] = '' }
       callback({ buf = 1 })
 
-      assert.same({}, display_manager_mock.attach_calls)
+      assert.are.same({}, display_manager_mock.attach_calls)
     end)
 
     it('skips buffers with non-empty buftype', function()
@@ -311,7 +311,7 @@ describe('review', function()
       api_mock.buf_types = { [1] = 'nofile' }
       callback({ buf = 1 })
 
-      assert.same({}, display_manager_mock.attach_calls)
+      assert.are.same({}, display_manager_mock.attach_calls)
     end)
 
     it('skips without running git when git root previously failed', function()
@@ -326,7 +326,7 @@ describe('review', function()
       api_mock.buf_names = { [2] = '/repo/other.lua' }
       callback({ buf = 2 })
 
-      assert.equals(first_call_count, fn_mock.systemlist_call_count)
+      assert.are.equal(first_call_count, fn_mock.systemlist_call_count)
     end)
 
     it('caches git root across buffer attaches', function()
@@ -342,7 +342,7 @@ describe('review', function()
       api_mock.buf_names = { [2] = '/repo/b.lua' }
       callback({ buf = 2 })
 
-      assert.equals(first_call_count, fn_mock.systemlist_call_count)
+      assert.are.equal(first_call_count, fn_mock.systemlist_call_count)
     end)
 
     it('skips buffer outside git root', function()
@@ -354,7 +354,7 @@ describe('review', function()
       api_mock.buf_names = { [1] = '/other/path/file.lua' }
       callback({ buf = 1 })
 
-      assert.same({}, display_manager_mock.attach_calls)
+      assert.are.same({}, display_manager_mock.attach_calls)
     end)
 
     it('skips buffer whose path overlaps git root as prefix', function()
@@ -366,7 +366,7 @@ describe('review', function()
       api_mock.buf_names = { [1] = '/repo-copy/file.lua' }
       callback({ buf = 1 })
 
-      assert.same({}, display_manager_mock.attach_calls)
+      assert.are.same({}, display_manager_mock.attach_calls)
     end)
 
     it('attaches buffer under git root with relative path', function()
@@ -378,9 +378,9 @@ describe('review', function()
       api_mock.buf_names = { [1] = '/repo/src/file.lua' }
       callback({ buf = 1 })
 
-      assert.equals(1, #display_manager_mock.attach_calls)
-      assert.equals(1, display_manager_mock.attach_calls[1].bufnr)
-      assert.equals('src/file.lua', display_manager_mock.attach_calls[1].filepath)
+      assert.are.equal(1, #display_manager_mock.attach_calls)
+      assert.are.equal(1, display_manager_mock.attach_calls[1].bufnr)
+      assert.are.equal('src/file.lua', display_manager_mock.attach_calls[1].filepath)
     end)
 
     it('computes correct relative path for root-level file', function()
@@ -392,7 +392,7 @@ describe('review', function()
       api_mock.buf_names = { [1] = '/repo/file.lua' }
       callback({ buf = 1 })
 
-      assert.equals('file.lua', display_manager_mock.attach_calls[1].filepath)
+      assert.are.equal('file.lua', display_manager_mock.attach_calls[1].filepath)
     end)
   end)
 end)

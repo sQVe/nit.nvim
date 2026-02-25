@@ -124,7 +124,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same(thread, lines[5])
+      assert.are.same(thread, lines[5])
     end)
 
     it('excludes LEFT-side threads', function()
@@ -133,7 +133,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same({}, lines)
+      assert.are.same({}, lines)
     end)
 
     it('excludes threads with nil line', function()
@@ -142,7 +142,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same({}, lines)
+      assert.are.same({}, lines)
     end)
 
     it('excludes outdated threads', function()
@@ -151,7 +151,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same({}, lines)
+      assert.are.same({}, lines)
     end)
 
     it('includes resolved threads', function()
@@ -161,7 +161,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same(resolved, lines[5])
+      assert.are.same(resolved, lines[5])
     end)
 
     it('filters mixed displayable and non-displayable threads', function()
@@ -178,8 +178,8 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same(good, lines[5])
-      assert.same(resolved, lines[15])
+      assert.are.same(good, lines[5])
+      assert.are.same(resolved, lines[15])
       assert.is_nil(lines[3])
       assert.is_nil(lines[10])
     end)
@@ -194,7 +194,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.equals('first', lines[5].id)
+      assert.are.equal('first', lines[5].id)
     end)
 
     it('includes all threads with unique line numbers', function()
@@ -205,8 +205,8 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
 
       local lines = manager.get_commented_lines(1)
-      assert.same(t1, lines[5])
-      assert.same(t2, lines[10])
+      assert.are.same(t1, lines[5])
+      assert.are.same(t2, lines[10])
     end)
   end)
 
@@ -219,7 +219,7 @@ describe('display.manager', function()
 
       manager.attach(1, 'test.lua')
 
-      assert.equals(subscribe_count, #observers_mock.subscribe_calls)
+      assert.are.equal(subscribe_count, #observers_mock.subscribe_calls)
     end)
 
     it('subscribes to comments observer on attach', function()
@@ -227,8 +227,8 @@ describe('display.manager', function()
 
       manager.attach(1, 'test.lua')
 
-      assert.equals(1, #observers_mock.subscribe_calls)
-      assert.equals('comments', observers_mock.subscribe_calls[1].event)
+      assert.are.equal(1, #observers_mock.subscribe_calls)
+      assert.are.equal('comments', observers_mock.subscribe_calls[1].event)
     end)
 
     it('places signs for displayable threads', function()
@@ -237,9 +237,9 @@ describe('display.manager', function()
 
       manager.attach(1, 'test.lua')
 
-      assert.equals(1, #signs_mock.place_calls)
-      assert.equals(1, signs_mock.place_calls[1].bufnr)
-      assert.same({ thread }, signs_mock.place_calls[1].threads)
+      assert.are.equal(1, #signs_mock.place_calls)
+      assert.are.equal(1, signs_mock.place_calls[1].bufnr)
+      assert.are.same({ thread }, signs_mock.place_calls[1].threads)
     end)
 
     it('sets highlight when cursor is on commented line during attach', function()
@@ -249,8 +249,8 @@ describe('display.manager', function()
 
       manager.attach(1, 'test.lua')
 
-      assert.equals(1, #highlights_mock.set_calls)
-      assert.same(thread, highlights_mock.set_calls[1].thread)
+      assert.are.equal(1, #highlights_mock.set_calls)
+      assert.are.same(thread, highlights_mock.set_calls[1].thread)
     end)
 
     it('does not set highlight when cursor is not on commented line', function()
@@ -259,7 +259,7 @@ describe('display.manager', function()
 
       manager.attach(1, 'test.lua')
 
-      assert.same({}, highlights_mock.set_calls)
+      assert.are.same({}, highlights_mock.set_calls)
     end)
   end)
 
@@ -269,7 +269,7 @@ describe('display.manager', function()
 
       manager.detach(999)
 
-      assert.equals(clear_count, #signs_mock.clear_calls)
+      assert.are.equal(clear_count, #signs_mock.clear_calls)
     end)
 
     it('removes state from attached buffers', function()
@@ -298,8 +298,8 @@ describe('display.manager', function()
 
       manager.detach(1)
 
-      assert.equals(sign_clears + 1, #signs_mock.clear_calls)
-      assert.equals(highlight_clears + 1, #highlights_mock.clear_calls)
+      assert.are.equal(sign_clears + 1, #signs_mock.clear_calls)
+      assert.are.equal(highlight_clears + 1, #highlights_mock.clear_calls)
     end)
 
     it('deletes autocmds', function()
@@ -329,7 +329,7 @@ describe('display.manager', function()
     it('is no-op when buffer is not attached', function()
       manager.show_thread_panel(999)
 
-      assert.same({}, thread_panel_mock.show_calls)
+      assert.are.same({}, thread_panel_mock.show_calls)
     end)
 
     it('is no-op when cursor API fails', function()
@@ -339,7 +339,7 @@ describe('display.manager', function()
 
       manager.show_thread_panel(1)
 
-      assert.same({}, thread_panel_mock.show_calls)
+      assert.are.same({}, thread_panel_mock.show_calls)
     end)
 
     it('is no-op when cursor is not on commented line', function()
@@ -350,7 +350,7 @@ describe('display.manager', function()
 
       manager.show_thread_panel(1)
 
-      assert.same({}, thread_panel_mock.show_calls)
+      assert.are.same({}, thread_panel_mock.show_calls)
     end)
 
     it('shows panel when cursor is on commented line', function()
@@ -362,8 +362,8 @@ describe('display.manager', function()
 
       manager.show_thread_panel(1)
 
-      assert.equals(1, #thread_panel_mock.show_calls)
-      assert.same(thread, thread_panel_mock.show_calls[1])
+      assert.are.equal(1, #thread_panel_mock.show_calls)
+      assert.are.same(thread, thread_panel_mock.show_calls[1])
     end)
   end)
 
@@ -396,7 +396,7 @@ describe('display.manager', function()
       manager.attach(1, 'test.lua')
       api_mock.cursor = { 5, 0 }
 
-      assert.same(thread, manager.get_thread_at_cursor(1))
+      assert.are.same(thread, manager.get_thread_at_cursor(1))
     end)
   end)
 

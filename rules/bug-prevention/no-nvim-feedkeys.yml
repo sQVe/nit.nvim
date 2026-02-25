@@ -1,0 +1,10 @@
+id: no-nvim-feedkeys
+language: Lua
+severity: error
+message: >
+  Do not use vim.api.nvim_feedkeys() — it is fragile and can cause race conditions.
+  Use vim.cmd('stopinsert') to exit insert mode from Lua keymap callbacks.
+ignores:
+  - "tests/**"
+rule:
+  pattern: vim.api.nvim_feedkeys($$$)

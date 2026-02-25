@@ -70,7 +70,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_true(result.ok)
-    assert.equals('{"title": "Test PR"}', result.data)
+    assert.are.equal('{"title": "Test PR"}', result.data)
   end)
 
   it('calls callback with ok=false on error', function()
@@ -127,12 +127,12 @@ describe('gh.execute', function()
     local _cancel = gh.execute({ 'pr', 'view' }, nil, function() end)
 
     local count_during = tracker.get_count()
-    assert.equals(initial_count + 1, count_during)
+    assert.are.equal(initial_count + 1, count_during)
 
     vim.wait(100)
 
     local count_after = tracker.get_count()
-    assert.equals(initial_count, count_after)
+    assert.are.equal(initial_count, count_after)
   end)
 
   it('retries on HTTP 429 throttled error', function()
@@ -181,7 +181,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_true(result.ok)
-    assert.equals(2, call_count)
+    assert.are.equal(2, call_count)
   end)
 
   it('provides user-friendly error for authentication', function()
@@ -202,7 +202,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Not authenticated', result.error)
+    assert.are.equal('Not authenticated', result.error)
   end)
 
   it('provides user-friendly error for rate limiting', function()
@@ -223,7 +223,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Rate limited by GitHub — try again shortly', result.error)
+    assert.are.equal('Rate limited by GitHub — try again shortly', result.error)
   end)
 
   it('provides user-friendly error for network errors', function()
@@ -244,7 +244,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Network error', result.error)
+    assert.are.equal('Network error', result.error)
   end)
 
   it('extracts first line from multiline stderr', function()
@@ -265,7 +265,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('some specific error', result.error)
+    assert.are.equal('some specific error', result.error)
   end)
 
   it('returns unknown error for empty stderr', function()
@@ -286,7 +286,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Unknown error', result.error)
+    assert.are.equal('Unknown error', result.error)
   end)
 
   it('retries on transient network error', function()
@@ -335,7 +335,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_true(result.ok)
-    assert.equals(2, call_count)
+    assert.are.equal(2, call_count)
   end)
 
   it('does not retry on authentication error', function()
@@ -363,8 +363,8 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Not authenticated', result.error)
-    assert.equals(1, call_count)
+    assert.are.equal('Not authenticated', result.error)
+    assert.are.equal(1, call_count)
   end)
 
   it('stops retrying after max retries exhausted', function()
@@ -405,7 +405,7 @@ describe('gh.execute', function()
 
     assert.is_not_nil(result)
     assert.is_false(result.ok)
-    assert.equals('Network error', result.error)
-    assert.equals(3, call_count)
+    assert.are.equal('Network error', result.error)
+    assert.are.equal(3, call_count)
   end)
 end)

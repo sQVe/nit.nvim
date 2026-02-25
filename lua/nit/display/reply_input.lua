@@ -17,16 +17,20 @@ function M.open(panel_winid)
   end
 
   local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_set_option_value('buftype', 'nofile', { buf = bufnr })
-  vim.api.nvim_set_option_value('filetype', 'markdown', { buf = bufnr })
-  vim.api.nvim_set_option_value('modifiable', true, { buf = bufnr })
-  vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = bufnr })
+  vim.bo[bufnr].buftype = 'nofile'
+  vim.bo[bufnr].filetype = 'markdown'
+  vim.bo[bufnr].modifiable = true
+  vim.bo[bufnr].bufhidden = 'wipe'
 
-  local winid = vim.api.nvim_open_win(bufnr, false, {
+  local ok, winid = pcall(vim.api.nvim_open_win, bufnr, false, {
     split = 'below',
     win = panel_winid,
     height = 5,
   })
+  if not ok then
+    pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    return false
+  end
 
   vim.wo[winid].winfixheight = true
   vim.wo[winid].number = false
@@ -48,10 +52,10 @@ function M.close()
   input_winid = nil
   input_bufnr = nil
   if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
-    vim.api.nvim_win_close(winid, true)
+    pcall(vim.api.nvim_win_close, winid, true)
   end
   if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    vim.api.nvim_buf_delete(bufnr, { force = true })
+    pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
   end
 end
 
@@ -67,7 +71,10 @@ function M.get_text()
   if not M.is_open() or input_bufnr == nil then
     return ''
   end
-  local lines = vim.api.nvim_buf_get_lines(input_bufnr, 0, -1, false)
+  local ok, lines = pcall(vim.api.nvim_buf_get_lines, input_bufnr, 0, -1, false)
+  if not ok then
+    return ''
+  end
   return vim.trim(table.concat(lines, '\n'))
 end
 
@@ -78,7 +85,7 @@ function M.set_text(text)
     return
   end
   local lines = vim.split(text, '\n', { plain = true })
-  vim.api.nvim_buf_set_lines(input_bufnr, 0, -1, false, lines)
+  pcall(vim.api.nvim_buf_set_lines, input_bufnr, 0, -1, false, lines)
 end
 
 ---Clear the input buffer
@@ -86,7 +93,7 @@ function M.clear()
   if not M.is_open() or input_bufnr == nil then
     return
   end
-  vim.api.nvim_buf_set_lines(input_bufnr, 0, -1, false, {})
+  pcall(vim.api.nvim_buf_set_lines, input_bufnr, 0, -1, false, {})
 end
 
 ---Get the input buffer number

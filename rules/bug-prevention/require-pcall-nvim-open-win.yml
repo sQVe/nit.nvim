@@ -1,0 +1,13 @@
+id: require-pcall-nvim-open-win
+language: Lua
+severity: error
+message: >
+  vim.api.nvim_open_win must be wrapped in pcall — it throws on invalid buffers or
+  conflicting window options. Use: local ok, winid = pcall(vim.api.nvim_open_win, buf, enter, config)
+ignores:
+  - "tests/**"
+rule:
+  pattern: vim.api.nvim_open_win($$$)
+  not:
+    inside:
+      pattern: pcall($$$)
