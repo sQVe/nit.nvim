@@ -73,6 +73,7 @@
 ---@field side Nit.Api.CommentSide?
 ---@field start_line Nit.Api.LineNumber?
 ---@field start_side Nit.Api.CommentSide?
+---@field _optimistic_id string? Temporary marker for optimistic updates
 
 ---@class Nit.Api.Thread
 ---@field id Nit.Api.ThreadId

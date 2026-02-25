@@ -1,5 +1,6 @@
 local assert = require('luassert')
 local thread_panel = require('nit.display.thread_panel')
+local data = require('nit.state.data')
 
 describe('thread_panel', function()
   describe('format_thread', function()
@@ -101,6 +102,70 @@ describe('thread_panel', function()
       assert.matches(' @alice', combined, 1, true)
     end)
 
+    describe('viewer header alignment', function()
+      after_each(function()
+        data.clear()
+      end)
+
+      it('right-aligns header when comment author matches viewer login', function()
+        data.set_viewer_login('me')
+        local thread = {
+          comments = {
+            {
+              author = { login = 'me' },
+              body = 'My comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, author_indices = thread_panel.format_thread(thread)
+
+        assert.is_true(author_indices[1])
+        assert.are.equal(60, vim.fn.strdisplaywidth(lines[1]))
+        assert.is_true(
+          #lines[1] - #vim.trim(lines[1]) > 1,
+          'viewer header should have many leading spaces'
+        )
+        assert.are.equal('@', vim.trim(lines[1]):sub(1, 1))
+      end)
+
+      it('left-aligns header when comment author does not match viewer login', function()
+        data.set_viewer_login('me')
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Their comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, _ = thread_panel.format_thread(thread)
+
+        assert.are.equal(' ', lines[1]:sub(1, 1))
+        assert.are.equal('@', lines[1]:sub(2, 2))
+      end)
+
+      it('left-aligns all headers when viewer login is nil', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Comment',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local lines, _ = thread_panel.format_thread(thread)
+
+        assert.are.equal(' ', lines[1]:sub(1, 1))
+        assert.are.equal('@', lines[1]:sub(2, 2))
+      end)
+    end)
+
     it('does not produce separator lines between comments', function()
       local thread = {
         comments = {
@@ -140,7 +205,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread', title)
+      assert.are.equal(' Thread', title)
     end)
 
     it('returns " Thread · Resolved" for resolved single comment', function()
@@ -157,7 +222,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved', title)
+      assert.are.equal(' Thread · Resolved', title)
     end)
 
     it('returns " Thread (1 reply)" for unresolved 2-comment thread', function()
@@ -171,7 +236,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (1 reply)', title)
+      assert.are.equal(' Thread (1 reply)', title)
     end)
 
     it('returns " Thread (2 replies)" for unresolved 3-comment thread', function()
@@ -186,7 +251,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (2 replies)', title)
+      assert.are.equal(' Thread (2 replies)', title)
     end)
 
     it('returns " Thread · Resolved (2 replies)" for resolved multi-comment thread', function()
@@ -201,7 +266,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved (2 replies)', title)
+      assert.are.equal(' Thread · Resolved (2 replies)', title)
     end)
   end)
 
@@ -222,10 +287,10 @@ describe('thread_panel', function()
 
       local hints = thread_panel.get_hints()
 
-      assert.equals(3, #hints)
-      assert.equals('q', hints[1].key)
-      assert.equals('r', hints[2].key)
-      assert.equals('t', hints[3].key)
+      assert.are.equal(3, #hints)
+      assert.are.equal('q', hints[1].key)
+      assert.are.equal('r', hints[2].key)
+      assert.are.equal('t', hints[3].key)
     end)
   end)
 
@@ -236,19 +301,19 @@ describe('thread_panel', function()
         { key = 'q', label = 'Close' },
       })
 
-      assert.equals(1, #thread_panel.get_hints())
+      assert.are.equal(1, #thread_panel.get_hints())
 
       thread_panel.clear_hints()
 
-      assert.equals(0, #thread_panel.get_hints())
+      assert.are.equal(0, #thread_panel.get_hints())
 
       thread_panel.register_hints({
         { key = 'x', label = 'New' },
       })
 
       local hints = thread_panel.get_hints()
-      assert.equals(1, #hints)
-      assert.equals('x', hints[1].key)
+      assert.are.equal(1, #hints)
+      assert.are.equal('x', hints[1].key)
     end)
   end)
 
@@ -302,9 +367,9 @@ describe('thread_panel', function()
       local hints = thread_panel.get_hints()
 
       assert.is_table(hints)
-      assert.equals(1, #hints)
-      assert.equals('q', hints[1].key)
-      assert.equals('Close', hints[1].label)
+      assert.are.equal(1, #hints)
+      assert.are.equal('q', hints[1].key)
+      assert.are.equal('Close', hints[1].label)
     end)
 
     it('default hints include ? Help entry', function()
@@ -320,6 +385,36 @@ describe('thread_panel', function()
         end
       end
       assert.is_true(has_help)
+    end)
+
+    it('default hints include C-s Submit entry', function()
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local found = false
+      for _, hint in ipairs(hints) do
+        if hint.key == 'C-s' and hint.label == 'Submit reply' then
+          found = true
+        end
+      end
+      assert.is_true(found)
+    end)
+
+    it('default hints include C-a Actions entry', function()
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local found = false
+      for _, hint in ipairs(hints) do
+        if hint.key == 'C-a' and hint.label == 'Actions' then
+          found = true
+        end
+      end
+      assert.is_true(found)
     end)
   end)
 
@@ -356,8 +451,8 @@ describe('thread_panel', function()
         local result = thread_panel.get_line_highlights(lines, author_indices)
 
         assert.not_nil(result[5])
-        assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
-        assert.equals('NitThreadAuthor', result[5].hl_group)
+        assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
+        assert.are.equal('NitThreadAuthor', result[5].hl_group)
 
         assert.is_nil(result[6])
         assert.is_nil(result[7])
@@ -386,7 +481,7 @@ describe('thread_panel', function()
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
       assert.not_nil(result[5])
-      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+      assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
 
       if result[9] then
         assert.not_equals('NitThreadCommentAlt', result[9].line_hl_group)
@@ -406,8 +501,8 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[5])
-      assert.equals('NitThreadAuthor', result[5].hl_group)
-      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+      assert.are.equal('NitThreadAuthor', result[5].hl_group)
+      assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
     end)
 
     it('author line in odd comment uses NitThreadComment for line_hl_group', function()
@@ -421,8 +516,30 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[1])
-      assert.equals('NitThreadAuthor', result[1].hl_group)
-      assert.equals('NitThreadComment', result[1].line_hl_group)
+      assert.are.equal('NitThreadAuthor', result[1].hl_group)
+      assert.are.equal('NitThreadComment', result[1].line_hl_group)
+    end)
+
+    it('returns text_col matching leading whitespace count for right-aligned header', function()
+      local padding = string.rep(' ', 42)
+      local right_line = padding .. '@alice - 1 hour ago'
+      local lines = { right_line }
+      local author_indices = { [1] = true }
+
+      local result = thread_panel.get_line_highlights(lines, author_indices)
+
+      assert.not_nil(result[1])
+      assert.are.equal(42, result[1].text_col)
+    end)
+
+    it('returns text_col of 1 for left-aligned header', function()
+      local lines = { ' @alice - 1 hour ago' }
+      local author_indices = { [1] = true }
+
+      local result = thread_panel.get_line_highlights(lines, author_indices)
+
+      assert.not_nil(result[1])
+      assert.are.equal(1, result[1].text_col)
     end)
 
     it('separator blank before even comment gets no alt (belongs to odd comment)', function()
@@ -452,7 +569,7 @@ describe('thread_panel', function()
 
       local hl = thread_panel.get_title_highlight(thread)
 
-      assert.equals('NitThreadTitle', hl)
+      assert.are.equal('NitThreadTitle', hl)
     end)
 
     it('returns NitThreadTitleResolved for resolved thread', function()
@@ -463,7 +580,256 @@ describe('thread_panel', function()
 
       local hl = thread_panel.get_title_highlight(thread)
 
-      assert.equals('NitThreadTitleResolved', hl)
+      assert.are.equal('NitThreadTitleResolved', hl)
+    end)
+  end)
+
+  describe('window lifecycle', function()
+    local orig_observers, orig_data, orig_orchestration
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+    end)
+
+    after_each(function()
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    it('closing panel window externally also closes reply input', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+      assert.is_true(tp.is_open())
+
+      local panel_winid = tp.get_winid()
+      assert.is_not_nil(panel_winid)
+
+      vim.api.nvim_win_close(panel_winid, true)
+
+      vim.wait(100, function()
+        return not tp.is_open()
+      end)
+
+      assert.is_false(tp.is_open())
+      assert.is_false(ri.is_open())
+
+      tp.close()
+    end)
+
+    it('closing reply input window externally also closes panel', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+      assert.is_true(tp.is_open())
+      assert.is_true(ri.is_open())
+
+      local reply_winid = ri.get_winid()
+      assert.is_not_nil(reply_winid)
+
+      vim.api.nvim_win_close(reply_winid, true)
+
+      vim.wait(100, function()
+        return not tp.is_open()
+      end)
+
+      assert.is_false(tp.is_open())
+      assert.is_false(ri.is_open())
+
+      tp.close()
+    end)
+
+    it('calling M.close() twice does not error', function()
+      local tp = require('nit.display.thread_panel')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      assert.has_no.errors(function()
+        tp.close()
+        tp.close()
+      end)
+    end)
+  end)
+
+  describe('window equalization', function()
+    local orig_observers, orig_data, orig_orchestration
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+    end)
+
+    after_each(function()
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    it('panel width is 60 after mount', function()
+      local tp = require('nit.display.thread_panel')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local panel_winid = tp.get_winid()
+      assert.is_not_nil(panel_winid)
+      assert.are.equal(60, vim.api.nvim_win_get_width(panel_winid))
+
+      tp.close()
+    end)
+
+    it('other windows are equalized after panel mounts in multi-window layout', function()
+      local tp = require('nit.display.thread_panel')
+
+      vim.cmd('vsplit')
+      vim.cmd('vsplit')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local ri = require('nit.display.reply_input')
+      local panel_winid = tp.get_winid()
+      local reply_winid = ri.get_winid()
+      local all_wins = vim.api.nvim_list_wins()
+      local non_panel_wins = vim.tbl_filter(function(w)
+        return w ~= panel_winid
+          and w ~= reply_winid
+          and vim.api.nvim_win_is_valid(w)
+          and vim.api.nvim_win_get_config(w).relative == ''
+      end, all_wins)
+
+      if #non_panel_wins >= 2 then
+        local widths = vim.tbl_map(vim.api.nvim_win_get_width, non_panel_wins)
+        local min_w = math.min(unpack(widths))
+        local max_w = math.max(unpack(widths))
+        assert.is_true(max_w - min_w <= 2, 'non-panel windows should be equalized')
+      end
+
+      tp.close()
+      pcall(vim.cmd, 'only')
+    end)
+
+    it('windows are re-equalized after panel closes', function()
+      local tp = require('nit.display.thread_panel')
+
+      vim.cmd('vsplit')
+
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp.close()
+      vim.wait(20)
+
+      local all_wins = vim.api.nvim_list_wins()
+      local normal_wins = vim.tbl_filter(function(w)
+        return vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w).relative == ''
+      end, all_wins)
+
+      if #normal_wins >= 2 then
+        local widths = vim.tbl_map(vim.api.nvim_win_get_width, normal_wins)
+        local min_w = math.min(unpack(widths))
+        local max_w = math.max(unpack(widths))
+        assert.is_true(max_w - min_w <= 2, 'windows should equalize after close')
+      end
+
+      pcall(vim.cmd, 'only')
     end)
   end)
 end)

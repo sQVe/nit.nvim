@@ -24,6 +24,9 @@ local loading = false
 ---@type string?
 local error_msg = nil
 
+---@type string?
+local viewer_login = nil
+
 ---Set PR data
 ---@param data Nit.Api.PR?
 function M.set_pr(data)
@@ -152,6 +155,18 @@ function M.get_comments()
   return comments
 end
 
+---Set viewer GitHub login
+---@param login string?
+function M.set_viewer_login(login)
+  viewer_login = login
+end
+
+---Get viewer GitHub login
+---@return string?
+function M.get_viewer_login()
+  return viewer_login
+end
+
 ---Set loading state
 ---@param value boolean
 function M.set_loading(value)
@@ -182,17 +197,18 @@ end
 function M.clear()
   comments = {}
   error_msg = nil
+  viewer_login = nil
   files_by_path = {}
   loading = false
+  pr = nil
+  threads_by_file = {}
+  threads_by_id = {}
   observers.notify('comments')
   observers.notify('error')
   observers.notify('files')
   observers.notify('loading')
   observers.notify('pr')
   observers.notify('pr_comments')
-  pr = nil
-  threads_by_file = {}
-  threads_by_id = {}
 end
 
 return M

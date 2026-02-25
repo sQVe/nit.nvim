@@ -6,6 +6,7 @@ local files_api = require('nit.api.files')
 local comments_api = require('nit.api.comments')
 local parallel_api = require('nit.api.parallel')
 local tracker = require('nit.api.tracker')
+local viewer_api = require('nit.api.viewer')
 local data = require('nit.state.data')
 
 ---@type fun()?
@@ -32,6 +33,7 @@ function M.load(opts)
 
   local cancel_pr = nil
   local cancel_rest = nil
+  local cancel_viewer = nil
 
   cancel_load = function()
     if cancel_pr then
@@ -40,7 +42,19 @@ function M.load(opts)
     if cancel_rest then
       cancel_rest()
     end
+    if cancel_viewer ~= nil then
+      cancel_viewer()
+    end
   end
+
+  cancel_viewer = viewer_api.fetch_viewer(opts, function(viewer_result)
+    if active_load_id ~= load_id then
+      return
+    end
+    if viewer_result.ok then
+      data.set_viewer_login(viewer_result.data)
+    end
+  end)
 
   cancel_pr = pr_api.fetch_pr(opts, function(pr_result)
     if active_load_id ~= load_id then

@@ -8,6 +8,7 @@ describe('nit.controller', function()
     package.loaded['nit.api.comments'] = nil
     package.loaded['nit.api.parallel'] = nil
     package.loaded['nit.api.tracker'] = nil
+    package.loaded['nit.api.viewer'] = nil
     package.loaded['nit.state.data'] = nil
 
     package.loaded['nit.api.pr'] = {
@@ -35,6 +36,13 @@ describe('nit.controller', function()
       cancel_all = function() end,
     }
 
+    package.loaded['nit.api.viewer'] = {
+      fetch_viewer = function(_opts, callback)
+        callback({ ok = true, data = 'octocat' })
+        return function() end
+      end,
+    }
+
     package.loaded['nit.state.data'] = {
       set_loading = function() end,
       set_error = function() end,
@@ -42,6 +50,7 @@ describe('nit.controller', function()
       set_comments = function() end,
       set_files = function() end,
       set_threads = function() end,
+      set_viewer_login = function() end,
       clear = function() end,
     }
 
@@ -55,6 +64,7 @@ describe('nit.controller', function()
     package.loaded['nit.api.comments'] = nil
     package.loaded['nit.api.parallel'] = nil
     package.loaded['nit.api.tracker'] = nil
+    package.loaded['nit.api.viewer'] = nil
     package.loaded['nit.state.data'] = nil
   end)
 
@@ -69,7 +79,7 @@ describe('nit.controller', function()
 
       controller.load()
 
-      assert.equals(true, loading_calls[1])
+      assert.are.equal(true, loading_calls[1])
     end)
 
     it('fetches PR first then files+comments in parallel', function()
@@ -96,9 +106,9 @@ describe('nit.controller', function()
 
       assert.is_true(fetch_pr_called)
       assert.is_not_nil(parallel_ops)
-      assert.equals(2, #parallel_ops)
-      assert.equals(files_api.fetch_files, parallel_ops[1].fn)
-      assert.equals(comments_api.fetch_comments, parallel_ops[2].fn)
+      assert.are.equal(2, #parallel_ops)
+      assert.are.equal(files_api.fetch_files, parallel_ops[1].fn)
+      assert.are.equal(comments_api.fetch_comments, parallel_ops[2].fn)
     end)
 
     it('passes PR number to files and comments', function()
@@ -118,8 +128,8 @@ describe('nit.controller', function()
 
       controller.load()
 
-      assert.equals(99, parallel_ops[1].args.number)
-      assert.equals(99, parallel_ops[2].args.number)
+      assert.are.equal(99, parallel_ops[1].args.number)
+      assert.are.equal(99, parallel_ops[2].args.number)
     end)
 
     it('on all success: populates state and sets loading=false', function()
@@ -218,7 +228,7 @@ describe('nit.controller', function()
       controller.load()
 
       assert.is_false(parallel_called, 'should not fetch files/comments when PR fails')
-      assert.equals('PR failed', error_msg)
+      assert.are.equal('PR failed', error_msg)
       assert.is_true(loading_false)
     end)
 
@@ -306,7 +316,7 @@ describe('nit.controller', function()
       controller.load()
       controller.load()
 
-      assert.equals(1, first_pr_cancel, 'first PR fetch should be cancelled')
+      assert.are.equal(1, first_pr_cancel, 'first PR fetch should be cancelled')
     end)
 
     it('ignores stale callback from superseded load', function()
@@ -328,13 +338,13 @@ describe('nit.controller', function()
       controller.load()
       controller.load()
 
-      assert.equals(2, #pr_callbacks)
+      assert.are.equal(2, #pr_callbacks)
 
       pr_callbacks[1]({ ok = true, data = { number = 1 } })
-      assert.equals(0, set_pr_count, 'stale callback should be ignored')
+      assert.are.equal(0, set_pr_count, 'stale callback should be ignored')
 
       pr_callbacks[2]({ ok = true, data = { number = 2 } })
-      assert.equals(1, set_pr_count, 'active callback should populate state')
+      assert.are.equal(1, set_pr_count, 'active callback should populate state')
     end)
 
     it('clears error on new load attempt', function()
@@ -348,6 +358,44 @@ describe('nit.controller', function()
       controller.load()
 
       assert.is_nil(set_error_value, 'error should be cleared (set to nil)')
+    end)
+
+    it('fetches viewer login and stores it in state', function()
+      local viewer_api = require('nit.api.viewer')
+      local data = require('nit.state.data')
+
+      local viewer_login_stored = nil
+      viewer_api.fetch_viewer = function(_opts, callback)
+        callback({ ok = true, data = 'octocat' })
+        return function() end
+      end
+      data.set_viewer_login = function(login)
+        viewer_login_stored = login
+      end
+
+      controller.load()
+
+      assert.are.equal('octocat', viewer_login_stored)
+    end)
+
+    it('silently degrades when viewer fetch fails', function()
+      local viewer_api = require('nit.api.viewer')
+      local data = require('nit.state.data')
+
+      local error_set = false
+      viewer_api.fetch_viewer = function(_opts, callback)
+        callback({ ok = false, error = 'Not authenticated' })
+        return function() end
+      end
+      data.set_error = function(msg)
+        if msg ~= nil then
+          error_set = true
+        end
+      end
+
+      controller.load()
+
+      assert.is_false(error_set, 'viewer failure should not set error state')
     end)
   end)
 
@@ -365,7 +413,7 @@ describe('nit.controller', function()
       controller.load()
       controller.cleanup()
 
-      assert.equals(1, pr_cancel_count)
+      assert.are.equal(1, pr_cancel_count)
     end)
 
     it('calls tracker.cancel_all', function()
@@ -392,6 +440,22 @@ describe('nit.controller', function()
       controller.cleanup()
 
       assert.is_true(clear_called)
+    end)
+
+    it('cancels in-flight viewer fetch', function()
+      local viewer_api = require('nit.api.viewer')
+
+      local viewer_cancel_count = 0
+      viewer_api.fetch_viewer = function()
+        return function()
+          viewer_cancel_count = viewer_cancel_count + 1
+        end
+      end
+
+      controller.load()
+      controller.cleanup()
+
+      assert.are.equal(1, viewer_cancel_count)
     end)
   end)
 
