@@ -200,15 +200,15 @@ function M.clear()
   viewer_login = nil
   files_by_path = {}
   loading = false
+  pr = nil
+  threads_by_file = {}
+  threads_by_id = {}
   observers.notify('comments')
   observers.notify('error')
   observers.notify('files')
   observers.notify('loading')
   observers.notify('pr')
   observers.notify('pr_comments')
-  pr = nil
-  threads_by_file = {}
-  threads_by_id = {}
 end
 
 return M

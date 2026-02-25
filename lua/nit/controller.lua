@@ -48,6 +48,9 @@ function M.load(opts)
   end
 
   cancel_viewer = viewer_api.fetch_viewer(opts, function(viewer_result)
+    if active_load_id ~= load_id then
+      return
+    end
     if viewer_result.ok then
       data.set_viewer_login(viewer_result.data)
     end

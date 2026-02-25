@@ -43,14 +43,16 @@ end
 
 ---Close the input window and wipe the buffer
 function M.close()
-  if input_winid ~= nil and vim.api.nvim_win_is_valid(input_winid) then
-    vim.api.nvim_win_close(input_winid, true)
-  end
-  if input_bufnr ~= nil and vim.api.nvim_buf_is_valid(input_bufnr) then
-    vim.api.nvim_buf_delete(input_bufnr, { force = true })
-  end
+  local winid = input_winid
+  local bufnr = input_bufnr
   input_winid = nil
   input_bufnr = nil
+  if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
+    vim.api.nvim_win_close(winid, true)
+  end
+  if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
 end
 
 ---Check if input window is open and valid

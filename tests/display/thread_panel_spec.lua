@@ -122,7 +122,7 @@ describe('thread_panel', function()
         local lines, author_indices = thread_panel.format_thread(thread)
 
         assert.is_true(author_indices[1])
-        assert.equals(60, #lines[1])
+        assert.equals(60, vim.fn.strdisplaywidth(lines[1]))
         assert.is_true(
           #lines[1] - #vim.trim(lines[1]) > 1,
           'viewer header should have many leading spaces'

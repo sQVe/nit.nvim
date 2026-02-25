@@ -49,7 +49,7 @@ local function equalize_windows()
     return
   end
 
-  local separators = #other_wins - 1 + (panel_winid and 1 or 0)
+  local separators = #other_wins - 1 + (panel_winid and 1 or 0) + (reply_winid and 1 or 0)
   local panel_width = panel_winid and PANEL_WIDTH or 0
   local available = vim.o.columns - panel_width - separators
   local each = math.floor(available / #other_wins)
@@ -81,10 +81,11 @@ local function format_relative_time(iso_timestamp)
     sec = assert(tonumber(sec)),
   })
 
-  local utc_table = os.date('!*t', parsed_as_local)
+  local now = os.time()
+  local utc_table = os.date('!*t', now)
   assert(type(utc_table) == 'table', 'os.date failed to return table')
-  local utc_offset = parsed_as_local - os.time(utc_table)
-  local parsed_utc = parsed_as_local + utc_offset
+  local utc_offset = now - os.time(utc_table)
+  local parsed_utc = parsed_as_local - utc_offset
 
   local diff = os.difftime(os.time(), parsed_utc)
 
@@ -124,7 +125,7 @@ function M.format_thread(thread)
 
     if viewer_login ~= nil and comment.author.login == viewer_login then
       local trimmed = vim.trim(author_line)
-      local padding = PANEL_WIDTH - #trimmed
+      local padding = PANEL_WIDTH - vim.fn.strdisplaywidth(trimmed)
       if padding > 0 then
         author_line = string.rep(' ', padding) .. trimmed
       end
@@ -267,6 +268,11 @@ function M.show(thread)
     if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
       M.update(thread)
       return
+    end
+    pcall(vim.api.nvim_clear_autocmds, { group = augroup })
+    if unsubscribe_comments then
+      unsubscribe_comments()
+      unsubscribe_comments = nil
     end
     active_panel:unmount()
     active_panel = nil

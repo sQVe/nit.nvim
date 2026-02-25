@@ -79,6 +79,8 @@ end
 ---@return boolean
 function M.is_open()
   return active_popup ~= nil
+    and active_popup.winid ~= nil
+    and vim.api.nvim_win_is_valid(active_popup.winid)
 end
 
 return M

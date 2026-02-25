@@ -10,6 +10,7 @@ local queue = require('nit.orchestration.queue')
 ---@type table<integer, fun()>
 local cancel_fns = {}
 local cancel_counter = 0
+local optimistic_counter = 0
 
 ---Track a cancel function and return its key
 ---@param cancel fun()
@@ -42,8 +43,11 @@ function M.submit_reply(opts, callback)
   local snap = snapshot.capture(thread_id)
   local submitted_body = opts.body
 
+  optimistic_counter = optimistic_counter + 1
+  local optimistic_id = 'optimistic_' .. optimistic_counter
   local optimistic_comment = {
     id = 0,
+    _optimistic_id = optimistic_id,
     author = { login = data.get_viewer_login() or 'you' },
     body = submitted_body,
     createdAt = os.date('!%Y-%m-%dT%H:%M:%SZ'),
@@ -77,7 +81,7 @@ function M.submit_reply(opts, callback)
           if current_thread then
             local updated = vim.deepcopy(current_thread)
             for i, comment in ipairs(updated.comments) do
-              if comment.id == 0 and comment.body == submitted_body then
+              if comment._optimistic_id == optimistic_id then
                 updated.comments[i] = result.data
                 break
               end
@@ -164,6 +168,7 @@ function M.cleanup()
   end
   cancel_fns = {}
   cancel_counter = 0
+  optimistic_counter = 0
   versioning.reset()
   queue.reset()
 end
