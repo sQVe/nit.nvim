@@ -1,0 +1,8 @@
+id: no-nvim-get-vvar
+language: Lua
+severity: error
+message: >
+  Use vim.v.<name> instead of vim.api.nvim_get_vvar() — vim.v is the idiomatic accessor.
+  Change: vim.api.nvim_get_vvar('shell_error')  ->  vim.v.shell_error
+rule:
+  pattern: vim.api.nvim_get_vvar($$$)

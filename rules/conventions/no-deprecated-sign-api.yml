@@ -1,0 +1,12 @@
+id: no-deprecated-sign-api
+language: Lua
+severity: error
+message: >
+  vim.fn.sign_* functions are deprecated in Neovim 0.10+. Use vim.fn.sign_define/place/unplace
+  replacements: vim.api.nvim_buf_set_extmark with sign_text/sign_hl_group, or use the
+  vim.diagnostic / vim.fn.sign_* successor APIs.
+rule:
+  any:
+    - pattern: vim.fn.sign_define($$$)
+    - pattern: vim.fn.sign_place($$$)
+    - pattern: vim.fn.sign_unplace($$$)

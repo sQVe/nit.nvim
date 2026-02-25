@@ -1,0 +1,11 @@
+id: no-shorthand-assert-equals
+language: Lua
+severity: error
+message: >
+  Use assert.are.equal() not assert.equals() — full form per luassert convention.
+  Change: assert.equals(expected, actual)  →  assert.are.equal(expected, actual)
+ignores:
+  - "lua/**"
+  - "plugin/**"
+rule:
+  pattern: assert.equals($$$)

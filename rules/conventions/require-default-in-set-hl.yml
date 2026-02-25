@@ -1,0 +1,12 @@
+id: require-default-in-set-hl
+language: Lua
+severity: error
+message: >
+  nvim_set_hl() must include default = true to allow user colorscheme overrides.
+  Change: vim.api.nvim_set_hl(0, 'Group', { fg = '#...' })
+      ->  vim.api.nvim_set_hl(0, 'Group', { fg = '#...', default = true })
+rule:
+  all:
+    - pattern: vim.api.nvim_set_hl($$$)
+    - not:
+        regex: 'default\s*='

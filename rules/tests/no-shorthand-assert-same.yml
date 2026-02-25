@@ -1,0 +1,11 @@
+id: no-shorthand-assert-same
+language: Lua
+severity: error
+message: >
+  Use assert.are.same() not assert.same() — full form per luassert convention.
+  Change: assert.same(expected, actual)  →  assert.are.same(expected, actual)
+ignores:
+  - "lua/**"
+  - "plugin/**"
+rule:
+  pattern: assert.same($$$)

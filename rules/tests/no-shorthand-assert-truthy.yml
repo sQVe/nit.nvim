@@ -1,0 +1,11 @@
+id: no-shorthand-assert-truthy
+language: Lua
+severity: error
+message: >
+  Use assert.is_truthy() not assert.truthy() — full form per luassert convention.
+  Change: assert.truthy(val)  →  assert.is_truthy(val)
+ignores:
+  - "lua/**"
+  - "plugin/**"
+rule:
+  pattern: assert.truthy($$$)
