@@ -9,6 +9,7 @@ ignores:
 rule:
   all:
     - any:
+        - pattern: vim.api.nvim_win_get_cursor($$$)
         - pattern: vim.api.nvim_win_set_cursor($$$)
         - pattern: vim.api.nvim_win_close($$$)
         - pattern: vim.api.nvim_win_get_config($$$)
