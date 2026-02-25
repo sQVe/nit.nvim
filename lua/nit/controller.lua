@@ -42,7 +42,7 @@ function M.load(opts)
     if cancel_rest then
       cancel_rest()
     end
-    if cancel_viewer then
+    if cancel_viewer ~= nil then
       cancel_viewer()
     end
   end

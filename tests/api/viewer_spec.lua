@@ -44,7 +44,7 @@ describe('nit.api.viewer', function()
       end)
 
       assert.is_true(result.ok)
-      assert.equals('octocat', result.data)
+      assert.are.equal('octocat', result.data)
     end)
 
     it('returns error result when response is empty', function()
@@ -74,7 +74,7 @@ describe('nit.api.viewer', function()
       end)
 
       assert.is_false(result.ok)
-      assert.equals('Not authenticated', result.error)
+      assert.are.equal('Not authenticated', result.error)
     end)
   end)
 end)

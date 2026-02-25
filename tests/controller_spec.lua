@@ -79,7 +79,7 @@ describe('nit.controller', function()
 
       controller.load()
 
-      assert.equals(true, loading_calls[1])
+      assert.are.equal(true, loading_calls[1])
     end)
 
     it('fetches PR first then files+comments in parallel', function()
@@ -106,9 +106,9 @@ describe('nit.controller', function()
 
       assert.is_true(fetch_pr_called)
       assert.is_not_nil(parallel_ops)
-      assert.equals(2, #parallel_ops)
-      assert.equals(files_api.fetch_files, parallel_ops[1].fn)
-      assert.equals(comments_api.fetch_comments, parallel_ops[2].fn)
+      assert.are.equal(2, #parallel_ops)
+      assert.are.equal(files_api.fetch_files, parallel_ops[1].fn)
+      assert.are.equal(comments_api.fetch_comments, parallel_ops[2].fn)
     end)
 
     it('passes PR number to files and comments', function()
@@ -128,8 +128,8 @@ describe('nit.controller', function()
 
       controller.load()
 
-      assert.equals(99, parallel_ops[1].args.number)
-      assert.equals(99, parallel_ops[2].args.number)
+      assert.are.equal(99, parallel_ops[1].args.number)
+      assert.are.equal(99, parallel_ops[2].args.number)
     end)
 
     it('on all success: populates state and sets loading=false', function()
@@ -228,7 +228,7 @@ describe('nit.controller', function()
       controller.load()
 
       assert.is_false(parallel_called, 'should not fetch files/comments when PR fails')
-      assert.equals('PR failed', error_msg)
+      assert.are.equal('PR failed', error_msg)
       assert.is_true(loading_false)
     end)
 
@@ -316,7 +316,7 @@ describe('nit.controller', function()
       controller.load()
       controller.load()
 
-      assert.equals(1, first_pr_cancel, 'first PR fetch should be cancelled')
+      assert.are.equal(1, first_pr_cancel, 'first PR fetch should be cancelled')
     end)
 
     it('ignores stale callback from superseded load', function()
@@ -338,13 +338,13 @@ describe('nit.controller', function()
       controller.load()
       controller.load()
 
-      assert.equals(2, #pr_callbacks)
+      assert.are.equal(2, #pr_callbacks)
 
       pr_callbacks[1]({ ok = true, data = { number = 1 } })
-      assert.equals(0, set_pr_count, 'stale callback should be ignored')
+      assert.are.equal(0, set_pr_count, 'stale callback should be ignored')
 
       pr_callbacks[2]({ ok = true, data = { number = 2 } })
-      assert.equals(1, set_pr_count, 'active callback should populate state')
+      assert.are.equal(1, set_pr_count, 'active callback should populate state')
     end)
 
     it('clears error on new load attempt', function()
@@ -375,7 +375,7 @@ describe('nit.controller', function()
 
       controller.load()
 
-      assert.equals('octocat', viewer_login_stored)
+      assert.are.equal('octocat', viewer_login_stored)
     end)
 
     it('silently degrades when viewer fetch fails', function()
@@ -413,7 +413,7 @@ describe('nit.controller', function()
       controller.load()
       controller.cleanup()
 
-      assert.equals(1, pr_cancel_count)
+      assert.are.equal(1, pr_cancel_count)
     end)
 
     it('calls tracker.cancel_all', function()
@@ -455,7 +455,7 @@ describe('nit.controller', function()
       controller.load()
       controller.cleanup()
 
-      assert.equals(1, viewer_cancel_count)
+      assert.are.equal(1, viewer_cancel_count)
     end)
   end)
 

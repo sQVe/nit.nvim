@@ -35,7 +35,7 @@ local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
 ---Equalize non-panel windows while preserving panel width
 local function equalize_windows()
-  local panel_winid = active_panel and active_panel.winid
+  local panel_winid = active_panel ~= nil and active_panel.winid or nil
   local reply_winid = reply_input.get_winid()
 
   local other_wins = vim.tbl_filter(function(w)
@@ -49,8 +49,8 @@ local function equalize_windows()
     return
   end
 
-  local separators = #other_wins - 1 + (panel_winid and 1 or 0) + (reply_winid and 1 or 0)
-  local panel_width = panel_winid and PANEL_WIDTH or 0
+  local separators = #other_wins - 1 + (panel_winid ~= nil and 1 or 0) + (reply_winid ~= nil and 1 or 0)
+  local panel_width = panel_winid ~= nil and PANEL_WIDTH or 0
   local available = vim.o.columns - panel_width - separators
   local each = math.floor(available / #other_wins)
 
@@ -58,7 +58,7 @@ local function equalize_windows()
     vim.api.nvim_win_set_width(w, each)
   end
 
-  if panel_winid and vim.api.nvim_win_is_valid(panel_winid) then
+  if panel_winid ~= nil and vim.api.nvim_win_is_valid(panel_winid) then
     vim.api.nvim_win_set_width(panel_winid, PANEL_WIDTH)
   end
 end
@@ -227,7 +227,7 @@ local function submit_reply()
   orchestration.submit_reply(
     { thread_id = current_thread.id, body = body },
     function(ok, returned_body)
-      if not ok and returned_body then
+      if not ok and returned_body ~= nil then
         reply_input.set_text(returned_body)
       end
     end
@@ -256,7 +256,7 @@ local function on_comments_changed()
     return
   end
   local updated = data.get_thread(current_thread.id)
-  if updated then
+  if updated ~= nil then
     M.update(updated)
   end
 end
@@ -270,7 +270,7 @@ function M.show(thread)
       return
     end
     pcall(vim.api.nvim_clear_autocmds, { group = augroup })
-    if unsubscribe_comments then
+    if unsubscribe_comments ~= nil then
       unsubscribe_comments()
       unsubscribe_comments = nil
     end
@@ -333,7 +333,7 @@ function M.show(thread)
   active_panel = panel
   M.update(thread)
 
-  if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+  if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
     reply_input.open(active_panel.winid)
 
     reply_input.map({ 'n', 'i' }, '<C-s>', function()
@@ -365,7 +365,7 @@ function M.show(thread)
       end,
     })
     local reply_winid = reply_input.get_winid()
-    if reply_winid then
+    if reply_winid ~= nil then
       vim.api.nvim_create_autocmd('WinClosed', {
         group = augroup,
         pattern = tostring(reply_winid),
@@ -455,7 +455,7 @@ function M.close()
 
   pcall(vim.api.nvim_clear_autocmds, { group = augroup })
 
-  if unsubscribe_comments then
+  if unsubscribe_comments ~= nil then
     unsubscribe_comments()
     unsubscribe_comments = nil
   end

@@ -1,7 +1,7 @@
 local assert = require('luassert')
 local thread_menu = require('nit.display.thread_menu')
 
-describe('thread_menu', function()
+describe('nit.display.thread_menu', function()
   describe('is_open', function()
     it('returns false when not open', function()
       assert.is_false(thread_menu.is_open())

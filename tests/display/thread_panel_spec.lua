@@ -122,12 +122,12 @@ describe('thread_panel', function()
         local lines, author_indices = thread_panel.format_thread(thread)
 
         assert.is_true(author_indices[1])
-        assert.equals(60, vim.fn.strdisplaywidth(lines[1]))
+        assert.are.equal(60, vim.fn.strdisplaywidth(lines[1]))
         assert.is_true(
           #lines[1] - #vim.trim(lines[1]) > 1,
           'viewer header should have many leading spaces'
         )
-        assert.equals('@', vim.trim(lines[1]):sub(1, 1))
+        assert.are.equal('@', vim.trim(lines[1]):sub(1, 1))
       end)
 
       it('left-aligns header when comment author does not match viewer login', function()
@@ -144,8 +144,8 @@ describe('thread_panel', function()
 
         local lines, _ = thread_panel.format_thread(thread)
 
-        assert.equals(' ', lines[1]:sub(1, 1))
-        assert.equals('@', lines[1]:sub(2, 2))
+        assert.are.equal(' ', lines[1]:sub(1, 1))
+        assert.are.equal('@', lines[1]:sub(2, 2))
       end)
 
       it('left-aligns all headers when viewer login is nil', function()
@@ -161,8 +161,8 @@ describe('thread_panel', function()
 
         local lines, _ = thread_panel.format_thread(thread)
 
-        assert.equals(' ', lines[1]:sub(1, 1))
-        assert.equals('@', lines[1]:sub(2, 2))
+        assert.are.equal(' ', lines[1]:sub(1, 1))
+        assert.are.equal('@', lines[1]:sub(2, 2))
       end)
     end)
 
@@ -205,7 +205,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread', title)
+      assert.are.equal(' Thread', title)
     end)
 
     it('returns " Thread · Resolved" for resolved single comment', function()
@@ -222,7 +222,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved', title)
+      assert.are.equal(' Thread · Resolved', title)
     end)
 
     it('returns " Thread (1 reply)" for unresolved 2-comment thread', function()
@@ -236,7 +236,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (1 reply)', title)
+      assert.are.equal(' Thread (1 reply)', title)
     end)
 
     it('returns " Thread (2 replies)" for unresolved 3-comment thread', function()
@@ -251,7 +251,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread (2 replies)', title)
+      assert.are.equal(' Thread (2 replies)', title)
     end)
 
     it('returns " Thread · Resolved (2 replies)" for resolved multi-comment thread', function()
@@ -266,7 +266,7 @@ describe('thread_panel', function()
 
       local title = thread_panel.format_title(thread)
 
-      assert.equals(' Thread · Resolved (2 replies)', title)
+      assert.are.equal(' Thread · Resolved (2 replies)', title)
     end)
   end)
 
@@ -287,10 +287,10 @@ describe('thread_panel', function()
 
       local hints = thread_panel.get_hints()
 
-      assert.equals(3, #hints)
-      assert.equals('q', hints[1].key)
-      assert.equals('r', hints[2].key)
-      assert.equals('t', hints[3].key)
+      assert.are.equal(3, #hints)
+      assert.are.equal('q', hints[1].key)
+      assert.are.equal('r', hints[2].key)
+      assert.are.equal('t', hints[3].key)
     end)
   end)
 
@@ -301,19 +301,19 @@ describe('thread_panel', function()
         { key = 'q', label = 'Close' },
       })
 
-      assert.equals(1, #thread_panel.get_hints())
+      assert.are.equal(1, #thread_panel.get_hints())
 
       thread_panel.clear_hints()
 
-      assert.equals(0, #thread_panel.get_hints())
+      assert.are.equal(0, #thread_panel.get_hints())
 
       thread_panel.register_hints({
         { key = 'x', label = 'New' },
       })
 
       local hints = thread_panel.get_hints()
-      assert.equals(1, #hints)
-      assert.equals('x', hints[1].key)
+      assert.are.equal(1, #hints)
+      assert.are.equal('x', hints[1].key)
     end)
   end)
 
@@ -367,9 +367,9 @@ describe('thread_panel', function()
       local hints = thread_panel.get_hints()
 
       assert.is_table(hints)
-      assert.equals(1, #hints)
-      assert.equals('q', hints[1].key)
-      assert.equals('Close', hints[1].label)
+      assert.are.equal(1, #hints)
+      assert.are.equal('q', hints[1].key)
+      assert.are.equal('Close', hints[1].label)
     end)
 
     it('default hints include ? Help entry', function()
@@ -451,8 +451,8 @@ describe('thread_panel', function()
         local result = thread_panel.get_line_highlights(lines, author_indices)
 
         assert.not_nil(result[5])
-        assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
-        assert.equals('NitThreadAuthor', result[5].hl_group)
+        assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
+        assert.are.equal('NitThreadAuthor', result[5].hl_group)
 
         assert.is_nil(result[6])
         assert.is_nil(result[7])
@@ -481,7 +481,7 @@ describe('thread_panel', function()
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
       assert.not_nil(result[5])
-      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+      assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
 
       if result[9] then
         assert.not_equals('NitThreadCommentAlt', result[9].line_hl_group)
@@ -501,8 +501,8 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[5])
-      assert.equals('NitThreadAuthor', result[5].hl_group)
-      assert.equals('NitThreadCommentAlt', result[5].line_hl_group)
+      assert.are.equal('NitThreadAuthor', result[5].hl_group)
+      assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
     end)
 
     it('author line in odd comment uses NitThreadComment for line_hl_group', function()
@@ -516,8 +516,8 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[1])
-      assert.equals('NitThreadAuthor', result[1].hl_group)
-      assert.equals('NitThreadComment', result[1].line_hl_group)
+      assert.are.equal('NitThreadAuthor', result[1].hl_group)
+      assert.are.equal('NitThreadComment', result[1].line_hl_group)
     end)
 
     it('returns text_col matching leading whitespace count for right-aligned header', function()
@@ -529,7 +529,7 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[1])
-      assert.equals(42, result[1].text_col)
+      assert.are.equal(42, result[1].text_col)
     end)
 
     it('returns text_col of 1 for left-aligned header', function()
@@ -539,7 +539,7 @@ describe('thread_panel', function()
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
       assert.not_nil(result[1])
-      assert.equals(1, result[1].text_col)
+      assert.are.equal(1, result[1].text_col)
     end)
 
     it('separator blank before even comment gets no alt (belongs to odd comment)', function()
@@ -569,7 +569,7 @@ describe('thread_panel', function()
 
       local hl = thread_panel.get_title_highlight(thread)
 
-      assert.equals('NitThreadTitle', hl)
+      assert.are.equal('NitThreadTitle', hl)
     end)
 
     it('returns NitThreadTitleResolved for resolved thread', function()
@@ -580,7 +580,7 @@ describe('thread_panel', function()
 
       local hl = thread_panel.get_title_highlight(thread)
 
-      assert.equals('NitThreadTitleResolved', hl)
+      assert.are.equal('NitThreadTitleResolved', hl)
     end)
   end)
 
@@ -766,7 +766,7 @@ describe('thread_panel', function()
 
       local panel_winid = tp.get_winid()
       assert.is_not_nil(panel_winid)
-      assert.equals(60, vim.api.nvim_win_get_width(panel_winid))
+      assert.are.equal(60, vim.api.nvim_win_get_width(panel_winid))
 
       tp.close()
     end)

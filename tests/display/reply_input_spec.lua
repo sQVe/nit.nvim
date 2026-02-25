@@ -1,7 +1,7 @@
 local assert = require('luassert')
 local reply_input = require('nit.display.reply_input')
 
-describe('reply_input', function()
+describe('nit.display.reply_input', function()
   describe('is_open', function()
     it('returns false when not open', function()
       assert.is_false(reply_input.is_open())
@@ -22,7 +22,7 @@ describe('reply_input', function()
 
   describe('get_text', function()
     it('returns empty string when not open', function()
-      assert.equals('', reply_input.get_text())
+      assert.are.equal('', reply_input.get_text())
     end)
   end)
 

@@ -71,10 +71,10 @@ describe('nit.orchestration.init', function()
       orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
 
       local updated_thread = data.get_thread(1)
-      assert.equals(2, #updated_thread.comments)
-      assert.equals(0, updated_thread.comments[2].id)
-      assert.equals('test reply', updated_thread.comments[2].body)
-      assert.equals('you', updated_thread.comments[2].author.login)
+      assert.are.equal(2, #updated_thread.comments)
+      assert.are.equal(0, updated_thread.comments[2].id)
+      assert.are.equal('test reply', updated_thread.comments[2].body)
+      assert.are.equal('you', updated_thread.comments[2].author.login)
     end)
 
     it('optimistic comment has correct structure', function()
@@ -94,9 +94,9 @@ describe('nit.orchestration.init', function()
       local updated_thread = data.get_thread(1)
       local optimistic = updated_thread.comments[2]
 
-      assert.equals(0, optimistic.id)
-      assert.equals('you', optimistic.author.login)
-      assert.equals('test reply', optimistic.body)
+      assert.are.equal(0, optimistic.id)
+      assert.are.equal('you', optimistic.author.login)
+      assert.are.equal('test reply', optimistic.body)
       assert.is_nil(optimistic.path)
       assert.is_nil(optimistic.line)
       assert.is_nil(optimistic.side)
@@ -121,7 +121,7 @@ describe('nit.orchestration.init', function()
       orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
 
       local updated_thread = data.get_thread(1)
-      assert.equals('octocat', updated_thread.comments[2].author.login)
+      assert.are.equal('octocat', updated_thread.comments[2].author.login)
     end)
 
     it('notifies observers of optimistic update', function()
@@ -166,7 +166,7 @@ describe('nit.orchestration.init', function()
 
       orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
 
-      assert.equals(2, #data.get_thread(1).comments)
+      assert.are.equal(2, #data.get_thread(1).comments)
 
       api_callback({
         ok = true,
@@ -184,9 +184,9 @@ describe('nit.orchestration.init', function()
       })
 
       local updated_thread = data.get_thread(1)
-      assert.equals(2, #updated_thread.comments)
-      assert.equals(200, updated_thread.comments[2].id)
-      assert.equals('realuser', updated_thread.comments[2].author.login)
+      assert.are.equal(2, #updated_thread.comments)
+      assert.are.equal(200, updated_thread.comments[2].id)
+      assert.are.equal('realuser', updated_thread.comments[2].author.login)
     end)
 
     it('reverts state on failure', function()
@@ -205,12 +205,12 @@ describe('nit.orchestration.init', function()
 
       orchestration.submit_reply({ thread_id = 1, body = 'test reply' }, function() end)
 
-      assert.equals(2, #data.get_thread(1).comments)
+      assert.are.equal(2, #data.get_thread(1).comments)
 
       api_callback({ ok = false, error = 'Network error' })
 
       local reverted_thread = data.get_thread(1)
-      assert.equals(1, #reverted_thread.comments)
+      assert.are.equal(1, #reverted_thread.comments)
     end)
 
     it('calls vim.notify on failure', function()
@@ -241,8 +241,8 @@ describe('nit.orchestration.init', function()
       api_callback({ ok = false, error = 'Network error' })
 
       assert.is_true(notify_called)
-      assert.equals('[nit] Reply failed: Network error', notify_msg)
-      assert.equals(vim.log.levels.ERROR, notify_level)
+      assert.are.equal('[nit] Reply failed: Network error', notify_msg)
+      assert.are.equal(vim.log.levels.ERROR, notify_level)
     end)
 
     it('returns body on failure', function()
@@ -269,7 +269,7 @@ describe('nit.orchestration.init', function()
       api_callback({ ok = false, error = 'Network error' })
 
       assert.is_false(callback_ok)
-      assert.equals('test reply', callback_body)
+      assert.are.equal('test reply', callback_body)
     end)
 
     it('discards stale response', function()
@@ -288,7 +288,7 @@ describe('nit.orchestration.init', function()
 
       orchestration.submit_reply({ thread_id = 1, body = 'first' }, function() end)
 
-      assert.equals(2, #data.get_thread(1).comments)
+      assert.are.equal(2, #data.get_thread(1).comments)
 
       local versioning = require('nit.orchestration.versioning')
       versioning.increment(1)
@@ -309,8 +309,8 @@ describe('nit.orchestration.init', function()
       })
 
       local final_thread = data.get_thread(1)
-      assert.equals(2, #final_thread.comments)
-      assert.equals(0, final_thread.comments[2].id)
+      assert.are.equal(2, #final_thread.comments)
+      assert.are.equal(0, final_thread.comments[2].id)
     end)
 
     it('returns false immediately for missing thread', function()
@@ -330,7 +330,7 @@ describe('nit.orchestration.init', function()
       end)
 
       assert.is_false(callback_ok)
-      assert.equals('test', callback_body)
+      assert.are.equal('test', callback_body)
     end)
   end)
 
@@ -435,7 +435,7 @@ describe('nit.orchestration.init', function()
 
       api_callback({ ok = false, error = 'Network error' })
 
-      assert.equals('[nit] Resolve failed: Network error', notify_msg)
+      assert.are.equal('[nit] Resolve failed: Network error', notify_msg)
     end)
 
     it('returns false immediately for missing thread', function()
@@ -515,7 +515,7 @@ describe('nit.orchestration.init', function()
 
       api_callback({ ok = false, error = 'Network error' })
 
-      assert.equals('[nit] Unresolve failed: Network error', notify_msg)
+      assert.are.equal('[nit] Unresolve failed: Network error', notify_msg)
     end)
   end)
 
@@ -577,7 +577,7 @@ describe('nit.orchestration.init', function()
 
       api_callback({ ok = false })
 
-      assert.equals('[nit] Reply failed: unknown error', notify_msg)
+      assert.are.equal('[nit] Reply failed: unknown error', notify_msg)
     end)
 
     it('replaces only first optimistic comment when multiple exist', function()
@@ -617,8 +617,8 @@ describe('nit.orchestration.init', function()
       })
 
       local final_thread = data.get_thread(1)
-      assert.equals(200, final_thread.comments[2].id)
-      assert.equals(0, final_thread.comments[3].id)
+      assert.are.equal(200, final_thread.comments[2].id)
+      assert.are.equal(0, final_thread.comments[3].id)
     end)
   end)
 
@@ -642,7 +642,7 @@ describe('nit.orchestration.init', function()
       orchestration.submit_reply({ thread_id = 1, body = 'first' }, function() end)
       orchestration.submit_reply({ thread_id = 1, body = 'second' }, function() end)
 
-      assert.equals(1, mutation_call_count)
+      assert.are.equal(1, mutation_call_count)
 
       callbacks[1]({
         ok = true,
@@ -650,12 +650,12 @@ describe('nit.orchestration.init', function()
       })
 
       local after_first = data.get_thread(1)
-      assert.equals(200, after_first.comments[2].id)
-      assert.equals(0, after_first.comments[3].id)
+      assert.are.equal(200, after_first.comments[2].id)
+      assert.are.equal(0, after_first.comments[3].id)
 
       vim.wait(50)
 
-      assert.equals(2, mutation_call_count)
+      assert.are.equal(2, mutation_call_count)
 
       callbacks[2]({
         ok = true,
@@ -663,8 +663,8 @@ describe('nit.orchestration.init', function()
       })
 
       local after_second = data.get_thread(1)
-      assert.equals(200, after_second.comments[2].id)
-      assert.equals(201, after_second.comments[3].id)
+      assert.are.equal(200, after_second.comments[2].id)
+      assert.are.equal(201, after_second.comments[3].id)
     end)
   end)
 
@@ -684,7 +684,7 @@ describe('nit.orchestration.init', function()
 
       orchestration.cleanup()
 
-      assert.equals(0, versioning.get('test'))
+      assert.are.equal(0, versioning.get('test'))
     end)
   end)
 end)

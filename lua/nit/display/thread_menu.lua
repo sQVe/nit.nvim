@@ -11,7 +11,7 @@ local active_popup = nil
 ---@param thread Nit.Api.Thread
 ---@param callbacks { on_toggle_resolved: fun() }
 function M.open(thread, callbacks)
-  if active_popup then
+  if active_popup ~= nil then
     active_popup:unmount()
     active_popup = nil
   end
@@ -51,7 +51,7 @@ function M.open(thread, callbacks)
   popup:map('n', '<CR>', function()
     local line_index = vim.api.nvim_win_get_cursor(popup.winid)[1]
     local action = actions[line_index]
-    if action then
+    if action ~= nil then
       action()
     end
   end, { noremap = true })
@@ -69,7 +69,7 @@ end
 
 ---Close the action menu
 function M.close()
-  if active_popup then
+  if active_popup ~= nil then
     active_popup:unmount()
     active_popup = nil
   end

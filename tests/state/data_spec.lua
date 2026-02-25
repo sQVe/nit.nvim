@@ -24,8 +24,8 @@ describe('nit.state.data', function()
 
       local result = data.get_pr()
       assert.is_not_nil(result)
-      assert.equals(123, result.number)
-      assert.equals('Test PR', result.title)
+      assert.are.equal(123, result.number)
+      assert.are.equal('Test PR', result.title)
     end)
 
     it('set_pr with nil clears PR', function()
@@ -68,7 +68,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('pr', notified_key)
+      assert.are.equal('pr', notified_key)
     end)
   end)
 
@@ -83,8 +83,8 @@ describe('nit.state.data', function()
 
       local result = data.get_file('src/main.lua')
       assert.is_not_nil(result)
-      assert.equals('src/main.lua', result.filename)
-      assert.equals('modified', result.status)
+      assert.are.equal('src/main.lua', result.filename)
+      assert.are.equal('modified', result.status)
     end)
 
     it('get_file returns nil for nonexistent path', function()
@@ -105,7 +105,7 @@ describe('nit.state.data', function()
       data.set_files(files)
 
       local result = data.get_files()
-      assert.equals(3, #result)
+      assert.are.equal(3, #result)
     end)
 
     it('set_files notifies files key', function()
@@ -123,7 +123,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('files', notified_key)
+      assert.are.equal('files', notified_key)
     end)
   end)
 
@@ -164,8 +164,8 @@ describe('nit.state.data', function()
 
       local result = data.get_thread(100)
       assert.is_not_nil(result)
-      assert.equals(100, result.id)
-      assert.equals('src/main.lua', result.path)
+      assert.are.equal(100, result.id)
+      assert.are.equal('src/main.lua', result.path)
     end)
 
     it('get_thread returns nil for nonexistent ID', function()
@@ -186,7 +186,7 @@ describe('nit.state.data', function()
       data.set_threads(threads)
 
       local result = data.get_threads()
-      assert.equals(3, #result)
+      assert.are.equal(3, #result)
     end)
 
     it('set_threads notifies comments key', function()
@@ -204,7 +204,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('comments', notified_key)
+      assert.are.equal('comments', notified_key)
     end)
   end)
 
@@ -219,7 +219,7 @@ describe('nit.state.data', function()
       data.set_threads(threads)
 
       local a_threads = data.get_threads_for_file('src/a.lua')
-      assert.equals(2, #a_threads)
+      assert.are.equal(2, #a_threads)
 
       local ids = {}
       for _, t in ipairs(a_threads) do
@@ -236,7 +236,7 @@ describe('nit.state.data', function()
 
       local result = data.get_threads_for_file('nonexistent.lua')
       assert.is_table(result)
-      assert.equals(0, #result)
+      assert.are.equal(0, #result)
     end)
 
     it('threads without path are not indexed by file', function()
@@ -248,8 +248,8 @@ describe('nit.state.data', function()
       data.set_threads(threads)
 
       local a_threads = data.get_threads_for_file('src/a.lua')
-      assert.equals(1, #a_threads)
-      assert.equals(1, a_threads[1].id)
+      assert.are.equal(1, #a_threads)
+      assert.are.equal(1, a_threads[1].id)
     end)
 
     it('index is rebuilt on subsequent set_threads calls', function()
@@ -258,14 +258,14 @@ describe('nit.state.data', function()
         { id = 2, comments = {}, isResolved = false, path = 'src/a.lua', line = 20 },
       })
 
-      assert.equals(2, #data.get_threads_for_file('src/a.lua'))
+      assert.are.equal(2, #data.get_threads_for_file('src/a.lua'))
 
       data.set_threads({
         { id = 3, comments = {}, isResolved = false, path = 'src/b.lua', line = 5 },
       })
 
-      assert.equals(0, #data.get_threads_for_file('src/a.lua'))
-      assert.equals(1, #data.get_threads_for_file('src/b.lua'))
+      assert.are.equal(0, #data.get_threads_for_file('src/a.lua'))
+      assert.are.equal(1, #data.get_threads_for_file('src/b.lua'))
     end)
   end)
 
@@ -290,15 +290,15 @@ describe('nit.state.data', function()
 
       local result = data.get_comments()
       assert.is_not_nil(result)
-      assert.equals(2, #result)
-      assert.equals('user1', result[1].author.login)
-      assert.equals('Second comment', result[2].body)
+      assert.are.equal(2, #result)
+      assert.are.equal('user1', result[1].author.login)
+      assert.are.equal('Second comment', result[2].body)
     end)
 
     it('get_comments returns empty array when none set', function()
       local result = data.get_comments()
       assert.is_table(result)
-      assert.equals(0, #result)
+      assert.are.equal(0, #result)
     end)
 
     it('set_comments notifies pr_comments key', function()
@@ -321,7 +321,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('pr_comments', notified_key)
+      assert.are.equal('pr_comments', notified_key)
     end)
   end)
 
@@ -355,10 +355,10 @@ describe('nit.state.data', function()
       data.clear()
 
       assert.is_nil(data.get_pr())
-      assert.equals(0, #data.get_files())
-      assert.equals(0, #data.get_threads())
-      assert.equals(0, #data.get_threads_for_file('test.lua'))
-      assert.equals(0, #data.get_comments())
+      assert.are.equal(0, #data.get_files())
+      assert.are.equal(0, #data.get_threads())
+      assert.are.equal(0, #data.get_threads_for_file('test.lua'))
+      assert.are.equal(0, #data.get_comments())
     end)
 
     it('notifies all keys', function()
@@ -395,18 +395,18 @@ describe('nit.state.data', function()
 
   describe('Loading state operations', function()
     it('get_loading returns false by default', function()
-      assert.equals(false, data.get_loading())
+      assert.are.equal(false, data.get_loading())
     end)
 
     it('set_loading(true) makes get_loading return true', function()
       data.set_loading(true)
-      assert.equals(true, data.get_loading())
+      assert.are.equal(true, data.get_loading())
     end)
 
     it('set_loading(false) makes get_loading return false', function()
       data.set_loading(true)
       data.set_loading(false)
-      assert.equals(false, data.get_loading())
+      assert.are.equal(false, data.get_loading())
     end)
 
     it('set_loading notifies loading key', function()
@@ -422,7 +422,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('loading', notified_key)
+      assert.are.equal('loading', notified_key)
     end)
   end)
 
@@ -433,7 +433,7 @@ describe('nit.state.data', function()
 
     it('set_error stores and get_error retrieves', function()
       data.set_error('Something went wrong')
-      assert.equals('Something went wrong', data.get_error())
+      assert.are.equal('Something went wrong', data.get_error())
     end)
 
     it('set_error(nil) clears error', function()
@@ -455,7 +455,7 @@ describe('nit.state.data', function()
       end)
 
       assert.is_true(ok, 'observer was not notified')
-      assert.equals('error', notified_key)
+      assert.are.equal('error', notified_key)
     end)
   end)
 
@@ -466,7 +466,7 @@ describe('nit.state.data', function()
 
     it('set_viewer_login and get_viewer_login round-trip a login string', function()
       data.set_viewer_login('octocat')
-      assert.equals('octocat', data.get_viewer_login())
+      assert.are.equal('octocat', data.get_viewer_login())
     end)
 
     it('clear resets viewer_login to nil', function()
@@ -483,7 +483,7 @@ describe('nit.state.data', function()
 
       data.clear()
 
-      assert.equals(false, data.get_loading())
+      assert.are.equal(false, data.get_loading())
       assert.is_nil(data.get_error())
     end)
 
