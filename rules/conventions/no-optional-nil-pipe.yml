@@ -6,4 +6,4 @@ message: >
   Change: ---@param name string|nil  →  ---@param name string?
 rule:
   kind: comment
-  regex: '@return\s+\S*\|nil|@(param|type|field)\s+\S+\s+\S*\|nil'
+  regex: '@(return|param|type|field).*\|nil'

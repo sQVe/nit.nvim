@@ -59,8 +59,8 @@ function M.setup()
     vim.api.nvim_set_hl(0, 'NitCommentHighlight', { link = 'CursorLine', default = true })
   end
 
-  local _, float_hl = pcall(vim.api.nvim_get_hl, 0, { name = 'NormalFloat', link = false })
-  if type(float_hl) ~= 'table' then
+  local ok_float, float_hl = pcall(vim.api.nvim_get_hl, 0, { name = 'NormalFloat', link = false })
+  if not ok_float then
     float_hl = {}
   end
   local float_bg = float_hl.bg

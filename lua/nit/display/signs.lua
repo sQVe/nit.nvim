@@ -1,15 +1,7 @@
 ---@class Nit.Display.Signs
 local M = {}
 
-local SIGN_GROUP = 'nit_comments'
 local sign_ns = vim.api.nvim_create_namespace('nit_comments')
-
----Define signs for comment indicators
-function M.setup()
-  vim.api.nvim_set_hl(0, 'NitCommentSign', { default = true, link = 'DiagnosticSignInfo' })
-  vim.api.nvim_set_hl(0, 'NitCommentResolvedSign', { default = true, link = 'DiagnosticSignOk' })
-  vim.api.nvim_set_hl(0, 'NitCommentOutdatedSign', { default = true, link = 'DiagnosticSignHint' })
-end
 
 ---Place signs for review threads in buffer
 ---@param bufnr integer Buffer number

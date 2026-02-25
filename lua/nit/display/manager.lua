@@ -76,7 +76,6 @@ end
 ---Setup sign definitions and highlights (called once during plugin init)
 function M.setup()
   require('nit.ui.highlights').setup()
-  signs.setup()
 end
 
 ---Attach display manager to a buffer

@@ -7,9 +7,16 @@ message: >
 ignores:
   - "tests/**"
 rule:
-  pattern: "function M.$NAME($FIRST, $$$) $$$BODY end"
-  not:
-    follows:
-      stopBy: neighbor
-      kind: comment
-      regex: "@param|@return"
+  any:
+    - pattern: "function M.$NAME($FIRST, $$$) $$$BODY end"
+      not:
+        follows:
+          stopBy: neighbor
+          kind: comment
+          regex: "@param|@return"
+    - pattern: "function M.$NAME($SINGLE) $$$BODY end"
+      not:
+        follows:
+          stopBy: neighbor
+          kind: comment
+          regex: "@param|@return"

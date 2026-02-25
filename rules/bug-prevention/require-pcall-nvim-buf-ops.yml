@@ -4,6 +4,10 @@ severity: error
 message: >
   nvim_buf_* operations must be wrapped in pcall — buffer handles become invalid when
   buffers are deleted. Use: local ok, result = pcall(vim.api.nvim_buf_get_lines, buf, ...)
+note: >
+  The is_valid-guard exemption checks for nvim_buf_is_valid anywhere in the if block,
+  not just in the condition. A call on a different buffer handle inside the same guard
+  is silently accepted. This is an accepted approximation for this codebase.
 ignores:
   - "tests/**"
 rule:

@@ -1,4 +1,4 @@
-id: require-local-m-declaration
+id: require-module-bookends
 language: Lua
 severity: error
 message: "Module files must declare 'local M = {}'"

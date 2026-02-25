@@ -60,7 +60,7 @@ local function equalize_windows()
   end
 
   if panel_winid ~= nil and vim.api.nvim_win_is_valid(panel_winid) then
-    vim.api.nvim_win_set_width(panel_winid, PANEL_WIDTH)
+    pcall(vim.api.nvim_win_set_width, panel_winid, PANEL_WIDTH)
   end
 end
 
@@ -73,13 +73,19 @@ local function format_relative_time(iso_timestamp)
     return iso_timestamp
   end
 
+  local y, mo, d, h, mi, s =
+    tonumber(year), tonumber(month), tonumber(day), tonumber(hour), tonumber(min), tonumber(sec)
+  if not (y and mo and d and h and mi and s) then
+    return iso_timestamp
+  end
+
   local parsed_as_local = os.time({
-    year = tonumber(year) or 0,
-    month = tonumber(month) or 0,
-    day = tonumber(day) or 0,
-    hour = tonumber(hour) or 0,
-    min = tonumber(min) or 0,
-    sec = tonumber(sec) or 0,
+    year = y,
+    month = mo,
+    day = d,
+    hour = h,
+    min = mi,
+    sec = s,
   })
 
   local now = os.time()
