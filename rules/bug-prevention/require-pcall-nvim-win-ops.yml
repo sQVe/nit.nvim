@@ -18,5 +18,13 @@ rule:
         - pattern: vim.api.nvim_win_set_buf($$$)
         - pattern: vim.api.nvim_win_call($$$)
     - not:
-        inside:
-          pattern: pcall($$$)
+        any:
+          - inside:
+              pattern: pcall($$$)
+              stopBy: end
+          - inside:
+              pattern: "if $COND then $$$BODY end"
+              stopBy: end
+              has:
+                pattern: vim.api.nvim_win_is_valid($$$)
+                stopBy: end
