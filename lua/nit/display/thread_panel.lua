@@ -472,7 +472,7 @@ function M.close()
     current_thread = nil
   end
 
-  pcall(vim.cmd, 'wincmd =')
+  pcall(function() vim.cmd('wincmd =') end)
 
   closing = false
 end
