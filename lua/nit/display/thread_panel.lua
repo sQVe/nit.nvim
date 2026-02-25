@@ -49,7 +49,10 @@ local function equalize_windows()
     return
   end
 
-  local separators = #other_wins - 1 + (panel_winid ~= nil and 1 or 0) + (reply_winid ~= nil and 1 or 0)
+  local separators = #other_wins
+    - 1
+    + (panel_winid ~= nil and 1 or 0)
+    + (reply_winid ~= nil and 1 or 0)
   local panel_width = panel_winid ~= nil and PANEL_WIDTH or 0
   local available = vim.o.columns - panel_width - separators
   local each = math.floor(available / #other_wins)
