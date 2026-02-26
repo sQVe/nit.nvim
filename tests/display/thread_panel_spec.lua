@@ -3,6 +3,45 @@ local thread_panel = require('nit.display.thread_panel')
 local data = require('nit.state.data')
 
 describe('thread_panel', function()
+  describe('format_relative_time', function()
+    local orig_time
+
+    before_each(function()
+      orig_time = os.time
+    end)
+
+    after_each(function()
+      os.time = orig_time
+    end)
+
+    it('shows just now for a UTC timestamp equal to current time in a UTC+1 timezone (regression nit.nvim-231)', function()
+      local real_now = orig_time()
+      local utc_timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ', real_now)
+
+      os.time = function(t)
+        if t == nil then
+          return real_now
+        end
+        return orig_time(t) - 3600
+      end
+
+      local thread = {
+        comments = {
+          {
+            author = { login = 'alice' },
+            body = 'Hello',
+            createdAt = utc_timestamp,
+          },
+        },
+      }
+
+      local lines = thread_panel.format_thread(thread)
+      local combined = table.concat(lines, '\n')
+
+      assert.matches('just now', combined, 1, true)
+    end)
+  end)
+
   describe('format_thread', function()
     it('formats single comment with @ prefix in header', function()
       local thread = {

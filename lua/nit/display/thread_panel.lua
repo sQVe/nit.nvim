@@ -94,7 +94,7 @@ local function format_relative_time(iso_timestamp)
     return iso_timestamp
   end
   local utc_offset = now - os.time(utc_table)
-  local parsed_utc = parsed_as_local - utc_offset
+  local parsed_utc = parsed_as_local + utc_offset
 
   local diff = os.difftime(os.time(), parsed_utc)
 
