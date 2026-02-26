@@ -44,7 +44,11 @@ function M.open(panel_winid)
   vim.wo[winid].wrap = true
   vim.wo[winid].linebreak = true
   vim.wo[winid].breakindent = true
-  vim.wo[winid].showbreak = ''
+  vim.schedule(function()
+    if vim.api.nvim_win_is_valid(winid) then
+      vim.wo[winid].showbreak = ''
+    end
+  end)
 
   input_bufnr = bufnr
   input_winid = winid
