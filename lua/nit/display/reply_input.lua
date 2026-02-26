@@ -41,7 +41,7 @@ function M.open(panel_winid)
   vim.wo[winid].fillchars = 'eob: '
   vim.wo[winid].winhighlight = 'Normal:NormalFloat,FloatBorder:FloatBorder'
   vim.wo[winid].winbar = '%#NitThreadHintKey# C-s%#NitThreadHintLabel# Submit%*'
-  vim.wo[winid].wrap = false
+  vim.wo[winid].wrap = true
 
   input_bufnr = bufnr
   input_winid = winid

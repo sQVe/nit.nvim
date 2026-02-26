@@ -789,7 +789,7 @@ describe('thread_panel', function()
       tp.close()
     end)
 
-    it('reply input window has wrap=false after show', function()
+    it('reply input window has wrap=true after show', function()
       local tp = require('nit.display.thread_panel')
       local ri = require('nit.display.reply_input')
 
@@ -801,7 +801,7 @@ describe('thread_panel', function()
 
       local winid = ri.get_winid()
       assert.is_not_nil(winid)
-      assert.is_false(vim.wo[winid].wrap)
+      assert.is_true(vim.wo[winid].wrap)
 
       tp.close()
     end)
