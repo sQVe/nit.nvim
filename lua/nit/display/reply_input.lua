@@ -20,6 +20,7 @@ function M.open(panel_winid)
   vim.bo[bufnr].buftype = 'nofile'
   vim.bo[bufnr].filetype = 'nit'
   vim.bo[bufnr].formatoptions = ''
+  vim.bo[bufnr].textwidth = 0
   vim.bo[bufnr].modifiable = true
   vim.bo[bufnr].bufhidden = 'wipe'
 
@@ -124,7 +125,7 @@ end
 ---@param rhs function|string
 ---@param opts table?
 function M.map(mode, lhs, rhs, opts)
-  if input_bufnr == nil then
+  if not M.is_open() then
     return
   end
   opts = opts or {}

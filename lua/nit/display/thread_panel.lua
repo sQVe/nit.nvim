@@ -13,6 +13,7 @@ local orchestration = require('nit.orchestration')
 ---@type {key: string, label: string}[]
 local hint_registry = {
   { key = 'C-s', label = 'Submit reply' },
+  { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
   { key = 'q', label = 'Close' },
   { key = 'Esc', label = 'Close' },
@@ -266,7 +267,8 @@ local function on_comments_changed()
   end
   local updated = data.get_thread(current_thread.id)
   if updated ~= nil then
-    M.update(updated, true)
+    local has_new_comments = #updated.comments > #current_thread.comments
+    M.update(updated, has_new_comments)
   end
 end
 
@@ -420,7 +422,7 @@ end
 
 ---Update panel content and chrome for the given thread
 ---@param thread Nit.Api.Thread
----@param scroll_to_bottom? boolean
+---@param scroll_to_bottom? boolean nil=scroll on thread change, true=always scroll, false=never scroll
 function M.update(thread, scroll_to_bottom)
   if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
     return

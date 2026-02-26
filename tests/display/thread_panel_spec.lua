@@ -809,7 +809,7 @@ describe('thread_panel', function()
       assert.is_true(vim.wo[winid].wrap)
       assert.is_true(vim.wo[winid].linebreak)
       assert.is_true(vim.wo[winid].breakindent)
-      assert.are.equal('', vim.wo[winid].showbreak)
+      assert.are.equal(' ', vim.wo[winid].showbreak)
 
       tp.close()
     end)
