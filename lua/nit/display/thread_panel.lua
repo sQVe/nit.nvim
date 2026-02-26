@@ -266,7 +266,7 @@ local function on_comments_changed()
   end
   local updated = data.get_thread(current_thread.id)
   if updated ~= nil then
-    M.update(updated)
+    M.update(updated, true)
   end
 end
 
@@ -340,7 +340,7 @@ function M.show(thread)
   end, { noremap = true })
 
   active_panel = panel
-  M.update(thread)
+  M.update(thread, false)
 
   if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
     reply_input.open(active_panel.winid)
@@ -390,6 +390,10 @@ function M.show(thread)
   end
 
   equalize_windows()
+
+  if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
+    pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
+  end
 end
 
 ---Compute per-line highlight assignments for author header lines.
@@ -416,7 +420,8 @@ end
 
 ---Update panel content and chrome for the given thread
 ---@param thread Nit.Api.Thread
-function M.update(thread)
+---@param scroll_to_bottom? boolean
+function M.update(thread, scroll_to_bottom)
   if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
     return
   end
@@ -463,8 +468,9 @@ function M.update(thread)
 
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
     vim.wo[active_panel.winid].winbar = M.build_winbar(thread)
-    local line_count = vim.api.nvim_buf_line_count(active_panel.bufnr)
-    pcall(vim.api.nvim_win_set_cursor, active_panel.winid, { line_count, 0 })
+    if scroll_to_bottom ~= false and (thread_changed or scroll_to_bottom) then
+      pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
+    end
   end
 end
 

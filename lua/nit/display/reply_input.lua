@@ -19,6 +19,7 @@ function M.open(panel_winid)
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.bo[bufnr].buftype = 'nofile'
   vim.bo[bufnr].filetype = 'nit_reply'
+  vim.bo[bufnr].formatoptions = ''
   vim.bo[bufnr].modifiable = true
   vim.bo[bufnr].bufhidden = 'wipe'
 

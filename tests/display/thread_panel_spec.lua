@@ -833,6 +833,9 @@ describe('thread_panel', function()
     local orig_observers, orig_data, orig_orchestration
 
     before_each(function()
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        pcall(vim.api.nvim_win_close, w, true)
+      end
       package.loaded['nit.display.thread_panel'] = nil
       package.loaded['nit.display.reply_input'] = nil
 
