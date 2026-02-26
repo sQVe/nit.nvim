@@ -716,6 +716,57 @@ describe('thread_panel', function()
       tp.close()
     end)
 
+    it('reply input buffer has textwidth=0 after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+      assert.are.equal(0, vim.bo[bufnr].textwidth)
+
+      tp.close()
+    end)
+
+    it('reply input buffer has formatoptions="" after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+      assert.are.equal('', vim.bo[bufnr].formatoptions)
+
+      tp.close()
+    end)
+
+    it('reply input window has wrap=false after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local winid = ri.get_winid()
+      assert.is_not_nil(winid)
+      assert.is_false(vim.wo[winid].wrap)
+
+      tp.close()
+    end)
+
     it('calling M.close() twice does not error', function()
       local tp = require('nit.display.thread_panel')
 

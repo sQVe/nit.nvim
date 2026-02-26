@@ -19,6 +19,8 @@ function M.open(panel_winid)
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.bo[bufnr].buftype = 'nofile'
   vim.bo[bufnr].filetype = 'markdown'
+  vim.bo[bufnr].textwidth = 0
+  vim.bo[bufnr].formatoptions = ''
   vim.bo[bufnr].modifiable = true
   vim.bo[bufnr].bufhidden = 'wipe'
 
@@ -39,6 +41,7 @@ function M.open(panel_winid)
   vim.wo[winid].fillchars = 'eob: '
   vim.wo[winid].winhighlight = 'Normal:NormalFloat,FloatBorder:FloatBorder'
   vim.wo[winid].winbar = '%#NitThreadHintKey# C-s%#NitThreadHintLabel# Submit%*'
+  vim.wo[winid].wrap = false
 
   input_bufnr = bufnr
   input_winid = winid
