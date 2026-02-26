@@ -350,6 +350,10 @@ function M.show(thread)
       submit_reply()
     end, { noremap = true })
 
+    reply_input.map('n', '<CR>', function()
+      submit_reply()
+    end, { noremap = true })
+
     reply_input.map('n', '<C-a>', function()
       open_menu()
     end, { noremap = true })

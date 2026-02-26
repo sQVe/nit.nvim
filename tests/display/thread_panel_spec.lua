@@ -689,6 +689,33 @@ describe('thread_panel', function()
       tp.close()
     end)
 
+    it('reply input has <CR> normal mode mapping after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+
+      local keymaps = vim.api.nvim_buf_get_keymap(bufnr, 'n')
+      local has_cr = false
+      for _, km in ipairs(keymaps) do
+        if km.lhs == '<CR>' then
+          has_cr = true
+          break
+        end
+      end
+
+      assert.is_true(has_cr, 'reply input must have <CR> normal mode mapping for submit')
+
+      tp.close()
+    end)
+
     it('calling M.close() twice does not error', function()
       local tp = require('nit.display.thread_panel')
 
