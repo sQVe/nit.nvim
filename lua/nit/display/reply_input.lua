@@ -18,9 +18,7 @@ function M.open(panel_winid)
 
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.bo[bufnr].buftype = 'nofile'
-  vim.bo[bufnr].filetype = 'markdown'
-  vim.bo[bufnr].textwidth = 0
-  vim.bo[bufnr].formatoptions = ''
+  vim.bo[bufnr].filetype = 'nit_reply'
   vim.bo[bufnr].modifiable = true
   vim.bo[bufnr].bufhidden = 'wipe'
 
@@ -44,11 +42,7 @@ function M.open(panel_winid)
   vim.wo[winid].wrap = true
   vim.wo[winid].linebreak = true
   vim.wo[winid].breakindent = true
-  vim.schedule(function()
-    if vim.api.nvim_win_is_valid(winid) then
-      vim.wo[winid].showbreak = ''
-    end
-  end)
+  vim.wo[winid].showbreak = ''
 
   input_bufnr = bufnr
   input_winid = winid
