@@ -11,35 +11,40 @@ describe('thread_panel', function()
     end)
 
     after_each(function()
+      -- selene: allow(incorrect_standard_library_use)
       os.time = orig_time
     end)
 
-    it('shows just now for a UTC timestamp equal to current time in a UTC+1 timezone (regression nit.nvim-231)', function()
-      local real_now = orig_time()
-      local utc_timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ', real_now)
+    it(
+      'shows just now for a UTC timestamp equal to current time in a UTC+1 timezone (regression nit.nvim-231)',
+      function()
+        local real_now = orig_time()
+        local utc_timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ', real_now)
 
-      os.time = function(t)
-        if t == nil then
-          return real_now
+        -- selene: allow(incorrect_standard_library_use)
+        os.time = function(t)
+          if t == nil then
+            return real_now
+          end
+          return orig_time(t) - 3600
         end
-        return orig_time(t) - 3600
-      end
 
-      local thread = {
-        comments = {
-          {
-            author = { login = 'alice' },
-            body = 'Hello',
-            createdAt = utc_timestamp,
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Hello',
+              createdAt = utc_timestamp,
+            },
           },
-        },
-      }
+        }
 
-      local lines = thread_panel.format_thread(thread)
-      local combined = table.concat(lines, '\n')
+        local lines = thread_panel.format_thread(thread)
+        local combined = table.concat(lines, '\n')
 
-      assert.matches('just now', combined, 1, true)
-    end)
+        assert.matches('just now', combined, 1, true)
+      end
+    )
   end)
 
   describe('format_thread', function()

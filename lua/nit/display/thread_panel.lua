@@ -463,6 +463,8 @@ function M.update(thread)
 
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
     vim.wo[active_panel.winid].winbar = M.build_winbar(thread)
+    local line_count = vim.api.nvim_buf_line_count(active_panel.bufnr)
+    pcall(vim.api.nvim_win_set_cursor, active_panel.winid, { line_count, 0 })
   end
 end
 
