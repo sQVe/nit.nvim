@@ -1431,4 +1431,73 @@ describe('thread_panel', function()
       assert.are.equal('> @alice:\n> Line 1\n> Line 2\n\n', result)
     end)
   end)
+
+  describe('_apply_suggestion', function()
+    local original_notify
+    local notified = {}
+
+    before_each(function()
+      original_notify = vim.notify
+      notified = {}
+      vim.notify = function(msg, _level)
+        table.insert(notified, msg)
+      end
+    end)
+
+    after_each(function()
+      vim.notify = original_notify
+    end)
+
+    it('replaces lines in the target buffer', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { 'line 1', 'old line 2', 'line 3' })
+      local name = 'test_suggestion_file.lua'
+      vim.api.nvim_buf_set_name(bufnr, name)
+
+      local comment = { body = '```suggestion\nnew line 2\n```' }
+      local thread = { path = name, line = 2, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.are.same({ 'line 1', 'new line 2', 'line 3' }, lines)
+
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('notifies when no suggestion block found in comment', function()
+      local comment = { body = 'Just a regular comment' }
+      local thread = { path = 'some/file.lua', line = 5, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      assert.are.equal(1, #notified)
+    end)
+
+    it('notifies when target file buffer is not open', function()
+      local comment = { body = '```suggestion\nnew line\n```' }
+      local thread = { path = 'not/open/file.lua', line = 3, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      assert.are.equal(1, #notified)
+    end)
+
+    it('uses start_line when present for multi-line replacement', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { 'a', 'b', 'c', 'd' })
+      local name = 'test_multiline_suggestion.lua'
+      vim.api.nvim_buf_set_name(bufnr, name)
+
+      local comment = { body = '```suggestion\nx\ny\n```' }
+      local thread = { path = name, line = 3, start_line = 2 }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.are.same({ 'a', 'x', 'y', 'd' }, lines)
+
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+  end)
 end)

@@ -757,3 +757,123 @@ describe('unresolve_thread', function()
     assert.are.equal('Thread not found in response', result.error)
   end)
 end)
+
+describe('update_comment', function()
+  before_each(setup_mocks)
+  after_each(teardown_mocks)
+
+  it('submits update and returns normalized comment', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('updatePullRequestReviewComment', {
+          comment = {
+            id = 'PRRC_kwDOABC123',
+            databaseId = 42,
+            author = { login = 'alice' },
+            body = 'Updated body',
+            createdAt = '2024-01-01T10:00:00Z',
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+      body = 'Updated body',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.are.equal(42, result.data.id)
+    assert.are.equal('PRRC_kwDOABC123', result.data.node_id)
+    assert.are.equal('alice', result.data.author.login)
+    assert.are.equal('Updated body', result.data.body)
+  end)
+
+  it('validates comment_id is required', function()
+    local result = nil
+    mutations.update_comment({
+      body = 'hello',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('comment_id is required', result.error)
+  end)
+
+  it('validates body is required', function()
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('body is required', result.error)
+  end)
+
+  it('validates body cannot be empty', function()
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+      body = '   ',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('body cannot be empty', result.error)
+  end)
+
+  it('handles GraphQL errors', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = error_response('Comment not found'),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_missing',
+      body = 'hello',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('Comment not found', result.error)
+  end)
+end)

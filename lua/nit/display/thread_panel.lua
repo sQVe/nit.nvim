@@ -292,6 +292,31 @@ function M._format_quote(comment)
   return table.concat(quoted_lines, '\n') .. '\n'
 end
 
+---Apply a suggestion block from a comment to the target file buffer
+---@param comment Nit.Api.Comment
+---@param thread Nit.Api.Thread
+function M._apply_suggestion(comment, thread)
+  local content = comment.body:match('```suggestion\n(.-)%s*\n```')
+  if content == nil then
+    vim.notify('[nit] No suggestion block found in comment', vim.log.levels.WARN)
+    return
+  end
+
+  local path = thread.path or ''
+  local bufnr = vim.fn.bufnr(path)
+  if bufnr == -1 then
+    vim.notify('[nit] Open the file first to apply suggestion', vim.log.levels.WARN)
+    return
+  end
+
+  local start_line = thread.start_line or thread.line
+  local end_line = thread.line
+  local replacement = vim.split(content, '\n', { plain = true })
+
+  pcall(vim.api.nvim_buf_set_lines, bufnr, start_line - 1, end_line, false, replacement)
+  vim.notify('[nit] Suggestion applied', vim.log.levels.INFO)
+end
+
 ---Populate reply input with a quoted citation of the comment
 ---@param comment Nit.Api.Comment
 local function quote_reply(comment)
@@ -304,8 +329,75 @@ local function quote_reply(comment)
   end
 end
 
+local submit_reply
+
+---Bind reply_input C-s and CR to submit_reply (the default submit behavior)
+local function bind_submit_reply()
+  reply_input.map({ 'n', 'i' }, '<C-s>', function()
+    vim.cmd('stopinsert')
+    submit_reply()
+  end, { noremap = true })
+  reply_input.map('n', '<CR>', function()
+    submit_reply()
+  end, { noremap = true })
+end
+
+---Submit an edit for a specific comment
+---@param comment Nit.Api.Comment
+---@param comment_idx integer
+local function submit_edit(comment, comment_idx)
+  if not current_thread then
+    return
+  end
+  local body = reply_input.get_text()
+  if body == '' then
+    return
+  end
+  reply_input.clear()
+  bind_submit_reply()
+  orchestration.update_comment({
+    thread_id = current_thread.id,
+    comment_id = comment.node_id or '',
+    comment_idx = comment_idx,
+    body = body,
+  }, function(ok, returned_body)
+    if not ok and returned_body ~= nil then
+      reply_input.set_text(returned_body)
+    end
+  end)
+end
+
+---Open reply_input pre-filled with comment body for editing
+---@param comment Nit.Api.Comment
+---@param comment_idx integer
+local function edit_comment(comment, comment_idx)
+  if
+    not active_panel
+    or not active_panel.winid
+    or not vim.api.nvim_win_is_valid(active_panel.winid)
+  then
+    return
+  end
+  if not reply_input.is_open() then
+    reply_input.open(active_panel.winid)
+  end
+  reply_input.set_text(comment.body)
+  local winid = reply_input.get_winid()
+  if winid ~= nil then
+    vim.api.nvim_set_current_win(winid)
+    vim.cmd('normal! G$')
+  end
+  reply_input.map({ 'n', 'i' }, '<C-s>', function()
+    vim.cmd('stopinsert')
+    submit_edit(comment, comment_idx)
+  end, { noremap = true })
+  reply_input.map('n', '<CR>', function()
+    submit_edit(comment, comment_idx)
+  end, { noremap = true })
+end
+
 ---Submit the reply from the input area
-local function submit_reply()
+submit_reply = function()
   if not current_thread then
     return
   end
@@ -349,10 +441,14 @@ local function open_menu()
       quote_reply(c)
     end,
     on_edit_comment = function()
-      vim.notify('Edit comment not yet implemented', vim.log.levels.INFO)
+      if comment ~= nil and selected_comment_idx ~= nil then
+        edit_comment(comment, selected_comment_idx)
+      end
     end,
     on_apply_suggestion = function()
-      vim.notify('Apply suggestion not yet implemented', vim.log.levels.INFO)
+      if comment ~= nil then
+        M._apply_suggestion(comment, current_thread)
+      end
     end,
   })
 end

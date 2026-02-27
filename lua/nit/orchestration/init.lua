@@ -161,6 +161,60 @@ function M.toggle_resolved(opts, callback)
   end)
 end
 
+---Update the body of an existing review comment
+---@param opts { thread_id: Nit.Api.ThreadId, comment_id: string, comment_idx: integer, body: string }
+---@param callback fun(ok: boolean, body: string?)
+function M.update_comment(opts, callback)
+  local thread_id = opts.thread_id
+  local thread = data.get_thread(thread_id)
+  if not thread then
+    callback(false, opts.body)
+    return
+  end
+
+  local snap = snapshot.capture(thread_id)
+  local submitted_body = opts.body
+
+  local updated_thread = vim.deepcopy(thread)
+  if updated_thread.comments[opts.comment_idx] then
+    updated_thread.comments[opts.comment_idx].body = submitted_body
+  end
+  data.upsert_thread(updated_thread)
+
+  queue.enqueue(thread_id, function(done)
+    local version = versioning.increment(thread_id)
+    local cancel_key
+    local cancel = mutations.update_comment(
+      { comment_id = opts.comment_id, body = submitted_body },
+      function(result)
+        untrack_cancel(cancel_key)
+
+        if not versioning.is_current(thread_id, version) then
+          done()
+          callback(false, submitted_body)
+          return
+        end
+
+        if result.ok then
+          done()
+          callback(true, nil)
+        else
+          if snap then
+            snapshot.restore(snap)
+          end
+          done()
+          vim.notify(
+            '[nit] Edit failed: ' .. (result.error or 'unknown error'),
+            vim.log.levels.ERROR
+          )
+          callback(false, submitted_body)
+        end
+      end
+    )
+    cancel_key = track_cancel(cancel)
+  end)
+end
+
 ---Clean up orchestration state
 function M.cleanup()
   for _, cancel in pairs(cancel_fns) do

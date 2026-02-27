@@ -41,6 +41,20 @@ local UNRESOLVE_MUTATION = [[
   }
 ]]
 
+local UPDATE_COMMENT_MUTATION = [[
+  mutation($commentId: ID!, $body: String!) {
+    updatePullRequestReviewComment(input: { pullRequestReviewCommentId: $commentId, body: $body }) {
+      comment {
+        id
+        databaseId
+        author { login }
+        body
+        createdAt
+      }
+    }
+  }
+]]
+
 ---Normalize GraphQL comment response to Nit.Api.Comment
 ---@param comment_node table
 ---@return Nit.Api.Comment
@@ -48,6 +62,7 @@ local function normalize_comment(comment_node)
   local author = nil_if_vim_nil(comment_node.author)
   return {
     id = comment_node.databaseId,
+    node_id = nil_if_vim_nil(comment_node.id),
     author = author and author.login and { login = author.login } or { login = 'unknown' },
     body = nil_if_vim_nil(comment_node.body) or '',
     createdAt = nil_if_vim_nil(comment_node.createdAt) or '',
@@ -257,6 +272,56 @@ function M.unresolve_thread(opts, callback)
           isResolved = data.thread.isResolved,
         },
       })
+    end)
+  end)
+end
+
+---Update a pull request review comment body
+---@param opts Nit.Api.RequestOpts|{ comment_id: string, body: string }
+---@param callback fun(result: Nit.Api.Result<Nit.Api.Comment>)
+---@return fun() cancel Cancel function
+function M.update_comment(opts, callback)
+  if opts.comment_id == nil then
+    callback({ ok = false, error = 'comment_id is required' })
+    return function() end
+  end
+  if type(opts.comment_id) ~= 'string' or opts.comment_id == '' then
+    callback({ ok = false, error = 'comment_id is required' })
+    return function() end
+  end
+
+  local validated, err = validate_reply_opts({ thread_id = opts.comment_id, body = opts.body })
+  if not validated then
+    callback({ ok = false, error = err })
+    return function() end
+  end
+
+  local request_opts = { timeout = opts.timeout, retry = opts.retry }
+  local args = {
+    'api',
+    'graphql',
+    '-f',
+    'query=' .. UPDATE_COMMENT_MUTATION,
+    '-f',
+    'commentId=' .. opts.comment_id,
+    '-f',
+    'body=' .. validated.body,
+  }
+
+  return gh.execute(args, request_opts, function(result)
+    parse_graphql_response(result, 'updatePullRequestReviewComment', function(parse_err, data)
+      if parse_err then
+        callback({ ok = false, error = parse_err })
+        return
+      end
+
+      if not data.comment then
+        callback({ ok = false, error = 'Comment not found in response' })
+        return
+      end
+
+      local normalized = normalize_comment(data.comment)
+      callback({ ok = true, data = normalized })
     end)
   end)
 end

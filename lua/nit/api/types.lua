@@ -65,6 +65,7 @@
 
 ---@class Nit.Api.Comment
 ---@field id Nit.Api.CommentId
+---@field node_id string? GraphQL node ID (e.g. PRRC_kwDO...)
 ---@field author Nit.Api.User
 ---@field body string
 ---@field createdAt Nit.Api.Timestamp ISO 8601 timestamp
