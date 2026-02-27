@@ -34,6 +34,11 @@ local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
 local closing = false
 local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
+---@type integer?
+local selected_comment_idx = nil
+---@type table[]
+local current_ranges = {}
+
 ---Equalize non-panel windows while preserving panel width
 local function equalize_windows()
   local panel_winid = active_panel ~= nil and active_panel.winid or nil
@@ -117,16 +122,19 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@return string[], table<integer, true>
+---@return string[], table<integer, true>, table
 function M.format_thread(thread)
   local lines = {}
   local author_indices = {}
+  local ranges = {}
   local viewer_login = data.get_viewer_login()
 
   for i, comment in ipairs(thread.comments) do
     if i > 1 then
       table.insert(lines, '')
     end
+
+    local start_line = #lines + 1
 
     local author_line = ' @'
       .. comment.author.login
@@ -154,9 +162,12 @@ function M.format_thread(thread)
         table.insert(lines, ' ' .. body_line)
       end
     end
+
+    local end_line = #lines
+    table.insert(ranges, { comment_index = i, start_line = start_line, end_line = end_line })
   end
 
-  return lines, author_indices
+  return lines, author_indices, ranges
 end
 
 ---Format popup title based on thread state
@@ -443,7 +454,8 @@ function M.update(thread, scroll_to_bottom)
     reply_input.clear()
   end
 
-  local lines, author_indices = M.format_thread(thread)
+  local lines, author_indices, ranges = M.format_thread(thread)
+  current_ranges = ranges
 
   vim.bo[active_panel.bufnr].modifiable = true
   pcall(vim.api.nvim_buf_set_lines, active_panel.bufnr, 0, -1, false, lines)
