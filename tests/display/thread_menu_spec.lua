@@ -241,6 +241,62 @@ describe('nit.display.thread_menu', function()
       assert.are.equal('a', items[4].key)
     end)
 
+    it('includes React entry when comment and on_react provided', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hello', _optimistic_id = nil },
+        on_react = function() end,
+      })
+      local found = false
+      for _, item in ipairs(items) do
+        if item.key == 'z' and item.label == 'z  React' then
+          found = true
+        end
+      end
+      assert.is_true(found)
+    end)
+
+    it('excludes React entry when on_react not provided', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hello' },
+      })
+      for _, item in ipairs(items) do
+        assert.are_not.equal('z', item.key)
+      end
+    end)
+
+    it('excludes React entry when comment is optimistic', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hello', _optimistic_id = 'tmp-1' },
+        on_react = function() end,
+      })
+      for _, item in ipairs(items) do
+        assert.are_not.equal('z', item.key)
+      end
+    end)
+
+    it('React entry appears after apply suggestion', function()
+      local body = '```suggestion\nfix\n```'
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'me' }, body = body },
+        viewer_login = 'me',
+        on_quote_reply = function() end,
+        on_edit_comment = function() end,
+        on_apply_suggestion = function() end,
+        on_react = function() end,
+      })
+      assert.are.equal(5, #items)
+      assert.are.equal('a', items[4].key)
+      assert.are.equal('z', items[5].key)
+    end)
+
     it('resolve action calls on_toggle_resolved', function()
       local called = false
       local items = thread_menu.build_menu_items({

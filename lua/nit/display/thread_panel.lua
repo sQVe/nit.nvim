@@ -490,6 +490,21 @@ local function open_menu()
         M._apply_suggestion(comment, current_thread)
       end
     end,
+    on_react = function()
+      if comment ~= nil and selected_comment_idx ~= nil then
+        local reaction_picker = require('nit.display.reaction_picker')
+        reaction_picker.open({
+          comment = comment,
+          on_toggle = function(c)
+            orchestration.toggle_reaction({
+              thread_id = current_thread.id,
+              comment_idx = selected_comment_idx,
+              content = c,
+            }, function() end)
+          end,
+        })
+      end
+    end,
   })
 end
 
