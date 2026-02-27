@@ -41,6 +41,38 @@ local UNRESOLVE_MUTATION = [[
   }
 ]]
 
+local ADD_REACTION_MUTATION = [[
+  mutation($subjectId: ID!, $content: ReactionContent!) {
+    addReaction(input: { subjectId: $subjectId, content: $content }) {
+      subject {
+        ... on PullRequestReviewComment {
+          reactionGroups {
+            content
+            viewerHasReacted
+            reactors { totalCount }
+          }
+        }
+      }
+    }
+  }
+]]
+
+local REMOVE_REACTION_MUTATION = [[
+  mutation($subjectId: ID!, $content: ReactionContent!) {
+    removeReaction(input: { subjectId: $subjectId, content: $content }) {
+      subject {
+        ... on PullRequestReviewComment {
+          reactionGroups {
+            content
+            viewerHasReacted
+            reactors { totalCount }
+          }
+        }
+      }
+    }
+  }
+]]
+
 local UPDATE_COMMENT_MUTATION = [[
   mutation($commentId: ID!, $body: String!) {
     updatePullRequestReviewComment(input: { pullRequestReviewCommentId: $commentId, body: $body }) {
@@ -54,6 +86,46 @@ local UPDATE_COMMENT_MUTATION = [[
     }
   }
 ]]
+
+local VALID_REACTION_CONTENTS = {
+  THUMBS_UP = true,
+  THUMBS_DOWN = true,
+  LAUGH = true,
+  HOORAY = true,
+  CONFUSED = true,
+  HEART = true,
+  ROCKET = true,
+  EYES = true,
+}
+
+---@param reaction_groups table[]?
+---@return Nit.Api.ReactionGroup[]
+local function normalize_reaction_groups(reaction_groups)
+  if not reaction_groups then
+    return {}
+  end
+  local result = {}
+  for _, rg in ipairs(reaction_groups) do
+    result[#result + 1] = {
+      content = rg.content,
+      count = rg.reactors and rg.reactors.totalCount or 0,
+      viewer_has_reacted = rg.viewerHasReacted or false,
+    }
+  end
+  return result
+end
+
+---@param opts table
+---@return { node_id: string, content: string }?, string?
+local function validate_reaction_opts(opts)
+  if not opts.node_id or type(opts.node_id) ~= 'string' or opts.node_id == '' then
+    return nil, 'node_id is required'
+  end
+  if not opts.content or not VALID_REACTION_CONTENTS[opts.content] then
+    return nil, 'content must be a valid ReactionContent'
+  end
+  return { node_id = opts.node_id, content = opts.content }, nil
+end
 
 ---Normalize GraphQL comment response to Nit.Api.Comment
 ---@param comment_node table
@@ -71,6 +143,7 @@ local function normalize_comment(comment_node)
     side = nil,
     start_line = nil,
     start_side = nil,
+    reactions = {},
   }
 end
 
@@ -322,6 +395,78 @@ function M.update_comment(opts, callback)
 
       local normalized = normalize_comment(data.pullRequestReviewComment)
       callback({ ok = true, data = normalized })
+    end)
+  end)
+end
+
+---Add a reaction to a pull request review comment
+---@param opts Nit.Api.RequestOpts|{ node_id: string, content: Nit.Api.ReactionContent }
+---@param callback fun(result: Nit.Api.Result<Nit.Api.ReactionGroup[]>)
+---@return fun() cancel Cancel function
+function M.add_reaction(opts, callback)
+  local validated, err = validate_reaction_opts(opts)
+  if not validated then
+    callback({ ok = false, error = err })
+    return function() end
+  end
+
+  local request_opts = { timeout = opts.timeout, retry = opts.retry }
+  local args = {
+    'api',
+    'graphql',
+    '-f',
+    'query=' .. ADD_REACTION_MUTATION,
+    '-f',
+    'subjectId=' .. validated.node_id,
+    '-f',
+    'content=' .. validated.content,
+  }
+
+  return gh.execute(args, request_opts, function(result)
+    parse_graphql_response(result, 'addReaction', function(parse_err, data)
+      if parse_err then
+        callback({ ok = false, error = parse_err })
+        return
+      end
+
+      local reaction_groups = data.subject and data.subject.reactionGroups
+      callback({ ok = true, data = normalize_reaction_groups(reaction_groups) })
+    end)
+  end)
+end
+
+---Remove a reaction from a pull request review comment
+---@param opts Nit.Api.RequestOpts|{ node_id: string, content: Nit.Api.ReactionContent }
+---@param callback fun(result: Nit.Api.Result<Nit.Api.ReactionGroup[]>)
+---@return fun() cancel Cancel function
+function M.remove_reaction(opts, callback)
+  local validated, err = validate_reaction_opts(opts)
+  if not validated then
+    callback({ ok = false, error = err })
+    return function() end
+  end
+
+  local request_opts = { timeout = opts.timeout, retry = opts.retry }
+  local args = {
+    'api',
+    'graphql',
+    '-f',
+    'query=' .. REMOVE_REACTION_MUTATION,
+    '-f',
+    'subjectId=' .. validated.node_id,
+    '-f',
+    'content=' .. validated.content,
+  }
+
+  return gh.execute(args, request_opts, function(result)
+    parse_graphql_response(result, 'removeReaction', function(parse_err, data)
+      if parse_err then
+        callback({ ok = false, error = parse_err })
+        return
+      end
+
+      local reaction_groups = data.subject and data.subject.reactionGroups
+      callback({ ok = true, data = normalize_reaction_groups(reaction_groups) })
     end)
   end)
 end

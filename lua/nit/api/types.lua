@@ -27,6 +27,13 @@
 
 ---@alias Nit.Api.Reactions table<string, integer>
 
+---@alias Nit.Api.ReactionContent 'THUMBS_UP'|'THUMBS_DOWN'|'LAUGH'|'HOORAY'|'CONFUSED'|'HEART'|'ROCKET'|'EYES'
+
+---@class Nit.Api.ReactionGroup
+---@field content Nit.Api.ReactionContent
+---@field count integer
+---@field viewer_has_reacted boolean
+
 ---@alias Nit.Api.PrStateRaw 'OPEN'|'CLOSED'|'MERGED'
 ---@alias Nit.Api.PrState 'open'|'closed'|'merged'
 ---@alias Nit.Api.MergeableState 'clean'|'dirty'|'unknown'
@@ -38,7 +45,7 @@
 ---@field author Nit.Api.User
 ---@field body string
 ---@field createdAt Nit.Api.Timestamp ISO 8601 timestamp
----@field reactions Nit.Api.Reactions
+---@field reactions Nit.Api.ReactionGroup[]
 
 ---@class Nit.Api.PR
 ---@field number Nit.Api.PrNumber
@@ -75,6 +82,7 @@
 ---@field start_line Nit.Api.LineNumber?
 ---@field start_side Nit.Api.CommentSide?
 ---@field _optimistic_id string? Temporary marker for optimistic updates
+---@field reactions Nit.Api.ReactionGroup[]
 
 ---@class Nit.Api.Thread
 ---@field id Nit.Api.ThreadId

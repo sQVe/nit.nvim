@@ -33,6 +33,11 @@ local REVIEW_THREADS_QUERY = [[
                 author { login }
                 body
                 createdAt
+                reactionGroups {
+                  content
+                  viewerHasReacted
+                  reactors { totalCount }
+                }
               }
             }
           }
@@ -41,6 +46,23 @@ local REVIEW_THREADS_QUERY = [[
     }
   }
 ]]
+
+---@param reaction_groups table[]?
+---@return Nit.Api.ReactionGroup[]
+local function normalize_reaction_groups(reaction_groups)
+  if not reaction_groups then
+    return {}
+  end
+  local result = {}
+  for _, rg in ipairs(reaction_groups) do
+    result[#result + 1] = {
+      content = rg.content,
+      count = rg.reactors and rg.reactors.totalCount or 0,
+      viewer_has_reacted = rg.viewerHasReacted or false,
+    }
+  end
+  return result
+end
 
 ---Normalize GraphQL thread nodes to Nit.Api.Thread format
 ---@param thread_nodes table[]
@@ -65,6 +87,7 @@ local function normalize_threads(thread_nodes)
         side = nil_if_vim_nil(thread_node.diffSide),
         start_line = nil_if_vim_nil(thread_node.startLine),
         start_side = nil_if_vim_nil(thread_node.startDiffSide),
+        reactions = normalize_reaction_groups(comment_node.reactionGroups),
       }
     end
 

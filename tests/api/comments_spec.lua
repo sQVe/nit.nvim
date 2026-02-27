@@ -475,6 +475,128 @@ describe('fetch_comments', function()
     assert.are.equal('Could not resolve to a Repository', result.error)
   end)
 
+  it('populates reactions from reactionGroups', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
+      {
+        code = 0,
+        stdout = vim.json.encode({ number = 123 }),
+        stderr = '',
+      },
+      {
+        code = 0,
+        stdout = graphql_response({
+          {
+            id = 'PRRT_1',
+            isResolved = false,
+            path = 'file.lua',
+            line = 1,
+            diffSide = 'RIGHT',
+            comments = {
+              nodes = {
+                {
+                  databaseId = 1,
+                  author = { login = 'alice' },
+                  body = 'A comment',
+                  createdAt = '2024-01-01T10:00:00Z',
+                  reactionGroups = {
+                    {
+                      content = 'THUMBS_UP',
+                      viewerHasReacted = true,
+                      reactors = { totalCount = 3 },
+                    },
+                    {
+                      content = 'HEART',
+                      viewerHasReacted = false,
+                      reactors = { totalCount = 1 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    comments.fetch_comments({}, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    local comment = result.data[1].comments[1]
+    assert.are.equal(2, #comment.reactions)
+    assert.are.equal('THUMBS_UP', comment.reactions[1].content)
+    assert.are.equal(3, comment.reactions[1].count)
+    assert.is_true(comment.reactions[1].viewer_has_reacted)
+    assert.are.equal('HEART', comment.reactions[2].content)
+    assert.are.equal(1, comment.reactions[2].count)
+    assert.is_false(comment.reactions[2].viewer_has_reacted)
+  end)
+
+  it('defaults reactions to empty table when no reactionGroups', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = 'git@github.com:owner/repo.git\n',
+        stderr = '',
+      },
+      {
+        code = 0,
+        stdout = vim.json.encode({ number = 123 }),
+        stderr = '',
+      },
+      {
+        code = 0,
+        stdout = graphql_response({
+          {
+            id = 'PRRT_1',
+            isResolved = false,
+            path = 'file.lua',
+            line = 1,
+            diffSide = 'RIGHT',
+            comments = {
+              nodes = {
+                {
+                  databaseId = 1,
+                  author = { login = 'alice' },
+                  body = 'A comment',
+                  createdAt = '2024-01-01T10:00:00Z',
+                },
+              },
+            },
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    comments.fetch_comments({}, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    local comment = result.data[1].comments[1]
+    assert.are.same({}, comment.reactions)
+  end)
+
   it('falls back to unknown for null author', function()
     mock_system_results = {
       {

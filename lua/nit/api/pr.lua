@@ -121,17 +121,30 @@ local function normalize_reviewers(reviewRequests, reviews)
   return result
 end
 
----Normalize reactions array into emoji count map
 ---@param reactions table[]?
----@return Nit.Api.Reactions
-local function normalize_reactions(reactions)
+---@param viewer_login? string
+---@return Nit.Api.ReactionGroup[]
+local function normalize_reactions(reactions, viewer_login)
   if not reactions then
     return {}
   end
   local result = {}
   for _, reaction in ipairs(reactions) do
     local users = reaction.users or {}
-    result[reaction.content] = #users
+    local viewer_has_reacted = false
+    if viewer_login then
+      for _, user in ipairs(users) do
+        if user.login == viewer_login then
+          viewer_has_reacted = true
+          break
+        end
+      end
+    end
+    result[#result + 1] = {
+      content = reaction.content,
+      count = #users,
+      viewer_has_reacted = viewer_has_reacted,
+    }
   end
   return result
 end
