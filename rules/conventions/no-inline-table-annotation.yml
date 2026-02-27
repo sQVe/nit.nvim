@@ -1,0 +1,12 @@
+id: no-inline-table-annotation
+language: Lua
+severity: warning
+message: >
+  Use a named type instead of an inline table type in LuaCATS annotations.
+  Define ---@class MyType with ---@field entries, then reference it by name.
+  Change: ---@param opts { key: Type }  →  ---@param opts MyType
+rule:
+  kind: comment
+  any:
+    - regex: '@param\s+\w+\??\s+\{'
+    - regex: '@return\s+\{'
