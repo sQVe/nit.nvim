@@ -10,8 +10,7 @@ local data = require('nit.state.data')
 local observers = require('nit.state.observers')
 local orchestration = require('nit.orchestration')
 
----@type {key: string, label: string}[]
-local hint_registry = {
+local DEFAULT_HINTS = {
   { key = 'C-s', label = 'Submit reply' },
   { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
@@ -19,6 +18,9 @@ local hint_registry = {
   { key = 'Esc', label = 'Close' },
   { key = '?', label = 'Help' },
 }
+
+---@type {key: string, label: string}[]
+local hint_registry = vim.deepcopy(DEFAULT_HINTS)
 
 ---@type any?
 local active_panel = nil
@@ -68,18 +70,13 @@ local function redraw_selection()
   end
   for _, range in ipairs(current_ranges) do
     if range.comment_index == selected_comment_idx then
-      pcall(
-        vim.api.nvim_buf_set_extmark,
-        active_panel.bufnr,
-        selection_ns,
-        range.start_line - 1,
-        0,
-        {
+      for line = range.start_line, range.end_line do
+        pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, line - 1, 0, {
           line_hl_group = 'NitThreadSelected',
           hl_eol = true,
           priority = 300,
-        }
-      )
+        })
+      end
       break
     end
   end
@@ -352,6 +349,10 @@ function M._apply_suggestion(comment, thread)
 
   local start_line = thread.start_line or thread.line
   local end_line = thread.line
+  if not start_line or not end_line then
+    vim.notify('[nit] Cannot apply suggestion: line info unavailable', vim.log.levels.WARN)
+    return
+  end
   local replacement = vim.split(content, '\n', { plain = true })
 
   pcall(vim.api.nvim_buf_set_lines, bufnr, start_line - 1, end_line, false, replacement)
@@ -361,6 +362,14 @@ end
 ---Populate reply input with a quoted citation of the comment
 ---@param comment Nit.Api.Comment
 local function quote_reply(comment)
+  if
+    not reply_input.is_open()
+    and active_panel
+    and active_panel.winid
+    and vim.api.nvim_win_is_valid(active_panel.winid)
+  then
+    reply_input.open(active_panel.winid)
+  end
   local text = M._format_quote(comment)
   reply_input.append_text(text)
   local winid = reply_input.get_winid()
@@ -388,6 +397,10 @@ end
 ---@param comment_idx integer
 local function submit_edit(comment, comment_idx)
   if not current_thread then
+    return
+  end
+  if not comment.node_id or comment.node_id == '' then
+    vim.notify('[nit] Cannot edit comment: missing ID', vim.log.levels.WARN)
     return
   end
   local body = reply_input.get_text()
@@ -472,7 +485,8 @@ local function open_menu()
   end
   local in_reply = reply_input.is_open()
     and vim.api.nvim_get_current_win() == reply_input.get_winid()
-  thread_menu.open(current_thread, {
+  thread_menu.open({
+    thread = current_thread,
     on_toggle_resolved = toggle_resolved,
     comment = comment,
     viewer_login = data.get_viewer_login(),
@@ -523,6 +537,8 @@ end
 ---Show or update the thread panel
 ---@param thread Nit.Api.Thread
 function M.show(thread)
+  hint_registry = vim.deepcopy(DEFAULT_HINTS)
+
   if active_panel then
     if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
       M.update(thread)
@@ -604,6 +620,9 @@ function M.show(thread)
     end
     local comment = current_thread.comments[comment_idx]
     local text = M._format_quote_selection(comment.author.login, lines)
+    if not reply_input.is_open() then
+      reply_input.open(panel.winid)
+    end
     reply_input.append_text(text)
     local winid = reply_input.get_winid()
     if winid ~= nil then
@@ -715,6 +734,7 @@ function M.update(thread, scroll_to_bottom)
 
   if thread_changed then
     reply_input.clear()
+    bind_submit_reply()
     selected_comment_idx = nil
     pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
   end

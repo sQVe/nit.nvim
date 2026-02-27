@@ -59,7 +59,8 @@ describe('thread_panel', function()
         },
       }
 
-      local lines, author_indices = thread_panel.format_thread(thread)
+      local lines, author_indices, ranges, reaction_line_indices =
+        thread_panel.format_thread(thread)
 
       assert.is_table(lines)
       assert.is_true(#lines > 0)
@@ -70,6 +71,8 @@ describe('thread_panel', function()
       assert.matches('Test body', combined, 1, true)
 
       assert.is_true(author_indices[1])
+      assert.are.equal(1, #ranges)
+      assert.are.same({}, reaction_line_indices)
     end)
 
     it('separates multiple comments with blank lines', function()
@@ -1415,10 +1418,10 @@ describe('thread_panel', function()
       assert.is_not_nil(ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
-      assert.are.equal(1, #marks, 'should have exactly one extmark for header line only')
+      assert.are.equal(3, #marks, 'should highlight all lines in comment range')
     end)
 
-    it('_select_comment highlights only the header line, not the full range', function()
+    it('_select_comment highlights the full comment range', function()
       tp.show(make_thread_multi())
       vim.wait(50, function()
         return tp.is_open()
@@ -1430,12 +1433,9 @@ describe('thread_panel', function()
       assert.is_not_nil(ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
-      assert.are.equal(1, #marks, 'should highlight only header line, not full comment range')
-      assert.are.equal(
-        0,
-        marks[1][2],
-        'header extmark should be on line 0 (first line of comment 1)'
-      )
+      assert.are.equal(3, #marks, 'should highlight all lines in comment range')
+      assert.are.equal(0, marks[1][2], 'first extmark on line 0')
+      assert.are.equal(2, marks[3][2], 'last extmark on line 2')
     end)
 
     it('_select_comment(nil) clears all selection extmarks', function()
