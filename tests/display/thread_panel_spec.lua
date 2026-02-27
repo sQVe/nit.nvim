@@ -3,6 +3,50 @@ local thread_panel = require('nit.display.thread_panel')
 local data = require('nit.state.data')
 
 describe('thread_panel', function()
+  describe('format_relative_time', function()
+    local orig_time
+
+    before_each(function()
+      orig_time = os.time
+    end)
+
+    after_each(function()
+      -- selene: allow(incorrect_standard_library_use)
+      os.time = orig_time
+    end)
+
+    it(
+      'shows just now for a UTC timestamp equal to current time in a UTC+1 timezone (regression nit.nvim-231)',
+      function()
+        local real_now = orig_time()
+        local utc_timestamp = os.date('!%Y-%m-%dT%H:%M:%SZ', real_now)
+
+        -- selene: allow(incorrect_standard_library_use)
+        os.time = function(t)
+          if t == nil then
+            return real_now
+          end
+          return orig_time(t) - 3600
+        end
+
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Hello',
+              createdAt = utc_timestamp,
+            },
+          },
+        }
+
+        local lines = thread_panel.format_thread(thread)
+        local combined = table.concat(lines, '\n')
+
+        assert.matches('just now', combined, 1, true)
+      end
+    )
+  end)
+
   describe('format_thread', function()
     it('formats single comment with @ prefix in header', function()
       local thread = {
@@ -689,6 +733,87 @@ describe('thread_panel', function()
       tp.close()
     end)
 
+    it('reply input has <CR> normal mode mapping after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+
+      local keymaps = vim.api.nvim_buf_get_keymap(bufnr, 'n')
+      local has_cr = false
+      for _, km in ipairs(keymaps) do
+        if km.lhs == '<CR>' then
+          has_cr = true
+          break
+        end
+      end
+
+      assert.is_true(has_cr, 'reply input must have <CR> normal mode mapping for submit')
+
+      tp.close()
+    end)
+
+    it('reply input buffer has textwidth=0 after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+      assert.are.equal(0, vim.bo[bufnr].textwidth)
+
+      tp.close()
+    end)
+
+    it('reply input buffer has formatoptions="" after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local bufnr = ri.get_bufnr()
+      assert.is_not_nil(bufnr)
+      assert.are.equal('', vim.bo[bufnr].formatoptions)
+
+      tp.close()
+    end)
+
+    it('reply input window has wrap=true after show', function()
+      local tp = require('nit.display.thread_panel')
+      local ri = require('nit.display.reply_input')
+
+      tp.show(make_thread())
+
+      vim.wait(50, function()
+        return tp.is_open() and ri.is_open()
+      end)
+
+      local winid = ri.get_winid()
+      assert.is_not_nil(winid)
+      assert.is_true(vim.wo[winid].wrap)
+      assert.is_true(vim.wo[winid].linebreak)
+      assert.is_true(vim.wo[winid].breakindent)
+      assert.are.equal(' ', vim.wo[winid].showbreak)
+
+      tp.close()
+    end)
+
     it('calling M.close() twice does not error', function()
       local tp = require('nit.display.thread_panel')
 
@@ -708,6 +833,9 @@ describe('thread_panel', function()
     local orig_observers, orig_data, orig_orchestration
 
     before_each(function()
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        pcall(vim.api.nvim_win_close, w, true)
+      end
       package.loaded['nit.display.thread_panel'] = nil
       package.loaded['nit.display.reply_input'] = nil
 

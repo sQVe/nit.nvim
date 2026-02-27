@@ -13,6 +13,7 @@ local orchestration = require('nit.orchestration')
 ---@type {key: string, label: string}[]
 local hint_registry = {
   { key = 'C-s', label = 'Submit reply' },
+  { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
   { key = 'q', label = 'Close' },
   { key = 'Esc', label = 'Close' },
@@ -94,7 +95,7 @@ local function format_relative_time(iso_timestamp)
     return iso_timestamp
   end
   local utc_offset = now - os.time(utc_table)
-  local parsed_utc = parsed_as_local - utc_offset
+  local parsed_utc = parsed_as_local + utc_offset
 
   local diff = os.difftime(os.time(), parsed_utc)
 
@@ -266,7 +267,8 @@ local function on_comments_changed()
   end
   local updated = data.get_thread(current_thread.id)
   if updated ~= nil then
-    M.update(updated)
+    local has_new_comments = #updated.comments > #current_thread.comments
+    M.update(updated, has_new_comments)
   end
 end
 
@@ -340,13 +342,17 @@ function M.show(thread)
   end, { noremap = true })
 
   active_panel = panel
-  M.update(thread)
+  M.update(thread, false)
 
   if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
     reply_input.open(active_panel.winid)
 
     reply_input.map({ 'n', 'i' }, '<C-s>', function()
       vim.cmd('stopinsert')
+      submit_reply()
+    end, { noremap = true })
+
+    reply_input.map('n', '<CR>', function()
       submit_reply()
     end, { noremap = true })
 
@@ -386,6 +392,10 @@ function M.show(thread)
   end
 
   equalize_windows()
+
+  if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
+    pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
+  end
 end
 
 ---Compute per-line highlight assignments for author header lines.
@@ -412,7 +422,8 @@ end
 
 ---Update panel content and chrome for the given thread
 ---@param thread Nit.Api.Thread
-function M.update(thread)
+---@param scroll_to_bottom? boolean nil=scroll on thread change, true=always scroll, false=never scroll
+function M.update(thread, scroll_to_bottom)
   if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
     return
   end
@@ -459,6 +470,9 @@ function M.update(thread)
 
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
     vim.wo[active_panel.winid].winbar = M.build_winbar(thread)
+    if scroll_to_bottom ~= false and (thread_changed or scroll_to_bottom) then
+      pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
+    end
   end
 end
 

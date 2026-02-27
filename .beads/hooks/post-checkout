@@ -1,18 +1,12 @@
 #!/usr/bin/env sh
-# bd-shim v1
-# bd-hooks-version: 0.55.1
+# bd-shim v2
+# bd-hooks-version: 0.56.1
 #
 # bd (beads) post-checkout hook - thin shim
 #
-# This shim delegates to 'bd hook post-checkout' which contains
+# This shim delegates to 'bd hooks run post-checkout' which contains
 # the actual hook logic. This pattern ensures hook behavior is always
 # in sync with the installed bd version - no manual updates needed.
-#
-# The 'bd hook' command (singular) supports:
-# - Guard against frequent firing (only imports if JSONL changed)
-# - Per-worktree state tracking
-# - Dolt branch-then-merge pattern
-# - Hook chaining configuration
 
 # Check if bd is available
 if ! command -v bd >/dev/null 2>&1; then
@@ -20,4 +14,5 @@ if ! command -v bd >/dev/null 2>&1; then
     exit 0
 fi
 
-exec bd hook post-checkout "$@"
+export BD_GIT_HOOK=1
+exec bd hooks run post-checkout "$@"

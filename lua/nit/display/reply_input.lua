@@ -18,14 +18,16 @@ function M.open(panel_winid)
 
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.bo[bufnr].buftype = 'nofile'
-  vim.bo[bufnr].filetype = 'markdown'
+  vim.bo[bufnr].filetype = 'nit'
+  vim.bo[bufnr].formatoptions = ''
+  vim.bo[bufnr].textwidth = 0
   vim.bo[bufnr].modifiable = true
   vim.bo[bufnr].bufhidden = 'wipe'
 
   local ok, winid = pcall(vim.api.nvim_open_win, bufnr, false, {
     split = 'below',
     win = panel_winid,
-    height = 5,
+    height = 8,
   })
   if not ok then
     pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
@@ -38,7 +40,10 @@ function M.open(panel_winid)
   vim.wo[winid].signcolumn = 'no'
   vim.wo[winid].fillchars = 'eob: '
   vim.wo[winid].winhighlight = 'Normal:NormalFloat,FloatBorder:FloatBorder'
-  vim.wo[winid].winbar = '%#NitThreadHintKey# C-s%#NitThreadHintLabel# Submit%*'
+  vim.wo[winid].wrap = true
+  vim.wo[winid].linebreak = true
+  vim.wo[winid].breakindent = true
+  vim.wo[winid].showbreak = ' '
 
   input_bufnr = bufnr
   input_winid = winid
@@ -120,7 +125,7 @@ end
 ---@param rhs function|string
 ---@param opts table?
 function M.map(mode, lhs, rhs, opts)
-  if input_bufnr == nil then
+  if not M.is_open() then
     return
   end
   opts = opts or {}
