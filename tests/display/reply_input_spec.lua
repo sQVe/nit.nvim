@@ -10,7 +10,10 @@ describe('nit.display.reply_input', function()
       package.loaded['nit.display.reply_input'] = nil
       reply_input = require('nit.display.reply_input')
       panel_bufnr = vim.api.nvim_create_buf(false, true)
-      panel_winid = vim.api.nvim_open_win(panel_bufnr, false, { split = 'right' })
+      local ref_win = vim.iter(vim.api.nvim_list_wins()):find(function(w)
+        return vim.api.nvim_win_get_config(w).relative == ''
+      end)
+      panel_winid = vim.api.nvim_open_win(panel_bufnr, false, { split = 'right', win = ref_win })
     end)
 
     after_each(function()
