@@ -70,11 +70,18 @@ local function redraw_selection()
   end
   for _, range in ipairs(current_ranges) do
     if range.comment_index == selected_comment_idx then
-      pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, range.start_line - 1, 0, {
-        line_hl_group = 'NitThreadSelected',
-        hl_eol = true,
-        priority = 300,
-      })
+      pcall(
+        vim.api.nvim_buf_set_extmark,
+        active_panel.bufnr,
+        selection_ns,
+        range.start_line - 1,
+        0,
+        {
+          line_hl_group = 'NitThreadSelected',
+          hl_eol = true,
+          priority = 300,
+        }
+      )
       break
     end
   end
@@ -632,7 +639,6 @@ function M.show(thread)
     if start_lnum > end_lnum or (start_lnum == end_lnum and start_col > end_col) then
       start_lnum, start_col, end_lnum, end_col = end_lnum, end_col, start_lnum, start_col
     end
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'nx', false)
     local lines = M._extract_visual_text(panel.bufnr, start_lnum, start_col, end_lnum, end_col)
     if #lines == 0 then
       return

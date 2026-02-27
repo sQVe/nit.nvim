@@ -1518,7 +1518,13 @@ describe('thread_panel', function()
 
     it('extracts across multiple buffer lines', function()
       local bufnr = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' first line', ' second line', ' third line' })
+      vim.api.nvim_buf_set_lines(
+        bufnr,
+        0,
+        -1,
+        false,
+        { ' first line', ' second line', ' third line' }
+      )
       local result = thread_panel._extract_visual_text(bufnr, 1, 5, 3, 9)
       assert.are.same({ 'st line', ' second line', ' third li' }, result)
       vim.api.nvim_buf_delete(bufnr, { force = true })
