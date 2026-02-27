@@ -360,11 +360,7 @@ local function submit_edit(comment, comment_idx)
     comment_id = comment.node_id or '',
     comment_idx = comment_idx,
     body = body,
-  }, function(ok, returned_body)
-    if not ok and returned_body ~= nil then
-      reply_input.set_text(returned_body)
-    end
-  end)
+  }, function() end)
 end
 
 ---Open reply_input pre-filled with comment body for editing
