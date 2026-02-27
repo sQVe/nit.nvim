@@ -511,23 +511,6 @@ local function open_menu(selected_lines)
   end
   local in_reply = reply_input.is_open()
     and vim.api.nvim_get_current_win() == reply_input.get_winid()
-  local on_quote_selection = nil
-  if selected_lines ~= nil and comment ~= nil then
-    local lines = selected_lines
-    local c = comment
-    on_quote_selection = function()
-      local text = M._format_quote_selection(c.author.login, lines)
-      if not reply_input.is_open() then
-        reply_input.open(active_panel.winid)
-      end
-      reply_input.append_text(text)
-      local winid = reply_input.get_winid()
-      if winid ~= nil then
-        vim.api.nvim_set_current_win(winid)
-        vim.cmd('normal! G$')
-      end
-    end
-  end
   thread_menu.open({
     thread = current_thread,
     on_toggle_resolved = toggle_resolved,
@@ -535,9 +518,21 @@ local function open_menu(selected_lines)
     viewer_login = data.get_viewer_login(),
     in_reply_input = in_reply,
     on_quote_reply = function(c)
-      quote_reply(c)
+      if selected_lines ~= nil then
+        local text = M._format_quote_selection(c.author.login, selected_lines)
+        if not reply_input.is_open() then
+          reply_input.open(active_panel.winid)
+        end
+        reply_input.append_text(text)
+        local winid = reply_input.get_winid()
+        if winid ~= nil then
+          vim.api.nvim_set_current_win(winid)
+          vim.cmd('normal! G$')
+        end
+      else
+        quote_reply(c)
+      end
     end,
-    on_quote_selection = on_quote_selection,
     on_edit_comment = function()
       if comment ~= nil and selected_comment_idx ~= nil then
         edit_comment(comment, selected_comment_idx)
