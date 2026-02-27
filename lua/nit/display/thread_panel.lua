@@ -266,7 +266,7 @@ function M.format_title(thread)
 end
 
 ---Register keybinding hints
----@param hints {key: string, label: string}[]
+---@param hints Nit.Display.HelpHint[]
 function M.register_hints(hints)
   for _, hint in ipairs(hints) do
     table.insert(hint_registry, hint)
@@ -279,7 +279,7 @@ function M.clear_hints()
 end
 
 ---Get current hint registry
----@return {key: string, label: string}[]
+---@return Nit.Display.HelpHint[]
 function M.get_hints()
   return hint_registry
 end

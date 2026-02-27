@@ -2,13 +2,17 @@
 ---@class Nit.Display.HelpPopup
 local M = {}
 
+---@class Nit.Display.HelpHint
+---@field key string
+---@field label string
+
 local Popup = require('nui.popup')
 
 ---@type any?
 local active_popup = nil
 
 ---Format hints into aligned display lines
----@param hints {key: string, label: string}[]
+---@param hints Nit.Display.HelpHint[]
 ---@return string[]
 function M.format_hint_lines(hints)
   if #hints == 0 then
@@ -30,7 +34,7 @@ function M.format_hint_lines(hints)
 end
 
 ---Show keybinding help popup
----@param hints {key: string, label: string}[]
+---@param hints Nit.Display.HelpHint[]
 function M.show(hints)
   if active_popup then
     active_popup:unmount()
@@ -91,7 +95,7 @@ function M.is_open()
 end
 
 ---Toggle the help popup open/closed
----@param hints {key: string, label: string}[]
+---@param hints Nit.Display.HelpHint[]
 function M.toggle(hints)
   if M.is_open() then
     M.close()

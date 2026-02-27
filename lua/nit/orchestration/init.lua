@@ -12,6 +12,13 @@ local M = {}
 ---@field comment_idx integer
 ---@field content Nit.Api.ReactionContent
 
+---@class Nit.Orchestration.SubmitReplyOpts
+---@field thread_id Nit.Api.ThreadId
+---@field body string
+
+---@class Nit.Orchestration.ToggleResolvedOpts
+---@field thread_id Nit.Api.ThreadId
+
 local data = require('nit.state.data')
 local mutations = require('nit.api.mutations')
 local versioning = require('nit.orchestration.versioning')
@@ -41,7 +48,7 @@ local function untrack_cancel(key)
 end
 
 ---Submit a reply to a review thread
----@param opts { thread_id: Nit.Api.ThreadId, body: string }
+---@param opts Nit.Orchestration.SubmitReplyOpts
 ---@param callback fun(ok: boolean, body: string?)
 function M.submit_reply(opts, callback)
   local thread_id = opts.thread_id
@@ -121,7 +128,7 @@ function M.submit_reply(opts, callback)
 end
 
 ---Toggle resolved state of a review thread
----@param opts { thread_id: Nit.Api.ThreadId }
+---@param opts Nit.Orchestration.ToggleResolvedOpts
 ---@param callback fun(ok: boolean)
 function M.toggle_resolved(opts, callback)
   local thread_id = opts.thread_id

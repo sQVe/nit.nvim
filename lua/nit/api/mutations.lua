@@ -1,6 +1,14 @@
 ---@class Nit.Api.Mutations
 local M = {}
 
+---@class Nit.Api.ValidReactionOpts
+---@field node_id string
+---@field content string
+
+---@class Nit.Api.ValidReplyOpts
+---@field thread_id string
+---@field body string
+
 local gh = require('nit.api.gh')
 local util = require('nit.api.util')
 
@@ -116,7 +124,7 @@ local function normalize_reaction_groups(reaction_groups)
 end
 
 ---@param opts table
----@return { node_id: string, content: string }?, string?
+---@return Nit.Api.ValidReactionOpts?, string?
 local function validate_reaction_opts(opts)
   if not opts.node_id or type(opts.node_id) ~= 'string' or opts.node_id == '' then
     return nil, 'node_id is required'
@@ -196,7 +204,7 @@ end
 
 ---Validate reply options and trim body
 ---@param opts table
----@return { thread_id: string, body: string }?, string? error
+---@return Nit.Api.ValidReplyOpts?, string? error
 local function validate_reply_opts(opts)
   local err = validate_thread_id(opts.thread_id)
   if err then
