@@ -381,8 +381,10 @@ function M.show(thread)
     group = augroup,
     buffer = panel.bufnr,
     callback = function()
-      local cursor = vim.api.nvim_win_get_cursor(panel.winid)
-      M._select_comment(M._find_comment_at_line(cursor[1], current_ranges))
+      local ok, cursor = pcall(vim.api.nvim_win_get_cursor, panel.winid)
+      if ok then
+        M._select_comment(M._find_comment_at_line(cursor[1], current_ranges))
+      end
     end,
   })
 
