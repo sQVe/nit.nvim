@@ -144,7 +144,7 @@ function M.normalize_reaction_groups(reaction_groups)
     result[#result + 1] = {
       content = rg.content,
       count = rg.reactors and rg.reactors.totalCount or 0,
-      viewer_has_reacted = rg.viewerHasReacted or false,
+      viewer_has_reacted = rg.viewerHasReacted == true,
     }
   end
   return result

@@ -9,6 +9,10 @@ local M = {}
 ---@field thread_id string
 ---@field body string
 
+---@class Nit.Api.ValidUpdateCommentOpts
+---@field comment_id string
+---@field body string
+
 local gh = require('nit.api.gh')
 local util = require('nit.api.util')
 
@@ -223,7 +227,7 @@ local function validate_reply_opts(opts)
 end
 
 ---Submit a reply to a review thread
----@param opts Nit.Api.RequestOpts|{ thread_id: string, body: string }
+---@param opts Nit.Api.RequestOpts|Nit.Api.ValidReplyOpts
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Comment>)
 ---@return fun() cancel Cancel function
 function M.reply_to_thread(opts, callback)
@@ -354,7 +358,7 @@ function M.unresolve_thread(opts, callback)
 end
 
 ---Update a pull request review comment body
----@param opts Nit.Api.RequestOpts|{ comment_id: string, body: string }
+---@param opts Nit.Api.RequestOpts|Nit.Api.ValidUpdateCommentOpts
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.Comment>)
 ---@return fun() cancel Cancel function
 function M.update_comment(opts, callback)
@@ -404,7 +408,7 @@ function M.update_comment(opts, callback)
 end
 
 ---Add a reaction to a pull request review comment
----@param opts Nit.Api.RequestOpts|{ node_id: string, content: Nit.Api.ReactionContent }
+---@param opts Nit.Api.RequestOpts|Nit.Api.ValidReactionOpts
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.ReactionGroup[]>)
 ---@return fun() cancel Cancel function
 function M.add_reaction(opts, callback)
@@ -440,7 +444,7 @@ function M.add_reaction(opts, callback)
 end
 
 ---Remove a reaction from a pull request review comment
----@param opts Nit.Api.RequestOpts|{ node_id: string, content: Nit.Api.ReactionContent }
+---@param opts Nit.Api.RequestOpts|Nit.Api.ValidReactionOpts
 ---@param callback fun(result: Nit.Api.Result<Nit.Api.ReactionGroup[]>)
 ---@return fun() cancel Cancel function
 function M.remove_reaction(opts, callback)

@@ -19,7 +19,7 @@ local DEFAULT_HINTS = {
   { key = '?', label = 'Help' },
 }
 
----@type {key: string, label: string}[]
+---@type Nit.Display.HelpHint[]
 local hint_registry = vim.deepcopy(DEFAULT_HINTS)
 
 ---@type any?

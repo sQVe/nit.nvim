@@ -113,7 +113,7 @@ describe('nit.display.reaction_picker', function()
       )
       assert.are.equal(8, #lines)
       local thumbs_line = lines[1]
-      assert.is_truthy(thumbs_line:find('👍'), 'first line should contain 👍')
+      assert.is_true(thumbs_line:find('👍') ~= nil, 'first line should contain 👍')
       assert.is_nil(thumbs_line:find('✓'), 'should not contain ✓')
     end)
 

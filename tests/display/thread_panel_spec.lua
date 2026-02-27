@@ -413,7 +413,7 @@ describe('thread_panel', function()
         for idx in pairs(reaction_line_indices) do
           reaction_idx = idx
         end
-        assert.is_not_nil(reaction_idx)
+        assert.is_true(nil ~= reaction_idx)
         assert.matches('👍 1', lines[reaction_idx], 1, true)
         assert.are.equal('', lines[reaction_idx + 1])
       end)
@@ -748,7 +748,7 @@ describe('thread_panel', function()
 
         local result = thread_panel.get_line_highlights(lines, author_indices)
 
-        assert.is_not_nil(result[5])
+        assert.is_true(nil ~= result[5])
         assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
         assert.are.equal('NitThreadAuthor', result[5].hl_group)
 
@@ -775,10 +775,10 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
-      assert.is_not_nil(result[5])
+      assert.is_true(nil ~= result[5])
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
 
       if result[9] then
@@ -798,7 +798,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[5])
+      assert.is_true(nil ~= result[5])
       assert.are.equal('NitThreadAuthor', result[5].hl_group)
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
     end)
@@ -813,7 +813,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal('NitThreadAuthor', result[1].hl_group)
       assert.are.equal('NitThreadComment', result[1].line_hl_group)
     end)
@@ -826,7 +826,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal(42, result[1].text_col)
     end)
 
@@ -836,7 +836,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal(1, result[1].text_col)
     end)
 
@@ -946,7 +946,7 @@ describe('thread_panel', function()
       assert.is_true(tp.is_open())
 
       local panel_winid = tp.get_winid()
-      assert.is_not_nil(panel_winid)
+      assert.is_true(nil ~= panel_winid)
 
       vim.api.nvim_win_close(panel_winid, true)
 
@@ -973,7 +973,7 @@ describe('thread_panel', function()
       assert.is_true(ri.is_open())
 
       local reply_winid = ri.get_winid()
-      assert.is_not_nil(reply_winid)
+      assert.is_true(nil ~= reply_winid)
 
       vim.api.nvim_win_close(reply_winid, true)
 
@@ -998,7 +998,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
 
       local keymaps = vim.api.nvim_buf_get_keymap(bufnr, 'n')
       local has_cr = false
@@ -1025,7 +1025,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
       assert.are.equal(0, vim.bo[bufnr].textwidth)
 
       tp.close()
@@ -1042,7 +1042,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
       assert.are.equal('', vim.bo[bufnr].formatoptions)
 
       tp.close()
@@ -1059,7 +1059,7 @@ describe('thread_panel', function()
       end)
 
       local winid = ri.get_winid()
-      assert.is_not_nil(winid)
+      assert.is_true(nil ~= winid)
       assert.is_true(vim.wo[winid].wrap)
       assert.is_true(vim.wo[winid].linebreak)
       assert.is_true(vim.wo[winid].breakindent)
@@ -1147,7 +1147,7 @@ describe('thread_panel', function()
       end)
 
       local panel_winid = tp.get_winid()
-      assert.is_not_nil(panel_winid)
+      assert.is_true(nil ~= panel_winid)
       assert.are.equal(60, vim.api.nvim_win_get_width(panel_winid))
 
       tp.close()
@@ -1415,7 +1415,7 @@ describe('thread_panel', function()
       tp._select_comment(1)
 
       local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
-      assert.is_not_nil(ns_id)
+      assert.is_true(nil ~= ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
       assert.are.equal(3, #marks, 'should highlight all lines in comment range')
@@ -1430,7 +1430,7 @@ describe('thread_panel', function()
       tp._select_comment(1)
 
       local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
-      assert.is_not_nil(ns_id)
+      assert.is_true(nil ~= ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
       assert.are.equal(3, #marks, 'should highlight all lines in comment range')
@@ -1448,7 +1448,7 @@ describe('thread_panel', function()
       tp._select_comment(nil)
 
       local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
-      assert.is_not_nil(ns_id)
+      assert.is_true(nil ~= ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
       assert.are.equal(0, #marks, 'should have no extmarks after deselect')
@@ -1464,11 +1464,10 @@ describe('thread_panel', function()
       tp._select_comment(2)
 
       local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
-      assert.is_not_nil(ns_id)
+      assert.is_true(nil ~= ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
       assert.is_true(#marks > 0, 'should have extmarks for comment 2')
-      -- Comment 2 starts at line 5 (1-based), so 0-indexed = 4
       for _, mark in ipairs(marks) do
         local mark_line = mark[2]
         assert.is_true(mark_line >= 4, 'marks should only be on comment 2 range')
