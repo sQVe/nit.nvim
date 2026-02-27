@@ -152,8 +152,9 @@ end
 ---Normalize issue comments and review body comments into a single sorted list
 ---@param comments table[]?
 ---@param reviews table[]?
+---@param viewer_login? string
 ---@return Nit.Api.IssueComment[]
-local function normalize_comments(comments, reviews)
+local function normalize_comments(comments, reviews, viewer_login)
   local result = {}
 
   if comments then
@@ -167,7 +168,7 @@ local function normalize_comments(comments, reviews)
         } or { login = 'unknown' },
         body = comment.body,
         createdAt = comment.createdAt,
-        reactions = normalize_reactions(comment.reactions),
+        reactions = normalize_reactions(comment.reactions, viewer_login),
       })
     end
   end
@@ -200,8 +201,9 @@ end
 
 ---Normalize PR data from GitHub API format to plugin format
 ---@param data table
+---@param viewer_login? string
 ---@return Nit.Api.PR
-local function normalize_pr(data)
+local function normalize_pr(data, viewer_login)
   local author = nil_if_vim_nil(data.author)
   return {
     assignees = normalize_assignees(data.assignees),
@@ -209,7 +211,7 @@ local function normalize_pr(data)
       or { login = 'unknown' },
     baseRefName = nil_if_vim_nil(data.baseRefName),
     body = nil_if_vim_nil(data.body),
-    comments = normalize_comments(data.comments, data.reviews),
+    comments = normalize_comments(data.comments, data.reviews, viewer_login),
     createdAt = data.createdAt,
     headRefName = nil_if_vim_nil(data.headRefName),
     isDraft = data.isDraft,
@@ -226,6 +228,7 @@ end
 ---@class Nit.Api.FetchPROpts : Nit.Api.RequestOpts
 ---@field number? integer PR number to fetch
 ---@field branch? string Branch name to fetch PR for
+---@field viewer_login? string Viewer login for reaction attribution
 
 ---Fetch PR metadata from GitHub
 ---@param opts Nit.Api.FetchPROpts Options
@@ -259,7 +262,7 @@ function M.fetch_pr(opts, callback)
       return
     end
 
-    local normalized = normalize_pr(data)
+    local normalized = normalize_pr(data, opts.viewer_login)
     callback({ ok = true, data = normalized })
   end)
 end

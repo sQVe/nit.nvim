@@ -13,6 +13,7 @@ local gh = require('nit.api.gh')
 local util = require('nit.api.util')
 
 local nil_if_vim_nil = util.nil_if_vim_nil
+local normalize_reaction_groups = util.normalize_reaction_groups
 
 local REPLY_MUTATION = [[
   mutation($threadId: ID!, $body: String!) {
@@ -106,23 +107,6 @@ local VALID_REACTION_CONTENTS = {
   EYES = true,
 }
 
----@param reaction_groups table[]?
----@return Nit.Api.ReactionGroup[]
-local function normalize_reaction_groups(reaction_groups)
-  if not reaction_groups then
-    return {}
-  end
-  local result = {}
-  for _, rg in ipairs(reaction_groups) do
-    result[#result + 1] = {
-      content = rg.content,
-      count = rg.reactors and rg.reactors.totalCount or 0,
-      viewer_has_reacted = rg.viewerHasReacted or false,
-    }
-  end
-  return result
-end
-
 ---@param opts table
 ---@return Nit.Api.ValidReactionOpts?, string?
 local function validate_reaction_opts(opts)
@@ -202,6 +186,25 @@ local function validate_thread_id(thread_id)
   return nil
 end
 
+---Validate and trim body text
+---@param body any
+---@return string?, string? error
+local function validate_body(body)
+  if body == nil then
+    return nil, 'body is required'
+  end
+  if type(body) ~= 'string' then
+    return nil, 'body must be a string'
+  end
+
+  local trimmed = body:match('^%s*(.-)%s*$')
+  if trimmed == '' then
+    return nil, 'body cannot be empty'
+  end
+
+  return trimmed, nil
+end
+
 ---Validate reply options and trim body
 ---@param opts table
 ---@return Nit.Api.ValidReplyOpts?, string? error
@@ -211,16 +214,9 @@ local function validate_reply_opts(opts)
     return nil, err
   end
 
-  if opts.body == nil then
-    return nil, 'body is required'
-  end
-  if type(opts.body) ~= 'string' then
-    return nil, 'body must be a string'
-  end
-
-  local trimmed_body = opts.body:match('^%s*(.-)%s*$')
-  if trimmed_body == '' then
-    return nil, 'body cannot be empty'
+  local trimmed_body, body_err = validate_body(opts.body)
+  if not trimmed_body then
+    return nil, body_err
   end
 
   return { thread_id = opts.thread_id, body = trimmed_body }, nil
@@ -371,8 +367,8 @@ function M.update_comment(opts, callback)
     return function() end
   end
 
-  local validated, err = validate_reply_opts({ thread_id = opts.comment_id, body = opts.body })
-  if not validated then
+  local trimmed_body, err = validate_body(opts.body)
+  if not trimmed_body then
     callback({ ok = false, error = err })
     return function() end
   end
@@ -386,7 +382,7 @@ function M.update_comment(opts, callback)
     '-f',
     'commentId=' .. opts.comment_id,
     '-f',
-    'body=' .. validated.body,
+    'body=' .. trimmed_body,
   }
 
   return gh.execute(args, request_opts, function(result)

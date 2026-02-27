@@ -25,8 +25,6 @@
 ---@field login string
 ---@field state Nit.Api.ReviewerState
 
----@alias Nit.Api.Reactions table<string, integer>
-
 ---@alias Nit.Api.ReactionContent 'THUMBS_UP'|'THUMBS_DOWN'|'LAUGH'|'HOORAY'|'CONFUSED'|'HEART'|'ROCKET'|'EYES'
 
 ---@class Nit.Api.ReactionGroup

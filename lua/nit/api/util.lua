@@ -132,4 +132,22 @@ function M.with_pr_context(opts, inner, on_error)
   end
 end
 
+---Normalize GraphQL reactionGroups to Nit.Api.ReactionGroup format
+---@param reaction_groups table[]?
+---@return Nit.Api.ReactionGroup[]
+function M.normalize_reaction_groups(reaction_groups)
+  if not reaction_groups then
+    return {}
+  end
+  local result = {}
+  for _, rg in ipairs(reaction_groups) do
+    result[#result + 1] = {
+      content = rg.content,
+      count = rg.reactors and rg.reactors.totalCount or 0,
+      viewer_has_reacted = rg.viewerHasReacted or false,
+    }
+  end
+  return result
+end
+
 return M
