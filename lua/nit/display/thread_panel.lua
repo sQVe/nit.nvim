@@ -549,4 +549,36 @@ function M.get_current_thread()
   return current_thread
 end
 
+---Find the comment index for a given buffer line number
+---@param line integer 1-based line number
+---@param ranges table CommentRange[]
+---@return integer? comment_index or nil if not in any range
+function M._find_comment_at_line(line, ranges)
+  for _, range in ipairs(ranges) do
+    if line >= range.start_line and line <= range.end_line then
+      return range.comment_index
+    end
+  end
+  return nil
+end
+
+---Get the currently selected comment index
+---@return integer?
+function M._get_selected_idx()
+  return selected_comment_idx
+end
+
+---Select a comment by index, with bounds checking
+---@param idx integer?
+function M._select_comment(idx)
+  if idx == nil then
+    selected_comment_idx = nil
+    return
+  end
+  if idx < 1 or idx > #current_ranges then
+    return
+  end
+  selected_comment_idx = idx
+end
+
 return M
