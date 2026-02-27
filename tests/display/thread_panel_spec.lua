@@ -1127,4 +1127,160 @@ describe('thread_panel', function()
       assert.is_nil(thread_panel._get_selected_idx())
     end)
   end)
+
+  describe('comment selection lifecycle', function()
+    local orig_observers, orig_data, orig_orchestration
+    local tp
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+
+      tp = require('nit.display.thread_panel')
+    end)
+
+    after_each(function()
+      if tp.is_open() then
+        tp.close()
+      end
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    local function make_thread_multi()
+      return {
+        id = 'thread-multi',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'First', createdAt = '2026-01-01T12:00:00Z' },
+          { author = { login = 'bob' }, body = 'Second', createdAt = '2026-01-02T12:00:00Z' },
+        },
+      }
+    end
+
+    it('CursorMoved on panel buffer updates selected_comment_idx', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      vim.api.nvim_win_set_cursor(tp.get_winid(), { 1, 0 })
+      vim.api.nvim_exec_autocmds('CursorMoved', { buffer = bufnr })
+
+      assert.are.equal(1, tp._get_selected_idx())
+    end)
+
+    it('j keymap from unselected state selects first comment', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
+
+      assert.are.equal(1, tp._get_selected_idx())
+    end)
+
+    it('k keymap when first comment selected is a no-op', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('k', true, false, true), 'x', false)
+
+      assert.are.equal(1, tp._get_selected_idx())
+    end)
+
+    it('j keymap when last comment selected is a no-op', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(2)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
+
+      assert.are.equal(2, tp._get_selected_idx())
+    end)
+
+    it('thread change resets selected_comment_idx to nil', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      assert.are.equal(1, tp._get_selected_idx())
+
+      local different_thread = {
+        id = 'thread-different',
+        isResolved = false,
+        comments = {
+          { author = { login = 'carol' }, body = 'Other', createdAt = '2026-01-03T12:00:00Z' },
+        },
+      }
+      tp.update(different_thread)
+
+      assert.is_nil(tp._get_selected_idx())
+    end)
+
+    it('M.close() resets selected_comment_idx to nil', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      assert.are.equal(1, tp._get_selected_idx())
+
+      tp.close()
+
+      assert.is_nil(tp._get_selected_idx())
+    end)
+  end)
 end)

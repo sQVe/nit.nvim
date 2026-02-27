@@ -360,8 +360,31 @@ function M.show(thread)
     open_menu()
   end, { noremap = true })
 
+  panel:map('n', 'j', function()
+    if selected_comment_idx == nil then
+      M._select_comment(1)
+    else
+      M._select_comment(selected_comment_idx + 1)
+    end
+  end, { noremap = true })
+
+  panel:map('n', 'k', function()
+    if selected_comment_idx ~= nil then
+      M._select_comment(selected_comment_idx - 1)
+    end
+  end, { noremap = true })
+
   active_panel = panel
   M.update(thread, false)
+
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = augroup,
+    buffer = panel.bufnr,
+    callback = function()
+      local cursor = vim.api.nvim_win_get_cursor(panel.winid)
+      M._select_comment(M._find_comment_at_line(cursor[1], current_ranges))
+    end,
+  })
 
   if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
     reply_input.open(active_panel.winid)
@@ -452,6 +475,7 @@ function M.update(thread, scroll_to_bottom)
 
   if thread_changed then
     reply_input.clear()
+    selected_comment_idx = nil
   end
 
   local lines, author_indices, ranges = M.format_thread(thread)
@@ -517,6 +541,7 @@ function M.close()
     active_panel:unmount()
     active_panel = nil
     current_thread = nil
+    selected_comment_idx = nil
   end
 
   pcall(function()
