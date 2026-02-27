@@ -1,7 +1,6 @@
-.planning/
+# Cache.
 .tests/
-doc/tags
 
-# Dolt database files (added by bd init)
-.dolt/
-*.db
+# Beads / Dolt
+/.beads/dolt-monitor.*
+/.beads/dolt-server.*
