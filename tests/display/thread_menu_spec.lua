@@ -37,7 +37,7 @@ describe('nit.display.thread_menu', function()
     end)
 
     it('menu is open after open() call', function()
-      thread_menu.open(thread, { on_toggle_resolved = function() end })
+      thread_menu.open({ thread = thread, on_toggle_resolved = function() end })
 
       vim.wait(50, function()
         return thread_menu.is_open()
@@ -48,7 +48,8 @@ describe('nit.display.thread_menu', function()
 
     it('<CR> on resolve line invokes on_toggle_resolved and closes menu', function()
       local called = false
-      thread_menu.open(thread, {
+      thread_menu.open({
+        thread = thread,
         on_toggle_resolved = function()
           called = true
         end,
@@ -70,7 +71,7 @@ describe('nit.display.thread_menu', function()
     end)
 
     it('menu closes after <CR>', function()
-      thread_menu.open(thread, { on_toggle_resolved = function() end })
+      thread_menu.open({ thread = thread, on_toggle_resolved = function() end })
 
       vim.wait(50, function()
         return thread_menu.is_open()
