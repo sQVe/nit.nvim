@@ -1507,6 +1507,32 @@ describe('thread_panel', function()
     end)
   end)
 
+  describe('_extract_visual_text', function()
+    it('extracts substring from single line', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' some long paragraph text here' })
+      local result = thread_panel._extract_visual_text(bufnr, 1, 7, 1, 20)
+      assert.are.same({ 'long paragraph' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('extracts across multiple buffer lines', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' first line', ' second line', ' third line' })
+      local result = thread_panel._extract_visual_text(bufnr, 1, 5, 3, 9)
+      assert.are.same({ 'st line', ' second line', ' third li' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('handles single character selection', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' hello' })
+      local result = thread_panel._extract_visual_text(bufnr, 1, 3, 1, 3)
+      assert.are.same({ 'e' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+  end)
+
   describe('_apply_suggestion', function()
     local original_notify
     local notified = {}

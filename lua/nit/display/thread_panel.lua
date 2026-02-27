@@ -328,6 +328,26 @@ function M._format_quote_selection(author_login, selected_lines)
   return table.concat(quoted_lines, '\n') .. '\n'
 end
 
+---Extract visually selected text from buffer with column precision
+---@param bufnr integer
+---@param start_lnum integer 1-based line number
+---@param start_col integer 1-based column
+---@param end_lnum integer 1-based line number
+---@param end_col integer 1-based column
+---@return string[]
+function M._extract_visual_text(bufnr, start_lnum, start_col, end_lnum, end_col)
+  local ok, buf_lines = pcall(vim.api.nvim_buf_get_lines, bufnr, start_lnum - 1, end_lnum, false)
+  if not ok or #buf_lines == 0 then
+    return {}
+  end
+  if start_lnum == end_lnum then
+    return { string.sub(buf_lines[1], start_col, end_col) }
+  end
+  buf_lines[1] = string.sub(buf_lines[1], start_col)
+  buf_lines[#buf_lines] = string.sub(buf_lines[#buf_lines], 1, end_col)
+  return buf_lines
+end
+
 ---Apply a suggestion block from a comment to the target file buffer
 ---@param comment Nit.Api.Comment
 ---@param thread Nit.Api.Thread
@@ -605,14 +625,19 @@ function M.show(thread)
   end, { noremap = true })
 
   panel:map('v', '<C-a>', function()
-    local start_line = vim.fn.line("'<")
-    local end_line = vim.fn.line("'>")
-    local ok, lines =
-      pcall(vim.api.nvim_buf_get_lines, panel.bufnr, start_line - 1, end_line, false)
-    if not ok then
+    local v_start = vim.fn.getpos('v')
+    local v_end = vim.fn.getpos('.')
+    local start_lnum, start_col = v_start[2], v_start[3]
+    local end_lnum, end_col = v_end[2], v_end[3]
+    if start_lnum > end_lnum or (start_lnum == end_lnum and start_col > end_col) then
+      start_lnum, start_col, end_lnum, end_col = end_lnum, end_col, start_lnum, start_col
+    end
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'nx', false)
+    local lines = M._extract_visual_text(panel.bufnr, start_lnum, start_col, end_lnum, end_col)
+    if #lines == 0 then
       return
     end
-    local comment_idx = M._find_comment_at_line(start_line, current_ranges)
+    local comment_idx = M._find_comment_at_line(start_lnum, current_ranges)
     if comment_idx == nil or current_thread == nil then
       return
     end
