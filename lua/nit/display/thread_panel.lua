@@ -32,6 +32,7 @@ local unsubscribe_comments = nil
 
 local PANEL_WIDTH = 60
 local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
+local selection_ns = vim.api.nvim_create_namespace('nit_thread_selection')
 local closing = false
 local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
@@ -44,6 +45,42 @@ local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 local selected_comment_idx = nil
 ---@type Nit.Display.CommentRange[]
 local current_ranges = {}
+
+---Apply NitThreadSelected highlight to the selected comment's lines
+local function redraw_selection()
+  if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
+    return
+  end
+  pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
+  if selected_comment_idx == nil then
+    return
+  end
+  for _, range in ipairs(current_ranges) do
+    if range.comment_index == selected_comment_idx then
+      for line = range.start_line, range.end_line do
+        pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, line - 1, 0, {
+          line_hl_group = 'NitThreadSelected',
+          hl_eol = true,
+          priority = 300,
+        })
+      end
+      break
+    end
+  end
+end
+
+---Move cursor to the start line of the selected comment
+local function cursor_to_selected()
+  if selected_comment_idx == nil or active_panel == nil then
+    return
+  end
+  for _, range in ipairs(current_ranges) do
+    if range.comment_index == selected_comment_idx then
+      pcall(vim.api.nvim_win_set_cursor, active_panel.winid, { range.start_line, 0 })
+      break
+    end
+  end
+end
 
 ---Equalize non-panel windows while preserving panel width
 local function equalize_windows()
@@ -241,6 +278,32 @@ function M.get_title_highlight(thread)
   end
 end
 
+---Format a comment as a block-quoted reply
+---@param comment Nit.Api.Comment
+---@return string
+function M._format_quote(comment)
+  local body = comment.body:gsub('\r', '')
+  local body_lines = vim.split(body, '\n', { plain = true })
+  local quoted_lines = { '> @' .. comment.author.login .. ':' }
+  for _, line in ipairs(body_lines) do
+    table.insert(quoted_lines, '> ' .. line)
+  end
+  table.insert(quoted_lines, '')
+  return table.concat(quoted_lines, '\n') .. '\n'
+end
+
+---Populate reply input with a quoted citation of the comment
+---@param comment Nit.Api.Comment
+local function quote_reply(comment)
+  local text = M._format_quote(comment)
+  reply_input.set_text(text)
+  local winid = reply_input.get_winid()
+  if winid ~= nil then
+    vim.api.nvim_set_current_win(winid)
+    vim.cmd('normal! G$')
+  end
+end
+
 ---Submit the reply from the input area
 local function submit_reply()
   if not current_thread then
@@ -282,6 +345,15 @@ local function open_menu()
     on_toggle_resolved = toggle_resolved,
     comment = comment,
     viewer_login = data.get_viewer_login(),
+    on_quote_reply = function(c)
+      quote_reply(c)
+    end,
+    on_edit_comment = function()
+      vim.notify('Edit comment not yet implemented', vim.log.levels.INFO)
+    end,
+    on_apply_suggestion = function()
+      vim.notify('Apply suggestion not yet implemented', vim.log.levels.INFO)
+    end,
   })
 end
 
@@ -372,12 +444,14 @@ function M.show(thread)
     else
       M._select_comment(selected_comment_idx + 1)
     end
+    cursor_to_selected()
   end, { noremap = true })
 
   panel:map('n', 'k', function()
     if selected_comment_idx ~= nil then
       M._select_comment(selected_comment_idx - 1)
     end
+    cursor_to_selected()
   end, { noremap = true })
 
   active_panel = panel
@@ -484,6 +558,7 @@ function M.update(thread, scroll_to_bottom)
   if thread_changed then
     reply_input.clear()
     selected_comment_idx = nil
+    pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
   end
 
   local lines, author_indices, ranges = M.format_thread(thread)
@@ -606,12 +681,14 @@ end
 function M._select_comment(idx)
   if idx == nil then
     selected_comment_idx = nil
+    redraw_selection()
     return
   end
   if idx < 1 or idx > #current_ranges then
     return
   end
   selected_comment_idx = idx
+  redraw_selection()
 end
 
 return M

@@ -1323,5 +1323,112 @@ describe('thread_panel', function()
 
       assert.is_nil(tp._get_selected_idx())
     end)
+
+    it('_select_comment applies NitThreadSelected extmarks on selected range', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_not_nil(ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.is_true(#marks > 0, 'should have extmarks for selected range')
+    end)
+
+    it('_select_comment(nil) clears all selection extmarks', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      tp._select_comment(nil)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_not_nil(ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(0, #marks, 'should have no extmarks after deselect')
+    end)
+
+    it('changing selection moves highlight to new comment', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      tp._select_comment(2)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_not_nil(ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.is_true(#marks > 0, 'should have extmarks for comment 2')
+      -- Comment 2 starts at line 5 (1-based), so 0-indexed = 4
+      for _, mark in ipairs(marks) do
+        local mark_line = mark[2]
+        assert.is_true(mark_line >= 4, 'marks should only be on comment 2 range')
+      end
+    end)
+
+    it('j keymap moves cursor to comment 1 start line', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
+
+      local cursor = vim.api.nvim_win_get_cursor(tp.get_winid())
+      assert.are.equal(1, cursor[1])
+    end)
+
+    it('j from comment 1 moves cursor to comment 2 start line', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
+
+      local cursor = vim.api.nvim_win_get_cursor(tp.get_winid())
+      assert.are.equal(5, cursor[1])
+    end)
+
+    it('k from comment 2 moves cursor to comment 1 start line', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(2)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('k', true, false, true), 'x', false)
+
+      local cursor = vim.api.nvim_win_get_cursor(tp.get_winid())
+      assert.are.equal(1, cursor[1])
+    end)
+  end)
+
+  describe('_format_quote', function()
+    it('formats single-line comment as quoted reply', function()
+      local comment = { author = { login = 'alice' }, body = 'Hello' }
+      local result = thread_panel._format_quote(comment)
+      assert.are.equal('> @alice:\n> Hello\n\n', result)
+    end)
+
+    it('formats multi-line comment as quoted reply', function()
+      local comment = { author = { login = 'alice' }, body = 'Line 1\nLine 2' }
+      local result = thread_panel._format_quote(comment)
+      assert.are.equal('> @alice:\n> Line 1\n> Line 2\n\n', result)
+    end)
   end)
 end)
