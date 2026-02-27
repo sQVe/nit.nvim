@@ -102,6 +102,7 @@ describe('nit.orchestration.init', function()
       assert.is_nil(optimistic.side)
       assert.is_nil(optimistic.start_line)
       assert.is_nil(optimistic.start_side)
+      assert.are.same({}, optimistic.reactions)
       assert.is_not_nil(optimistic.createdAt)
     end)
 

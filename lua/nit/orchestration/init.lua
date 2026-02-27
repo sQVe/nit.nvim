@@ -74,6 +74,7 @@ function M.submit_reply(opts, callback)
     side = nil,
     start_line = nil,
     start_side = nil,
+    reactions = {},
   }
 
   local updated_thread = vim.deepcopy(thread)
@@ -214,6 +215,12 @@ function M.update_comment(opts, callback)
         end
 
         if result.ok then
+          local current = data.get_thread(thread_id)
+          if current and current.comments[opts.comment_idx] and result.data then
+            local final = vim.deepcopy(current)
+            final.comments[opts.comment_idx].body = result.data.body
+            data.upsert_thread(final)
+          end
           done()
           callback(true, nil)
         else
