@@ -379,7 +379,7 @@ describe('thread_panel', function()
           },
         }
 
-        local lines, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
 
         assert.are.same({}, reaction_line_indices)
       end)
@@ -439,26 +439,29 @@ describe('thread_panel', function()
         assert.is_true(has_entry)
       end)
 
-      it('returns viewer_has_reacted=false in reaction_line_indices when no viewer reactions', function()
-        local thread = {
-          comments = {
-            {
-              author = { login = 'alice' },
-              body = 'Test',
-              createdAt = '2026-01-01T12:00:00Z',
-              reactions = {
-                { content = 'THUMBS_UP', count = 3, viewer_has_reacted = false },
+      it(
+        'returns viewer_has_reacted=false in reaction_line_indices when no viewer reactions',
+        function()
+          local thread = {
+            comments = {
+              {
+                author = { login = 'alice' },
+                body = 'Test',
+                createdAt = '2026-01-01T12:00:00Z',
+                reactions = {
+                  { content = 'THUMBS_UP', count = 3, viewer_has_reacted = false },
+                },
               },
             },
-          },
-        }
+          }
 
-        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+          local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
 
-        for _, viewer_reacted in pairs(reaction_line_indices) do
-          assert.is_false(viewer_reacted)
+          for _, viewer_reacted in pairs(reaction_line_indices) do
+            assert.is_false(viewer_reacted)
+          end
         end
-      end)
+      )
 
       it('includes reaction line in comment range end_line', function()
         local thread = {

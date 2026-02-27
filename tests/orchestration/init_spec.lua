@@ -732,7 +732,10 @@ describe('nit.orchestration.init', function()
       })
       data.set_threads({ thread })
 
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function() end
+      )
 
       assert.is_true(api_called)
       local updated = data.get_thread(1)
@@ -756,7 +759,10 @@ describe('nit.orchestration.init', function()
       })
       data.set_threads({ thread })
 
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'HEART' }, function() end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'HEART' },
+        function() end
+      )
 
       assert.is_not_nil(called_opts)
       assert.are.equal('PRRC_abc123', called_opts.node_id)
@@ -781,7 +787,10 @@ describe('nit.orchestration.init', function()
       })
       data.set_threads({ thread })
 
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function() end
+      )
 
       assert.are.equal('remove', called_fn)
       local updated = data.get_thread(1)
@@ -802,7 +811,10 @@ describe('nit.orchestration.init', function()
       local thread = create_thread_with_reactions(1, {})
       data.set_threads({ thread })
 
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'ROCKET' }, function() end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'ROCKET' },
+        function() end
+      )
 
       assert.is_true(api_called)
       local updated = data.get_thread(1)
@@ -828,9 +840,12 @@ describe('nit.orchestration.init', function()
       data.set_threads({ thread })
 
       local callback_result = nil
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
-        callback_result = ok
-      end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function(ok)
+          callback_result = ok
+        end
+      )
 
       local server_reactions = {
         { content = 'THUMBS_UP', count = 5, viewer_has_reacted = true },
@@ -858,14 +873,18 @@ describe('nit.orchestration.init', function()
         end,
       }))
 
-      local original_reactions = { { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false } }
+      local original_reactions =
+        { { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false } }
       local thread = create_thread_with_reactions(1, vim.deepcopy(original_reactions))
       data.set_threads({ thread })
 
       local callback_result = nil
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
-        callback_result = ok
-      end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function(ok)
+          callback_result = ok
+        end
+      )
 
       api_callback({ ok = false, error = 'server error' })
 
@@ -881,9 +900,12 @@ describe('nit.orchestration.init', function()
       setup_with_mock(make_mock_mutations())
 
       local result = nil
-      orchestration.toggle_reaction({ thread_id = 999, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
-        result = ok
-      end)
+      orchestration.toggle_reaction(
+        { thread_id = 999, comment_idx = 1, content = 'THUMBS_UP' },
+        function(ok)
+          result = ok
+        end
+      )
 
       assert.is_false(result)
     end)
@@ -895,9 +917,12 @@ describe('nit.orchestration.init', function()
       data.set_threads({ thread })
 
       local result = nil
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 99, content = 'THUMBS_UP' }, function(ok)
-        result = ok
-      end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 99, content = 'THUMBS_UP' },
+        function(ok)
+          result = ok
+        end
+      )
 
       assert.is_false(result)
     end)
@@ -916,19 +941,21 @@ describe('nit.orchestration.init', function()
       data.set_threads({ thread })
 
       local result = nil
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
-        result = ok
-      end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function(ok)
+          result = ok
+        end
+      )
 
       assert.is_false(result)
       assert.is_false(add_called)
     end)
 
     it('floors optimistic count at 0 when count is already 0', function()
-      local api_callback = nil
       setup_with_mock(make_mock_mutations({
         remove_reaction = function(_, cb)
-          api_callback = cb
+          cb({ ok = true, data = {} })
           return function() end
         end,
       }))
@@ -938,7 +965,10 @@ describe('nit.orchestration.init', function()
       })
       data.set_threads({ thread })
 
-      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+      orchestration.toggle_reaction(
+        { thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' },
+        function() end
+      )
 
       local updated = data.get_thread(1)
       assert.are.equal(0, updated.comments[1].reactions[1].count)
