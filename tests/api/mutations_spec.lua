@@ -767,7 +767,7 @@ describe('update_comment', function()
       {
         code = 0,
         stdout = mutation_response('updatePullRequestReviewComment', {
-          comment = {
+          pullRequestReviewComment = {
             id = 'PRRC_kwDOABC123',
             databaseId = 42,
             author = { login = 'alice' },

@@ -44,7 +44,7 @@ local UNRESOLVE_MUTATION = [[
 local UPDATE_COMMENT_MUTATION = [[
   mutation($commentId: ID!, $body: String!) {
     updatePullRequestReviewComment(input: { pullRequestReviewCommentId: $commentId, body: $body }) {
-      comment {
+      pullRequestReviewComment {
         id
         databaseId
         author { login }
@@ -315,12 +315,12 @@ function M.update_comment(opts, callback)
         return
       end
 
-      if not data.comment then
+      if not data.pullRequestReviewComment then
         callback({ ok = false, error = 'Comment not found in response' })
         return
       end
 
-      local normalized = normalize_comment(data.comment)
+      local normalized = normalize_comment(data.pullRequestReviewComment)
       callback({ ok = true, data = normalized })
     end)
   end)
