@@ -1336,7 +1336,23 @@ describe('thread_panel', function()
       assert.is_not_nil(ns_id)
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
-      assert.is_true(#marks > 0, 'should have extmarks for selected range')
+      assert.are.equal(1, #marks, 'should have exactly one extmark for header line only')
+    end)
+
+    it('_select_comment highlights only the header line, not the full range', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_not_nil(ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(1, #marks, 'should highlight only header line, not full comment range')
+      assert.are.equal(0, marks[1][2], 'header extmark should be on line 0 (first line of comment 1)')
     end)
 
     it('_select_comment(nil) clears all selection extmarks', function()

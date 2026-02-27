@@ -57,13 +57,11 @@ local function redraw_selection()
   end
   for _, range in ipairs(current_ranges) do
     if range.comment_index == selected_comment_idx then
-      for line = range.start_line, range.end_line do
-        pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, line - 1, 0, {
-          line_hl_group = 'NitThreadSelected',
-          hl_eol = true,
-          priority = 300,
-        })
-      end
+      pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, range.start_line - 1, 0, {
+        line_hl_group = 'NitThreadSelected',
+        hl_eol = true,
+        priority = 300,
+      })
       break
     end
   end
