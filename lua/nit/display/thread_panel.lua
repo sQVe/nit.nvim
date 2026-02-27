@@ -12,6 +12,7 @@ local orchestration = require('nit.orchestration')
 
 ---@type {key: string, label: string}[]
 local hint_registry = {
+  { key = 'j/k', label = 'Navigate comments' },
   { key = 'C-s', label = 'Submit reply' },
   { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
@@ -34,9 +35,14 @@ local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
 local closing = false
 local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
+---@class Nit.Display.CommentRange
+---@field comment_index integer
+---@field start_line integer
+---@field end_line integer
+
 ---@type integer?
 local selected_comment_idx = nil
----@type table[]
+---@type Nit.Display.CommentRange[]
 local current_ranges = {}
 
 ---Equalize non-panel windows while preserving panel width
@@ -122,7 +128,7 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@return string[], table<integer, true>, table
+---@return string[], table<integer, true>, Nit.Display.CommentRange[]
 function M.format_thread(thread)
   local lines = {}
   local author_indices = {}
@@ -578,8 +584,8 @@ end
 
 ---Find the comment index for a given buffer line number
 ---@param line integer 1-based line number
----@param ranges table CommentRange[]
----@return integer? comment_index or nil if not in any range
+---@param ranges Nit.Display.CommentRange[]
+---@return integer?
 function M._find_comment_at_line(line, ranges)
   for _, range in ipairs(ranges) do
     if line >= range.start_line and line <= range.end_line then

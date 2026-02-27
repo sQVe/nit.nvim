@@ -553,6 +553,21 @@ describe('thread_panel', function()
       end
       assert.is_true(found)
     end)
+
+    it('default hints include j/k Navigate comments entry', function()
+      package.loaded['nit.display.thread_panel'] = nil
+      local tp = require('nit.display.thread_panel')
+
+      local hints = tp.get_hints()
+
+      local found = false
+      for _, hint in ipairs(hints) do
+        if hint.key == 'j/k' and hint.label == 'Navigate comments' then
+          found = true
+        end
+      end
+      assert.is_true(found)
+    end)
   end)
 
   describe('get_line_highlights', function()
@@ -1235,6 +1250,19 @@ describe('thread_panel', function()
       assert.are.equal(1, tp._get_selected_idx())
     end)
 
+    it('j keymap advances from comment 1 to comment 2', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
+
+      assert.are.equal(2, tp._get_selected_idx())
+    end)
+
     it('j keymap when last comment selected is a no-op', function()
       tp.show(make_thread_multi())
       vim.wait(50, function()
@@ -1246,6 +1274,19 @@ describe('thread_panel', function()
       vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('j', true, false, true), 'x', false)
 
       assert.are.equal(2, tp._get_selected_idx())
+    end)
+
+    it('k keymap goes from comment 2 to comment 1', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(2)
+      vim.api.nvim_set_current_win(tp.get_winid())
+      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('k', true, false, true), 'x', false)
+
+      assert.are.equal(1, tp._get_selected_idx())
     end)
 
     it('thread change resets selected_comment_idx to nil', function()
