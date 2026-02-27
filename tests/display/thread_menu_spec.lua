@@ -125,6 +125,19 @@ describe('nit.display.thread_menu', function()
       assert.are.equal(1, #items)
     end)
 
+    it('excludes quote reply when in_reply_input is true', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hello' },
+        on_quote_reply = function() end,
+        in_reply_input = true,
+      })
+      for _, item in ipairs(items) do
+        assert.are_not.equal('q', item.key)
+      end
+    end)
+
     it('includes edit when viewer owns non-optimistic comment', function()
       local items = thread_menu.build_menu_items({
         thread = { isResolved = false },

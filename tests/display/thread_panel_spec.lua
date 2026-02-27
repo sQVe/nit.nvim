@@ -553,7 +553,6 @@ describe('thread_panel', function()
       end
       assert.is_true(found)
     end)
-
   end)
 
   describe('get_line_highlights', function()
@@ -1274,7 +1273,11 @@ describe('thread_panel', function()
       local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
       local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
       assert.are.equal(1, #marks, 'should highlight only header line, not full comment range')
-      assert.are.equal(0, marks[1][2], 'header extmark should be on line 0 (first line of comment 1)')
+      assert.are.equal(
+        0,
+        marks[1][2],
+        'header extmark should be on line 0 (first line of comment 1)'
+      )
     end)
 
     it('_select_comment(nil) clears all selection extmarks', function()
@@ -1313,7 +1316,6 @@ describe('thread_panel', function()
         assert.is_true(mark_line >= 4, 'marks should only be on comment 2 range')
       end
     end)
-
   end)
 
   describe('_format_quote', function()
@@ -1327,6 +1329,28 @@ describe('thread_panel', function()
       local comment = { author = { login = 'alice' }, body = 'Line 1\nLine 2' }
       local result = thread_panel._format_quote(comment)
       assert.are.equal('> @alice:\n> Line 1\n> Line 2\n\n', result)
+    end)
+  end)
+
+  describe('_format_quote_selection', function()
+    it('formats selected lines as quoted reply with author attribution', function()
+      local result = thread_panel._format_quote_selection('alice', { ' Hello', ' World' })
+      assert.are.equal('> @alice:\n> Hello\n> World\n\n', result)
+    end)
+
+    it('formats single selected line', function()
+      local result = thread_panel._format_quote_selection('bob', { ' One line' })
+      assert.are.equal('> @bob:\n> One line\n\n', result)
+    end)
+
+    it('handles empty lines in selection', function()
+      local result = thread_panel._format_quote_selection('alice', { ' First', '', ' Third' })
+      assert.are.equal('> @alice:\n> First\n> \n> Third\n\n', result)
+    end)
+
+    it('strips single leading space from panel-formatted lines', function()
+      local result = thread_panel._format_quote_selection('alice', { ' indented' })
+      assert.are.equal('> @alice:\n> indented\n\n', result)
     end)
   end)
 

@@ -13,7 +13,7 @@ local active_popup = nil
 ---@field action fun()
 
 ---Build context-sensitive menu items
----@param opts { thread: Nit.Api.Thread, on_toggle_resolved: fun(), comment: table?, viewer_login: string?, on_quote_reply: (fun(comment: table))?, on_edit_comment: (fun())?, on_apply_suggestion: (fun())? }
+---@param opts { thread: Nit.Api.Thread, on_toggle_resolved: fun(), comment: table?, viewer_login: string?, on_quote_reply: (fun(comment: table))?, on_edit_comment: (fun())?, on_apply_suggestion: (fun())?, in_reply_input: boolean? }
 ---@return Nit.Display.MenuItem[]
 function M.build_menu_items(opts)
   local items = {}
@@ -25,7 +25,7 @@ function M.build_menu_items(opts)
     action = opts.on_toggle_resolved,
   }
 
-  if opts.comment ~= nil and opts.on_quote_reply ~= nil then
+  if opts.comment ~= nil and opts.on_quote_reply ~= nil and not opts.in_reply_input then
     ---@type table
     local comment = opts.comment
     items[#items + 1] = {
@@ -68,7 +68,7 @@ end
 
 ---Open the action menu for a thread
 ---@param thread Nit.Api.Thread
----@param callbacks { on_toggle_resolved: fun(), comment: table?, viewer_login: string?, on_quote_reply: (fun(comment: table))?, on_edit_comment: (fun())?, on_apply_suggestion: (fun())? }
+---@param callbacks { on_toggle_resolved: fun(), comment: table?, viewer_login: string?, on_quote_reply: (fun(comment: table))?, on_edit_comment: (fun())?, on_apply_suggestion: (fun())?, in_reply_input: boolean? }
 function M.open(thread, callbacks)
   if active_popup ~= nil then
     active_popup:unmount()
@@ -83,6 +83,7 @@ function M.open(thread, callbacks)
     on_quote_reply = callbacks.on_quote_reply,
     on_edit_comment = callbacks.on_edit_comment,
     on_apply_suggestion = callbacks.on_apply_suggestion,
+    in_reply_input = callbacks.in_reply_input,
   })
 
   local lines = {}

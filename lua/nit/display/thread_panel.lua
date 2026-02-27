@@ -56,11 +56,18 @@ local function redraw_selection()
   end
   for _, range in ipairs(current_ranges) do
     if range.comment_index == selected_comment_idx then
-      pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, selection_ns, range.start_line - 1, 0, {
-        line_hl_group = 'NitThreadSelected',
-        hl_eol = true,
-        priority = 300,
-      })
+      pcall(
+        vim.api.nvim_buf_set_extmark,
+        active_panel.bufnr,
+        selection_ns,
+        range.start_line - 1,
+        0,
+        {
+          line_hl_group = 'NitThreadSelected',
+          hl_eol = true,
+          priority = 300,
+        }
+      )
       break
     end
   end
@@ -276,6 +283,20 @@ function M._format_quote(comment)
   return table.concat(quoted_lines, '\n') .. '\n'
 end
 
+---Format visually selected panel lines as a block-quoted reply
+---@param author_login string
+---@param selected_lines string[]
+---@return string
+function M._format_quote_selection(author_login, selected_lines)
+  local quoted_lines = { '> @' .. author_login .. ':' }
+  for _, line in ipairs(selected_lines) do
+    local stripped = line:match('^ (.*)$') or line
+    table.insert(quoted_lines, '> ' .. stripped)
+  end
+  table.insert(quoted_lines, '')
+  return table.concat(quoted_lines, '\n') .. '\n'
+end
+
 ---Apply a suggestion block from a comment to the target file buffer
 ---@param comment Nit.Api.Comment
 ---@param thread Nit.Api.Thread
@@ -305,7 +326,7 @@ end
 ---@param comment Nit.Api.Comment
 local function quote_reply(comment)
   local text = M._format_quote(comment)
-  reply_input.set_text(text)
+  reply_input.append_text(text)
   local winid = reply_input.get_winid()
   if winid ~= nil then
     vim.api.nvim_set_current_win(winid)
@@ -413,10 +434,13 @@ local function open_menu()
   if selected_comment_idx ~= nil then
     comment = current_thread.comments[selected_comment_idx]
   end
+  local in_reply = reply_input.is_open()
+    and vim.api.nvim_get_current_win() == reply_input.get_winid()
   thread_menu.open(current_thread, {
     on_toggle_resolved = toggle_resolved,
     comment = comment,
     viewer_login = data.get_viewer_login(),
+    in_reply_input = in_reply,
     on_quote_reply = function(c)
       quote_reply(c)
     end,
@@ -476,6 +500,7 @@ function M.show(thread)
     win_options = {
       wrap = true,
       linebreak = true,
+      colorcolumn = '',
       breakindent = false,
       showbreak = ' ',
       list = false,
@@ -512,6 +537,28 @@ function M.show(thread)
 
   panel:map('n', '<C-a>', function()
     open_menu()
+  end, { noremap = true })
+
+  panel:map('v', '<C-a>', function()
+    local start_line = vim.fn.line("'<")
+    local end_line = vim.fn.line("'>")
+    local ok, lines =
+      pcall(vim.api.nvim_buf_get_lines, panel.bufnr, start_line - 1, end_line, false)
+    if not ok then
+      return
+    end
+    local comment_idx = M._find_comment_at_line(start_line, current_ranges)
+    if comment_idx == nil or current_thread == nil then
+      return
+    end
+    local comment = current_thread.comments[comment_idx]
+    local text = M._format_quote_selection(comment.author.login, lines)
+    reply_input.append_text(text)
+    local winid = reply_input.get_winid()
+    if winid ~= nil then
+      vim.api.nvim_set_current_win(winid)
+      vim.cmd('normal! G$')
+    end
   end, { noremap = true })
 
   active_panel = panel
