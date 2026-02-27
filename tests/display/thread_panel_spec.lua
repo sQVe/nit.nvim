@@ -232,6 +232,99 @@ describe('thread_panel', function()
         assert.is_nil(line:find('─'))
       end
     end)
+
+    describe('ranges', function()
+      it('returns empty ranges for zero comments', function()
+        local thread = { comments = {} }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.same({}, ranges)
+      end)
+
+      it('returns correct start and end line for single comment', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test body',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(3, ranges[1].end_line)
+        assert.are.equal(1, ranges[1].comment_index)
+      end)
+
+      it('places separator line in gap between two comment ranges', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'First',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+            {
+              author = { login = 'bob' },
+              body = 'Second',
+              createdAt = '2026-01-02T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(2, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(3, ranges[1].end_line)
+        assert.are.equal(5, ranges[2].start_line)
+        assert.are.equal(7, ranges[2].end_line)
+        assert.is_true(
+          ranges[1].end_line < ranges[2].start_line - 1,
+          'separator line must be outside all ranges'
+        )
+      end)
+
+      it('covers all lines of a multiline body', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Line 1\nLine 2\nLine 3',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(5, ranges[1].end_line)
+      end)
+
+      it('sets correct comment_index for three comments', function()
+        local thread = {
+          comments = {
+            { author = { login = 'alice' }, body = 'A', createdAt = '2026-01-01T12:00:00Z' },
+            { author = { login = 'bob' }, body = 'B', createdAt = '2026-01-02T12:00:00Z' },
+            { author = { login = 'carol' }, body = 'C', createdAt = '2026-01-03T12:00:00Z' },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(3, #ranges)
+        assert.are.equal(1, ranges[1].comment_index)
+        assert.are.equal(2, ranges[2].comment_index)
+        assert.are.equal(3, ranges[3].comment_index)
+      end)
+    end)
   end)
 
   describe('format_title', function()
@@ -958,6 +1051,80 @@ describe('thread_panel', function()
       end
 
       pcall(vim.cmd, 'only')
+    end)
+  end)
+
+  describe('find_comment_at_line', function()
+    it('returns nil for empty ranges table', function()
+      assert.is_nil(thread_panel._find_comment_at_line(1, {}))
+    end)
+
+    it('returns nil for line before all ranges', function()
+      local ranges = { { comment_index = 1, start_line = 3, end_line = 5 } }
+      assert.is_nil(thread_panel._find_comment_at_line(1, ranges))
+      assert.is_nil(thread_panel._find_comment_at_line(2, ranges))
+    end)
+
+    it('returns comment_index for lines within a range', function()
+      local ranges = { { comment_index = 1, start_line = 1, end_line = 3 } }
+      assert.are.equal(1, thread_panel._find_comment_at_line(1, ranges))
+      assert.are.equal(1, thread_panel._find_comment_at_line(2, ranges))
+      assert.are.equal(1, thread_panel._find_comment_at_line(3, ranges))
+    end)
+
+    it('returns nil for separator line between two comment ranges', function()
+      local ranges = {
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      }
+      assert.is_nil(thread_panel._find_comment_at_line(4, ranges))
+    end)
+
+    it('returns comment_index for last line of a range', function()
+      local ranges = { { comment_index = 2, start_line = 5, end_line = 9 } }
+      assert.are.equal(2, thread_panel._find_comment_at_line(9, ranges))
+      assert.is_nil(thread_panel._find_comment_at_line(10, ranges))
+    end)
+
+    it('returns correct index for multiple ranges', function()
+      local ranges = {
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+        { comment_index = 3, start_line = 9, end_line = 11 },
+      }
+      assert.are.equal(2, thread_panel._find_comment_at_line(6, ranges))
+      assert.are.equal(3, thread_panel._find_comment_at_line(9, ranges))
+    end)
+  end)
+
+  describe('select_comment', function()
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      thread_panel = require('nit.display.thread_panel')
+    end)
+
+    after_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      thread_panel = require('nit.display.thread_panel')
+    end)
+
+    it('starts with no selection', function()
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with nil deselects without error', function()
+      thread_panel._select_comment(nil)
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with 0 is a no-op', function()
+      thread_panel._select_comment(0)
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with index beyond empty ranges is a no-op', function()
+      thread_panel._select_comment(1)
+      assert.is_nil(thread_panel._get_selected_idx())
     end)
   end)
 end)

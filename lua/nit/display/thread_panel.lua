@@ -257,7 +257,15 @@ local function open_menu()
   if not current_thread then
     return
   end
-  thread_menu.open(current_thread, { on_toggle_resolved = toggle_resolved })
+  local comment = nil
+  if selected_comment_idx ~= nil then
+    comment = current_thread.comments[selected_comment_idx]
+  end
+  thread_menu.open(current_thread, {
+    on_toggle_resolved = toggle_resolved,
+    comment = comment,
+    viewer_login = data.get_viewer_login(),
+  })
 end
 
 ---Re-render panel when comments state changes
