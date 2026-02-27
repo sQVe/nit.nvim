@@ -1,6 +1,17 @@
 ---@class Nit.Orchestration
 local M = {}
 
+---@class Nit.Orchestration.UpdateCommentOpts
+---@field thread_id Nit.Api.ThreadId
+---@field comment_id string
+---@field comment_idx integer
+---@field body string
+
+---@class Nit.Orchestration.ToggleReactionOpts
+---@field thread_id Nit.Api.ThreadId
+---@field comment_idx integer
+---@field content Nit.Api.ReactionContent
+
 local data = require('nit.state.data')
 local mutations = require('nit.api.mutations')
 local versioning = require('nit.orchestration.versioning')
@@ -162,7 +173,7 @@ function M.toggle_resolved(opts, callback)
 end
 
 ---Update the body of an existing review comment
----@param opts { thread_id: Nit.Api.ThreadId, comment_id: string, comment_idx: integer, body: string }
+---@param opts Nit.Orchestration.UpdateCommentOpts
 ---@param callback fun(ok: boolean, body: string?)
 function M.update_comment(opts, callback)
   local thread_id = opts.thread_id
@@ -216,7 +227,7 @@ function M.update_comment(opts, callback)
 end
 
 ---Toggle a reaction on a pull request review comment
----@param opts { thread_id: Nit.Api.ThreadId, comment_idx: integer, content: Nit.Api.ReactionContent }
+---@param opts Nit.Orchestration.ToggleReactionOpts
 ---@param callback fun(ok: boolean)
 function M.toggle_reaction(opts, callback)
   local thread_id = opts.thread_id

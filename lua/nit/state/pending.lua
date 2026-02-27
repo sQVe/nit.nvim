@@ -35,7 +35,7 @@ function M.get_pending()
 end
 
 ---Add a pending comment
----@param comment {path: Nit.Api.FilePath, line: Nit.Api.LineNumber, side: Nit.Api.CommentSide, body: string}
+---@param comment Nit.State.PendingComment
 ---@return integer id Generated ID
 function M.add_pending(comment)
   ensure_loaded()

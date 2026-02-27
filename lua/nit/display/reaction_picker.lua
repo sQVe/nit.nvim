@@ -7,6 +7,10 @@ local Popup = require('nui.popup')
 ---@type any?
 local active_popup = nil
 
+---@class Nit.Display.ReactionPickerOpts
+---@field comment Nit.Api.Comment
+---@field on_toggle fun(content: Nit.Api.ReactionContent)
+
 ---@type { content: Nit.Api.ReactionContent, emoji: string }[]
 local REACTIONS = {
   { content = 'THUMBS_UP', emoji = '👍' },
@@ -20,7 +24,7 @@ local REACTIONS = {
 }
 
 ---Open the reaction picker for a comment
----@param opts { comment: Nit.Api.Comment, on_toggle: fun(content: Nit.Api.ReactionContent) }
+---@param opts Nit.Display.ReactionPickerOpts
 function M.open(opts)
   M.close()
 
