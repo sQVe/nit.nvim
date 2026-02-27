@@ -29,6 +29,18 @@ local current_thread = nil
 ---@type (fun())?
 local unsubscribe_comments = nil
 
+---@type table<string, string>
+local REACTION_EMOJI = {
+  THUMBS_UP = '👍',
+  THUMBS_DOWN = '👎',
+  LAUGH = '😄',
+  HOORAY = '🎉',
+  CONFUSED = '😕',
+  HEART = '❤️',
+  ROCKET = '🚀',
+  EYES = '👀',
+}
+
 local PANEL_WIDTH = 60
 local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
 local selection_ns = vim.api.nvim_create_namespace('nit_thread_selection')
@@ -156,11 +168,12 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@return string[], table<integer, true>, Nit.Display.CommentRange[]
+---@return string[], table<integer, true>, Nit.Display.CommentRange[], table<integer, boolean>
 function M.format_thread(thread)
   local lines = {}
   local author_indices = {}
   local ranges = {}
+  local reaction_line_indices = {}
   local viewer_login = data.get_viewer_login()
 
   for i, comment in ipairs(thread.comments) do
@@ -197,11 +210,34 @@ function M.format_thread(thread)
       end
     end
 
+    local active_reactions = {}
+    for _, rg in ipairs(comment.reactions or {}) do
+      if rg.count > 0 then
+        table.insert(active_reactions, rg)
+      end
+    end
+
+    if #active_reactions > 0 then
+      table.sort(active_reactions, function(a, b)
+        return a.content < b.content
+      end)
+      local parts = {}
+      local viewer_has_reacted = false
+      for _, rg in ipairs(active_reactions) do
+        table.insert(parts, (REACTION_EMOJI[rg.content] or rg.content) .. ' ' .. rg.count)
+        if rg.viewer_has_reacted then
+          viewer_has_reacted = true
+        end
+      end
+      table.insert(lines, ' ' .. table.concat(parts, '  '))
+      reaction_line_indices[#lines] = viewer_has_reacted
+    end
+
     local end_line = #lines
     table.insert(ranges, { comment_index = i, start_line = start_line, end_line = end_line })
   end
 
-  return lines, author_indices, ranges
+  return lines, author_indices, ranges, reaction_line_indices
 end
 
 ---Format popup title based on thread state
@@ -668,7 +704,7 @@ function M.update(thread, scroll_to_bottom)
     pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
   end
 
-  local lines, author_indices, ranges = M.format_thread(thread)
+  local lines, author_indices, ranges, reaction_line_indices = M.format_thread(thread)
   current_ranges = ranges
 
   vim.bo[active_panel.bufnr].modifiable = true
@@ -700,6 +736,15 @@ function M.update(thread, scroll_to_bottom)
         opts
       )
     end
+  end
+
+  for i, viewer_has_reacted in pairs(reaction_line_indices) do
+    local hl_group = viewer_has_reacted and 'NitThreadReactionOwn' or 'NitThreadReaction'
+    pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, highlight_ns, i - 1, 0, {
+      line_hl_group = hl_group,
+      hl_eol = true,
+      priority = 200,
+    })
   end
 
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then

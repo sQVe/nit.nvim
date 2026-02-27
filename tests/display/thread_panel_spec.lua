@@ -325,6 +325,161 @@ describe('thread_panel', function()
         assert.are.equal(3, ranges[3].comment_index)
       end)
     end)
+
+    describe('reactions', function()
+      it('returns a line containing emoji and count for a reaction with count > 0', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 2, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local lines = thread_panel.format_thread(thread)
+
+        local combined = table.concat(lines, '\n')
+        assert.matches('👍 2', combined, 1, true)
+      end)
+
+      it('returns no reaction line when all reactions have count 0', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 0, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local lines = thread_panel.format_thread(thread)
+
+        local combined = table.concat(lines, '\n')
+        assert.is_nil(combined:find('👍', 1, true))
+      end)
+
+      it('returns no reaction line when reactions table is empty', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {},
+            },
+          },
+        }
+
+        local lines, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        assert.are.same({}, reaction_line_indices)
+      end)
+
+      it('places reaction line after body lines before next comment separator', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'First',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false },
+              },
+            },
+            {
+              author = { login = 'bob' },
+              body = 'Second',
+              createdAt = '2026-01-02T12:00:00Z',
+              reactions = {},
+            },
+          },
+        }
+
+        local lines, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        local reaction_idx = nil
+        for idx in pairs(reaction_line_indices) do
+          reaction_idx = idx
+        end
+        assert.is_not_nil(reaction_idx)
+        assert.matches('👍 1', lines[reaction_idx], 1, true)
+        assert.are.equal('', lines[reaction_idx + 1])
+      end)
+
+      it('returns viewer_has_reacted=true in reaction_line_indices when viewer reacted', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'HEART', count = 1, viewer_has_reacted = true },
+              },
+            },
+          },
+        }
+
+        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        local has_entry = false
+        for _, viewer_reacted in pairs(reaction_line_indices) do
+          has_entry = true
+          assert.is_true(viewer_reacted)
+        end
+        assert.is_true(has_entry)
+      end)
+
+      it('returns viewer_has_reacted=false in reaction_line_indices when no viewer reactions', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 3, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        for _, viewer_reacted in pairs(reaction_line_indices) do
+          assert.is_false(viewer_reacted)
+        end
+      end)
+
+      it('includes reaction line in comment range end_line', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test body',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(4, ranges[1].end_line)
+      end)
+    end)
   end)
 
   describe('format_title', function()
