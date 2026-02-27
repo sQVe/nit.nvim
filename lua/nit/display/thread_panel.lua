@@ -12,7 +12,6 @@ local orchestration = require('nit.orchestration')
 
 ---@type {key: string, label: string}[]
 local hint_registry = {
-  { key = 'j/k', label = 'Navigate comments' },
   { key = 'C-s', label = 'Submit reply' },
   { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
@@ -62,19 +61,6 @@ local function redraw_selection()
         hl_eol = true,
         priority = 300,
       })
-      break
-    end
-  end
-end
-
----Move cursor to the start line of the selected comment
-local function cursor_to_selected()
-  if selected_comment_idx == nil or active_panel == nil then
-    return
-  end
-  for _, range in ipairs(current_ranges) do
-    if range.comment_index == selected_comment_idx then
-      pcall(vim.api.nvim_win_set_cursor, active_panel.winid, { range.start_line, 0 })
       break
     end
   end
@@ -526,22 +512,6 @@ function M.show(thread)
 
   panel:map('n', '<C-a>', function()
     open_menu()
-  end, { noremap = true })
-
-  panel:map('n', 'j', function()
-    if selected_comment_idx == nil then
-      M._select_comment(1)
-    else
-      M._select_comment(selected_comment_idx + 1)
-    end
-    cursor_to_selected()
-  end, { noremap = true })
-
-  panel:map('n', 'k', function()
-    if selected_comment_idx ~= nil then
-      M._select_comment(selected_comment_idx - 1)
-    end
-    cursor_to_selected()
   end, { noremap = true })
 
   active_panel = panel
