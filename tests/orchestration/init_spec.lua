@@ -668,6 +668,283 @@ describe('nit.orchestration.init', function()
     end)
   end)
 
+  local function make_mock_mutations(opts)
+    opts = opts or {}
+    return {
+      reply_to_thread = opts.reply_to_thread or function()
+        return function() end
+      end,
+      resolve_thread = opts.resolve_thread or function()
+        return function() end
+      end,
+      unresolve_thread = opts.unresolve_thread or function()
+        return function() end
+      end,
+      update_comment = opts.update_comment or function()
+        return function() end
+      end,
+      add_reaction = opts.add_reaction or function()
+        return function() end
+      end,
+      remove_reaction = opts.remove_reaction or function()
+        return function() end
+      end,
+    }
+  end
+
+  local function create_thread_with_reactions(id, reactions)
+    return {
+      id = id,
+      isResolved = false,
+      isOutdated = false,
+      path = 'test.lua',
+      line = 10,
+      comments = {
+        {
+          id = 100,
+          node_id = 'PRRC_abc123',
+          author = { login = 'testuser' },
+          body = 'Test comment',
+          createdAt = '2026-01-01T00:00:00Z',
+          path = 'test.lua',
+          line = 10,
+          side = 'RIGHT',
+          start_line = nil,
+          start_side = nil,
+          reactions = reactions or {},
+        },
+      },
+    }
+  end
+
+  describe('toggle_reaction', function()
+    it('applies optimistic update before API call returns', function()
+      local api_called = false
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, _)
+          api_called = true
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {
+        { content = 'THUMBS_UP', count = 2, viewer_has_reacted = false },
+      })
+      data.set_threads({ thread })
+
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+
+      assert.is_true(api_called)
+      local updated = data.get_thread(1)
+      local rg = updated.comments[1].reactions[1]
+      assert.are.equal('THUMBS_UP', rg.content)
+      assert.are.equal(3, rg.count)
+      assert.is_true(rg.viewer_has_reacted)
+    end)
+
+    it('calls add_reaction when viewer has not reacted', function()
+      local called_opts = nil
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(opts, _)
+          called_opts = opts
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {
+        { content = 'HEART', count = 1, viewer_has_reacted = false },
+      })
+      data.set_threads({ thread })
+
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'HEART' }, function() end)
+
+      assert.is_not_nil(called_opts)
+      assert.are.equal('PRRC_abc123', called_opts.node_id)
+      assert.are.equal('HEART', called_opts.content)
+    end)
+
+    it('calls remove_reaction when viewer has already reacted', function()
+      local called_fn = nil
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, _)
+          called_fn = 'add'
+          return function() end
+        end,
+        remove_reaction = function(_, _)
+          called_fn = 'remove'
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {
+        { content = 'THUMBS_UP', count = 3, viewer_has_reacted = true },
+      })
+      data.set_threads({ thread })
+
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+
+      assert.are.equal('remove', called_fn)
+      local updated = data.get_thread(1)
+      local rg = updated.comments[1].reactions[1]
+      assert.are.equal(2, rg.count)
+      assert.is_false(rg.viewer_has_reacted)
+    end)
+
+    it('creates new reaction group when content not in reactions', function()
+      local api_called = false
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, _)
+          api_called = true
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {})
+      data.set_threads({ thread })
+
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'ROCKET' }, function() end)
+
+      assert.is_true(api_called)
+      local updated = data.get_thread(1)
+      local reactions = updated.comments[1].reactions
+      assert.are.equal(1, #reactions)
+      assert.are.equal('ROCKET', reactions[1].content)
+      assert.are.equal(1, reactions[1].count)
+      assert.is_true(reactions[1].viewer_has_reacted)
+    end)
+
+    it('updates reactions from server response on success', function()
+      local api_callback = nil
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, cb)
+          api_callback = cb
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {
+        { content = 'THUMBS_UP', count = 0, viewer_has_reacted = false },
+      })
+      data.set_threads({ thread })
+
+      local callback_result = nil
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
+        callback_result = ok
+      end)
+
+      local server_reactions = {
+        { content = 'THUMBS_UP', count = 5, viewer_has_reacted = true },
+        { content = 'HEART', count = 2, viewer_has_reacted = false },
+      }
+      api_callback({ ok = true, data = server_reactions })
+
+      assert.is_true(callback_result)
+      local updated = data.get_thread(1)
+      assert.are.equal(2, #updated.comments[1].reactions)
+      assert.are.equal(5, updated.comments[1].reactions[1].count)
+      assert.are.equal('HEART', updated.comments[1].reactions[2].content)
+    end)
+
+    it('restores snapshot and notifies on failure', function()
+      local api_callback = nil
+      local notified = nil
+      vim.notify = function(msg, _)
+        notified = msg
+      end
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, cb)
+          api_callback = cb
+          return function() end
+        end,
+      }))
+
+      local original_reactions = { { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false } }
+      local thread = create_thread_with_reactions(1, vim.deepcopy(original_reactions))
+      data.set_threads({ thread })
+
+      local callback_result = nil
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
+        callback_result = ok
+      end)
+
+      api_callback({ ok = false, error = 'server error' })
+
+      assert.is_false(callback_result)
+      local restored = data.get_thread(1)
+      assert.are.equal(1, restored.comments[1].reactions[1].count)
+      assert.is_false(restored.comments[1].reactions[1].viewer_has_reacted)
+      assert.is_not_nil(notified)
+      assert.is_true(notified:find('React failed') ~= nil)
+    end)
+
+    it('calls callback(false) when thread not found', function()
+      setup_with_mock(make_mock_mutations())
+
+      local result = nil
+      orchestration.toggle_reaction({ thread_id = 999, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
+        result = ok
+      end)
+
+      assert.is_false(result)
+    end)
+
+    it('calls callback(false) when comment_idx is out of bounds', function()
+      setup_with_mock(make_mock_mutations())
+
+      local thread = create_thread_with_reactions(1, {})
+      data.set_threads({ thread })
+
+      local result = nil
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 99, content = 'THUMBS_UP' }, function(ok)
+        result = ok
+      end)
+
+      assert.is_false(result)
+    end)
+
+    it('calls callback(false) when comment has no node_id', function()
+      local add_called = false
+      setup_with_mock(make_mock_mutations({
+        add_reaction = function(_, _)
+          add_called = true
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {})
+      thread.comments[1].node_id = nil
+      data.set_threads({ thread })
+
+      local result = nil
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function(ok)
+        result = ok
+      end)
+
+      assert.is_false(result)
+      assert.is_false(add_called)
+    end)
+
+    it('floors optimistic count at 0 when count is already 0', function()
+      local api_callback = nil
+      setup_with_mock(make_mock_mutations({
+        remove_reaction = function(_, cb)
+          api_callback = cb
+          return function() end
+        end,
+      }))
+
+      local thread = create_thread_with_reactions(1, {
+        { content = 'THUMBS_UP', count = 0, viewer_has_reacted = true },
+      })
+      data.set_threads({ thread })
+
+      orchestration.toggle_reaction({ thread_id = 1, comment_idx = 1, content = 'THUMBS_UP' }, function() end)
+
+      local updated = data.get_thread(1)
+      assert.are.equal(0, updated.comments[1].reactions[1].count)
+    end)
+  end)
+
   describe('cleanup', function()
     it('resets versioning and queue', function()
       setup_with_mock({

@@ -215,6 +215,93 @@ function M.update_comment(opts, callback)
   end)
 end
 
+---Toggle a reaction on a pull request review comment
+---@param opts { thread_id: Nit.Api.ThreadId, comment_idx: integer, content: Nit.Api.ReactionContent }
+---@param callback fun(ok: boolean)
+function M.toggle_reaction(opts, callback)
+  local thread_id = opts.thread_id
+  local comment_idx = opts.comment_idx
+  local content = opts.content
+
+  local thread = data.get_thread(thread_id)
+  if not thread then
+    callback(false)
+    return
+  end
+
+  local comment = thread.comments[comment_idx]
+  if not comment then
+    callback(false)
+    return
+  end
+
+  if not comment.node_id or comment.node_id == '' then
+    callback(false)
+    return
+  end
+
+  local viewer_has_reacted = false
+  for _, rg in ipairs(comment.reactions or {}) do
+    if rg.content == content and rg.viewer_has_reacted then
+      viewer_has_reacted = true
+      break
+    end
+  end
+
+  local snap = snapshot.capture(thread_id)
+
+  local updated_thread = vim.deepcopy(thread)
+  local updated_comment = updated_thread.comments[comment_idx]
+  local found = false
+  for _, rg in ipairs(updated_comment.reactions or {}) do
+    if rg.content == content then
+      rg.viewer_has_reacted = not viewer_has_reacted
+      rg.count = viewer_has_reacted and math.max(0, rg.count - 1) or rg.count + 1
+      found = true
+      break
+    end
+  end
+  if not found and not viewer_has_reacted then
+    table.insert(updated_comment.reactions, { content = content, count = 1, viewer_has_reacted = true })
+  end
+  data.upsert_thread(updated_thread)
+
+  local mutation_fn = viewer_has_reacted and mutations.remove_reaction or mutations.add_reaction
+
+  queue.enqueue(thread_id, function(done)
+    local version = versioning.increment(thread_id)
+    local cancel_key
+    local cancel = mutation_fn({ node_id = comment.node_id, content = content }, function(result)
+      untrack_cancel(cancel_key)
+
+      if not versioning.is_current(thread_id, version) then
+        done()
+        callback(false)
+        return
+      end
+
+      if result.ok then
+        local current_thread = data.get_thread(thread_id)
+        if current_thread and current_thread.comments[comment_idx] then
+          local final_thread = vim.deepcopy(current_thread)
+          final_thread.comments[comment_idx].reactions = result.data
+          data.upsert_thread(final_thread)
+        end
+        done()
+        callback(true)
+      else
+        if snap then
+          snapshot.restore(snap)
+        end
+        done()
+        vim.notify('[nit] React failed: ' .. (result.error or 'unknown error'), vim.log.levels.ERROR)
+        callback(false)
+      end
+    end)
+    cancel_key = track_cancel(cancel)
+  end)
+end
+
 ---Clean up orchestration state
 function M.cleanup()
   for _, cancel in pairs(cancel_fns) do
