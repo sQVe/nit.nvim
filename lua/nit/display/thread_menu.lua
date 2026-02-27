@@ -18,6 +18,7 @@ local active_popup = nil
 ---@field comment table?
 ---@field viewer_login string?
 ---@field on_quote_reply (fun(comment: table))?
+---@field on_quote_selection (fun())?
 ---@field on_edit_comment (fun())?
 ---@field on_apply_suggestion (fun())?
 ---@field on_react (fun())?
@@ -45,6 +46,14 @@ function M.build_menu_items(opts)
       action = function()
         opts.on_quote_reply(comment)
       end,
+    }
+  end
+
+  if opts.comment ~= nil and opts.on_quote_selection ~= nil and not opts.in_reply_input then
+    items[#items + 1] = {
+      key = 's',
+      label = 's  Quote selection',
+      action = opts.on_quote_selection,
     }
   end
 

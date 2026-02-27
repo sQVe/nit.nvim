@@ -500,7 +500,8 @@ local function toggle_resolved()
 end
 
 ---Open the action menu
-local function open_menu()
+---@param selected_lines string[]?
+local function open_menu(selected_lines)
   if not current_thread then
     return
   end
@@ -510,6 +511,23 @@ local function open_menu()
   end
   local in_reply = reply_input.is_open()
     and vim.api.nvim_get_current_win() == reply_input.get_winid()
+  local on_quote_selection = nil
+  if selected_lines ~= nil and comment ~= nil then
+    local lines = selected_lines
+    local c = comment
+    on_quote_selection = function()
+      local text = M._format_quote_selection(c.author.login, lines)
+      if not reply_input.is_open() then
+        reply_input.open(active_panel.winid)
+      end
+      reply_input.append_text(text)
+      local winid = reply_input.get_winid()
+      if winid ~= nil then
+        vim.api.nvim_set_current_win(winid)
+        vim.cmd('normal! G$')
+      end
+    end
+  end
   thread_menu.open({
     thread = current_thread,
     on_toggle_resolved = toggle_resolved,
@@ -519,6 +537,7 @@ local function open_menu()
     on_quote_reply = function(c)
       quote_reply(c)
     end,
+    on_quote_selection = on_quote_selection,
     on_edit_comment = function()
       if comment ~= nil and selected_comment_idx ~= nil then
         edit_comment(comment, selected_comment_idx)
@@ -640,24 +659,7 @@ function M.show(thread)
       start_lnum, start_col, end_lnum, end_col = end_lnum, end_col, start_lnum, start_col
     end
     local lines = M._extract_visual_text(panel.bufnr, start_lnum, start_col, end_lnum, end_col)
-    if #lines == 0 then
-      return
-    end
-    local comment_idx = M._find_comment_at_line(start_lnum, current_ranges)
-    if comment_idx == nil or current_thread == nil then
-      return
-    end
-    local comment = current_thread.comments[comment_idx]
-    local text = M._format_quote_selection(comment.author.login, lines)
-    if not reply_input.is_open() then
-      reply_input.open(panel.winid)
-    end
-    reply_input.append_text(text)
-    local winid = reply_input.get_winid()
-    if winid ~= nil then
-      vim.api.nvim_set_current_win(winid)
-      vim.cmd('normal! G$')
-    end
+    open_menu(#lines > 0 and lines or nil)
   end, { noremap = true })
 
   active_panel = panel
