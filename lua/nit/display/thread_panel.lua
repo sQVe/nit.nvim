@@ -814,6 +814,10 @@ function M.update(thread, scroll_to_bottom)
       pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
     end
   end
+
+  if not thread_changed then
+    redraw_selection()
+  end
 end
 
 ---Close the panel

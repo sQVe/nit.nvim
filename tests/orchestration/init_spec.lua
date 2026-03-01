@@ -956,7 +956,10 @@ describe('nit.orchestration.init', function()
     it('floors optimistic count at 0 when count is already 0', function()
       setup_with_mock(make_mock_mutations({
         remove_reaction = function(_, cb)
-          cb({ ok = true, data = {} })
+          cb({
+            ok = true,
+            data = { { content = 'THUMBS_UP', count = 0, viewer_has_reacted = false } },
+          })
           return function() end
         end,
       }))

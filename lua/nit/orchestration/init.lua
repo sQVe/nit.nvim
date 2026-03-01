@@ -315,9 +315,7 @@ function M.toggle_reaction(opts, callback)
         local current_thread = data.get_thread(thread_id)
         if current_thread and current_thread.comments[comment_idx] then
           local final_thread = vim.deepcopy(current_thread)
-          if result.data and #result.data > 0 then
-            final_thread.comments[comment_idx].reactions = result.data
-          end
+          final_thread.comments[comment_idx].reactions = result.data or {}
           data.upsert_thread(final_thread)
         end
         done()
