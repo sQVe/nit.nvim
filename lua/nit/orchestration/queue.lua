@@ -1,6 +1,8 @@
 ---@class Nit.Orchestration.Queue
 local M = {}
 
+local MIN_DELAY_MS = 1100
+
 ---@class Nit.Orchestration.QueueState
 ---@field items fun(done: fun())[]
 ---@field processing boolean
@@ -8,23 +10,57 @@ local M = {}
 ---@type table<integer|string, Nit.Orchestration.QueueState>
 local queues = {}
 
----Process next item in queue for a thread
+---@type integer|nil
+local last_mutation_time = nil
+
+local dispatch_next
+
+---Run fn, record start time, handle errors
 ---@param thread_id integer|string
-local function process_next(thread_id)
-  local queue = queues[thread_id]
-  if not queue or #queue.items == 0 then
+---@param fn fun(done: fun())
+local function run(thread_id, fn)
+  last_mutation_time = vim.uv.now()
+  local ok, err = pcall(fn, function()
+    dispatch_next(thread_id, false)
+  end)
+  if not ok then
+    vim.notify('[nit] Mutation failed: ' .. tostring(err), vim.log.levels.ERROR)
+    dispatch_next(thread_id, true)
+  end
+end
+
+---Schedule fn with global rate limiting, or immediately if skip_limit
+---@param thread_id integer|string
+---@param fn fun(done: fun())
+---@param skip_limit boolean
+local function schedule(thread_id, fn, skip_limit)
+  if skip_limit or last_mutation_time == nil then
+    run(thread_id, fn)
+    return
+  end
+  local remaining = MIN_DELAY_MS - (vim.uv.now() - last_mutation_time)
+  if remaining <= 0 or remaining >= MIN_DELAY_MS then
+    run(thread_id, fn)
+  else
+    local timer = vim.uv.new_timer()
+    timer:start(remaining, 0, function()
+      timer:stop()
+      timer:close()
+      run(thread_id, fn)
+    end)
+  end
+end
+
+---Dispatch next queued item; skip_limit=true after errors
+---@param thread_id integer|string
+---@param skip_limit boolean
+dispatch_next = function(thread_id, skip_limit)
+  local q = queues[thread_id]
+  if not q or #q.items == 0 then
     queues[thread_id] = nil
     return
   end
-
-  local fn = table.remove(queue.items, 1)
-  local ok, err = pcall(fn, function()
-    process_next(thread_id)
-  end)
-  if not ok then
-    vim.notify('[nit] Queue error: ' .. tostring(err), vim.log.levels.ERROR)
-    process_next(thread_id)
-  end
+  schedule(thread_id, table.remove(q.items, 1), skip_limit)
 end
 
 ---Enqueue a mutation function for a thread
@@ -32,31 +68,21 @@ end
 ---@param fn fun(done: fun())
 function M.enqueue(thread_id, fn)
   if not queues[thread_id] then
-    queues[thread_id] = {
-      items = {},
-      processing = false,
-    }
+    queues[thread_id] = { items = {}, processing = false }
   end
-
-  local queue = queues[thread_id]
-
-  if not queue.processing then
-    queue.processing = true
-    local ok, err = pcall(fn, function()
-      process_next(thread_id)
-    end)
-    if not ok then
-      vim.notify('[nit] Queue error: ' .. tostring(err), vim.log.levels.ERROR)
-      process_next(thread_id)
-    end
+  local q = queues[thread_id]
+  if not q.processing then
+    q.processing = true
+    schedule(thread_id, fn, false)
   else
-    table.insert(queue.items, fn)
+    table.insert(q.items, fn)
   end
 end
 
----Clear all queues
+---Clear all queues and rate-limit state
 function M.reset()
   queues = {}
+  last_mutation_time = nil
 end
 
 return M
