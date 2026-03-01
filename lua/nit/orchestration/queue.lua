@@ -10,7 +10,7 @@ local MIN_DELAY_MS = 1100
 ---@type table<integer|string, Nit.Orchestration.QueueState>
 local queues = {}
 
----@type integer|nil
+---@type integer?
 local last_mutation_time = nil
 
 ---@type table<userdata|table, boolean>
@@ -25,7 +25,9 @@ local function run(thread_id, fn)
   last_mutation_time = vim.uv.now()
   local dispatched = false
   local ok, err = pcall(fn, function()
-    if dispatched then return end
+    if dispatched then
+      return
+    end
     dispatched = true
     dispatch_next(thread_id, false)
   end)
@@ -53,12 +55,16 @@ local function schedule(thread_id, fn, skip_limit)
   else
     local timer = vim.uv.new_timer()
     pending_timers[timer] = true
-    timer:start(remaining, 0, vim.schedule_wrap(function()
-      timer:stop()
-      timer:close()
-      pending_timers[timer] = nil
-      run(thread_id, fn)
-    end))
+    timer:start(
+      remaining,
+      0,
+      vim.schedule_wrap(function()
+        timer:stop()
+        timer:close()
+        pending_timers[timer] = nil
+        run(thread_id, fn)
+      end)
+    )
   end
 end
 

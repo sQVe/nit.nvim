@@ -12,7 +12,9 @@ describe('nit.orchestration.queue', function()
     end
     vim.uv.new_timer = function()
       return {
-        start = function(_, _, _, cb) cb() end,
+        start = function(_, _, _, cb)
+          cb()
+        end,
         stop = function() end,
         close = function() end,
       }
@@ -175,7 +177,9 @@ describe('nit.orchestration.queue', function()
       vim.uv.now = function()
         return mock_time
       end
-      vim.schedule_wrap = function(fn) return fn end
+      vim.schedule_wrap = function(fn)
+        return fn
+      end
 
       vim.uv.new_timer = function()
         local timer = {
