@@ -1,8 +1,28 @@
 describe('nit.orchestration.queue', function()
   local queue = require('nit.orchestration.queue')
+  local real_uv_now = vim.uv.now
+  local real_uv_new_timer = vim.uv.new_timer
+  local auto_time
+
+  before_each(function()
+    auto_time = 0
+    vim.uv.now = function()
+      auto_time = auto_time + 2000
+      return auto_time
+    end
+    vim.uv.new_timer = function()
+      return {
+        start = function(_, _, _, cb) cb() end,
+        stop = function() end,
+        close = function() end,
+      }
+    end
+  end)
 
   after_each(function()
     queue.reset()
+    vim.uv.now = real_uv_now
+    vim.uv.new_timer = real_uv_new_timer
   end)
 
   describe('enqueue', function()
@@ -143,6 +163,7 @@ describe('nit.orchestration.queue', function()
   describe('rate limiting', function()
     local original_uv_now = vim.uv.now
     local original_uv_new_timer = vim.uv.new_timer
+    local original_schedule_wrap = vim.schedule_wrap
     local original_notify = vim.notify
     local mock_time
     local mock_timers
@@ -154,6 +175,7 @@ describe('nit.orchestration.queue', function()
       vim.uv.now = function()
         return mock_time
       end
+      vim.schedule_wrap = function(fn) return fn end
 
       vim.uv.new_timer = function()
         local timer = {
@@ -179,6 +201,7 @@ describe('nit.orchestration.queue', function()
     after_each(function()
       vim.uv.now = original_uv_now
       vim.uv.new_timer = original_uv_new_timer
+      vim.schedule_wrap = original_schedule_wrap
       vim.notify = original_notify
     end)
 
@@ -286,6 +309,7 @@ describe('nit.orchestration.queue', function()
       done1()
 
       assert.are.equal(1, #mock_timers)
+      assert.are.equal(600, mock_timers[1].delay)
       mock_time = 1100
       mock_timers[1].callback()
 
