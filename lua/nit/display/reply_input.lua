@@ -93,6 +93,21 @@ function M.set_text(text)
   pcall(vim.api.nvim_buf_set_lines, input_bufnr, 0, -1, false, lines)
 end
 
+---Append text to the end of the input buffer
+---@param text string
+function M.append_text(text)
+  if not M.is_open() or input_bufnr == nil then
+    return
+  end
+  local lines = vim.split(text, '\n', { plain = true })
+  local existing = M.get_text()
+  if existing == '' then
+    pcall(vim.api.nvim_buf_set_lines, input_bufnr, 0, -1, false, lines)
+  else
+    pcall(vim.api.nvim_buf_set_lines, input_bufnr, -1, -1, false, lines)
+  end
+end
+
 ---Clear the input buffer
 function M.clear()
   if not M.is_open() or input_bufnr == nil then

@@ -59,7 +59,8 @@ describe('thread_panel', function()
         },
       }
 
-      local lines, author_indices = thread_panel.format_thread(thread)
+      local lines, author_indices, ranges, reaction_line_indices =
+        thread_panel.format_thread(thread)
 
       assert.is_table(lines)
       assert.is_true(#lines > 0)
@@ -70,6 +71,8 @@ describe('thread_panel', function()
       assert.matches('Test body', combined, 1, true)
 
       assert.is_true(author_indices[1])
+      assert.are.equal(1, #ranges)
+      assert.are.same({}, reaction_line_indices)
     end)
 
     it('separates multiple comments with blank lines', function()
@@ -231,6 +234,257 @@ describe('thread_panel', function()
       for _, line in ipairs(lines) do
         assert.is_nil(line:find('─'))
       end
+    end)
+
+    describe('ranges', function()
+      it('returns empty ranges for zero comments', function()
+        local thread = { comments = {} }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.same({}, ranges)
+      end)
+
+      it('returns correct start and end line for single comment', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test body',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(3, ranges[1].end_line)
+        assert.are.equal(1, ranges[1].comment_index)
+      end)
+
+      it('places separator line in gap between two comment ranges', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'First',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+            {
+              author = { login = 'bob' },
+              body = 'Second',
+              createdAt = '2026-01-02T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(2, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(3, ranges[1].end_line)
+        assert.are.equal(5, ranges[2].start_line)
+        assert.are.equal(7, ranges[2].end_line)
+        assert.is_true(
+          ranges[1].end_line < ranges[2].start_line - 1,
+          'separator line must be outside all ranges'
+        )
+      end)
+
+      it('covers all lines of a multiline body', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Line 1\nLine 2\nLine 3',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(1, ranges[1].start_line)
+        assert.are.equal(5, ranges[1].end_line)
+      end)
+
+      it('sets correct comment_index for three comments', function()
+        local thread = {
+          comments = {
+            { author = { login = 'alice' }, body = 'A', createdAt = '2026-01-01T12:00:00Z' },
+            { author = { login = 'bob' }, body = 'B', createdAt = '2026-01-02T12:00:00Z' },
+            { author = { login = 'carol' }, body = 'C', createdAt = '2026-01-03T12:00:00Z' },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(3, #ranges)
+        assert.are.equal(1, ranges[1].comment_index)
+        assert.are.equal(2, ranges[2].comment_index)
+        assert.are.equal(3, ranges[3].comment_index)
+      end)
+    end)
+
+    describe('reactions', function()
+      it('returns a line containing emoji and count for a reaction with count > 0', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 2, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local lines = thread_panel.format_thread(thread)
+
+        local combined = table.concat(lines, '\n')
+        assert.matches('👍 2', combined, 1, true)
+      end)
+
+      it('returns no reaction line when all reactions have count 0', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 0, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local lines = thread_panel.format_thread(thread)
+
+        local combined = table.concat(lines, '\n')
+        assert.is_nil(combined:find('👍', 1, true))
+      end)
+
+      it('returns no reaction line when reactions table is empty', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {},
+            },
+          },
+        }
+
+        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        assert.are.same({}, reaction_line_indices)
+      end)
+
+      it('places reaction line after body lines before next comment separator', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'First',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false },
+              },
+            },
+            {
+              author = { login = 'bob' },
+              body = 'Second',
+              createdAt = '2026-01-02T12:00:00Z',
+              reactions = {},
+            },
+          },
+        }
+
+        local lines, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        local reaction_idx = nil
+        for idx in pairs(reaction_line_indices) do
+          reaction_idx = idx
+        end
+        assert.is_true(nil ~= reaction_idx)
+        assert.matches('👍 1', lines[reaction_idx], 1, true)
+        assert.are.equal('', lines[reaction_idx + 1])
+      end)
+
+      it('returns viewer_has_reacted=true in reaction_line_indices when viewer reacted', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'HEART', count = 1, viewer_has_reacted = true },
+              },
+            },
+          },
+        }
+
+        local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+        local has_entry = false
+        for _, viewer_reacted in pairs(reaction_line_indices) do
+          has_entry = true
+          assert.is_true(viewer_reacted)
+        end
+        assert.is_true(has_entry)
+      end)
+
+      it(
+        'returns viewer_has_reacted=false in reaction_line_indices when no viewer reactions',
+        function()
+          local thread = {
+            comments = {
+              {
+                author = { login = 'alice' },
+                body = 'Test',
+                createdAt = '2026-01-01T12:00:00Z',
+                reactions = {
+                  { content = 'THUMBS_UP', count = 3, viewer_has_reacted = false },
+                },
+              },
+            },
+          }
+
+          local _, _, _, reaction_line_indices = thread_panel.format_thread(thread)
+
+          for _, viewer_reacted in pairs(reaction_line_indices) do
+            assert.is_false(viewer_reacted)
+          end
+        end
+      )
+
+      it('includes reaction line in comment range end_line', function()
+        local thread = {
+          comments = {
+            {
+              author = { login = 'alice' },
+              body = 'Test body',
+              createdAt = '2026-01-01T12:00:00Z',
+              reactions = {
+                { content = 'THUMBS_UP', count = 1, viewer_has_reacted = false },
+              },
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(1, #ranges)
+        assert.are.equal(4, ranges[1].end_line)
+      end)
     end)
   end)
 
@@ -494,7 +748,7 @@ describe('thread_panel', function()
 
         local result = thread_panel.get_line_highlights(lines, author_indices)
 
-        assert.is_not_nil(result[5])
+        assert.is_true(nil ~= result[5])
         assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
         assert.are.equal('NitThreadAuthor', result[5].hl_group)
 
@@ -521,10 +775,10 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.not_equals('NitThreadCommentAlt', result[1].line_hl_group)
 
-      assert.is_not_nil(result[5])
+      assert.is_true(nil ~= result[5])
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
 
       if result[9] then
@@ -544,7 +798,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[5])
+      assert.is_true(nil ~= result[5])
       assert.are.equal('NitThreadAuthor', result[5].hl_group)
       assert.are.equal('NitThreadCommentAlt', result[5].line_hl_group)
     end)
@@ -559,7 +813,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal('NitThreadAuthor', result[1].hl_group)
       assert.are.equal('NitThreadComment', result[1].line_hl_group)
     end)
@@ -572,7 +826,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal(42, result[1].text_col)
     end)
 
@@ -582,7 +836,7 @@ describe('thread_panel', function()
 
       local result = thread_panel.get_line_highlights(lines, author_indices)
 
-      assert.is_not_nil(result[1])
+      assert.is_true(nil ~= result[1])
       assert.are.equal(1, result[1].text_col)
     end)
 
@@ -692,7 +946,7 @@ describe('thread_panel', function()
       assert.is_true(tp.is_open())
 
       local panel_winid = tp.get_winid()
-      assert.is_not_nil(panel_winid)
+      assert.is_true(nil ~= panel_winid)
 
       vim.api.nvim_win_close(panel_winid, true)
 
@@ -719,7 +973,7 @@ describe('thread_panel', function()
       assert.is_true(ri.is_open())
 
       local reply_winid = ri.get_winid()
-      assert.is_not_nil(reply_winid)
+      assert.is_true(nil ~= reply_winid)
 
       vim.api.nvim_win_close(reply_winid, true)
 
@@ -744,7 +998,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
 
       local keymaps = vim.api.nvim_buf_get_keymap(bufnr, 'n')
       local has_cr = false
@@ -771,7 +1025,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
       assert.are.equal(0, vim.bo[bufnr].textwidth)
 
       tp.close()
@@ -788,7 +1042,7 @@ describe('thread_panel', function()
       end)
 
       local bufnr = ri.get_bufnr()
-      assert.is_not_nil(bufnr)
+      assert.is_true(nil ~= bufnr)
       assert.are.equal('', vim.bo[bufnr].formatoptions)
 
       tp.close()
@@ -805,7 +1059,7 @@ describe('thread_panel', function()
       end)
 
       local winid = ri.get_winid()
-      assert.is_not_nil(winid)
+      assert.is_true(nil ~= winid)
       assert.is_true(vim.wo[winid].wrap)
       assert.is_true(vim.wo[winid].linebreak)
       assert.is_true(vim.wo[winid].breakindent)
@@ -893,7 +1147,7 @@ describe('thread_panel', function()
       end)
 
       local panel_winid = tp.get_winid()
-      assert.is_not_nil(panel_winid)
+      assert.is_true(nil ~= panel_winid)
       assert.are.equal(60, vim.api.nvim_win_get_width(panel_winid))
 
       tp.close()
@@ -958,6 +1212,399 @@ describe('thread_panel', function()
       end
 
       pcall(vim.cmd, 'only')
+    end)
+  end)
+
+  describe('find_comment_at_line', function()
+    it('returns nil for empty ranges table', function()
+      assert.is_nil(thread_panel._find_comment_at_line(1, {}))
+    end)
+
+    it('returns nil for line before all ranges', function()
+      local ranges = { { comment_index = 1, start_line = 3, end_line = 5 } }
+      assert.is_nil(thread_panel._find_comment_at_line(1, ranges))
+      assert.is_nil(thread_panel._find_comment_at_line(2, ranges))
+    end)
+
+    it('returns comment_index for lines within a range', function()
+      local ranges = { { comment_index = 1, start_line = 1, end_line = 3 } }
+      assert.are.equal(1, thread_panel._find_comment_at_line(1, ranges))
+      assert.are.equal(1, thread_panel._find_comment_at_line(2, ranges))
+      assert.are.equal(1, thread_panel._find_comment_at_line(3, ranges))
+    end)
+
+    it('returns nil for separator line between two comment ranges', function()
+      local ranges = {
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      }
+      assert.is_nil(thread_panel._find_comment_at_line(4, ranges))
+    end)
+
+    it('returns comment_index for last line of a range', function()
+      local ranges = { { comment_index = 2, start_line = 5, end_line = 9 } }
+      assert.are.equal(2, thread_panel._find_comment_at_line(9, ranges))
+      assert.is_nil(thread_panel._find_comment_at_line(10, ranges))
+    end)
+
+    it('returns correct index for multiple ranges', function()
+      local ranges = {
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+        { comment_index = 3, start_line = 9, end_line = 11 },
+      }
+      assert.are.equal(2, thread_panel._find_comment_at_line(6, ranges))
+      assert.are.equal(3, thread_panel._find_comment_at_line(9, ranges))
+    end)
+  end)
+
+  describe('select_comment', function()
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      thread_panel = require('nit.display.thread_panel')
+    end)
+
+    after_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      thread_panel = require('nit.display.thread_panel')
+    end)
+
+    it('starts with no selection', function()
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with nil deselects without error', function()
+      thread_panel._select_comment(nil)
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with 0 is a no-op', function()
+      thread_panel._select_comment(0)
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+
+    it('select_comment with index beyond empty ranges is a no-op', function()
+      thread_panel._select_comment(1)
+      assert.is_nil(thread_panel._get_selected_idx())
+    end)
+  end)
+
+  describe('comment selection lifecycle', function()
+    local orig_observers, orig_data, orig_orchestration
+    local tp
+
+    before_each(function()
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+
+      orig_observers = package.loaded['nit.state.observers']
+      orig_data = package.loaded['nit.state.data']
+      orig_orchestration = package.loaded['nit.orchestration']
+
+      package.loaded['nit.state.observers'] = {
+        subscribe = function(_event, _cb)
+          return function() end
+        end,
+      }
+
+      package.loaded['nit.state.data'] = {
+        get_viewer_login = function()
+          return nil
+        end,
+        get_thread = function(_id)
+          return nil
+        end,
+        clear = function() end,
+        set_viewer_login = function(_login) end,
+      }
+
+      package.loaded['nit.orchestration'] = {
+        submit_reply = function() end,
+        toggle_resolved = function() end,
+      }
+
+      tp = require('nit.display.thread_panel')
+    end)
+
+    after_each(function()
+      if tp.is_open() then
+        tp.close()
+      end
+      package.loaded['nit.state.observers'] = orig_observers
+      package.loaded['nit.state.data'] = orig_data
+      package.loaded['nit.orchestration'] = orig_orchestration
+      package.loaded['nit.display.thread_panel'] = nil
+      package.loaded['nit.display.reply_input'] = nil
+    end)
+
+    local function make_thread()
+      return {
+        id = 'thread-1',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'Hello', createdAt = '2026-01-01T12:00:00Z' },
+        },
+      }
+    end
+
+    local function make_thread_multi()
+      return {
+        id = 'thread-multi',
+        isResolved = false,
+        comments = {
+          { author = { login = 'alice' }, body = 'First', createdAt = '2026-01-01T12:00:00Z' },
+          { author = { login = 'bob' }, body = 'Second', createdAt = '2026-01-02T12:00:00Z' },
+        },
+      }
+    end
+
+    it('CursorMoved on panel buffer updates selected_comment_idx', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      vim.api.nvim_win_set_cursor(tp.get_winid(), { 1, 0 })
+      vim.api.nvim_exec_autocmds('CursorMoved', { buffer = bufnr })
+
+      assert.are.equal(1, tp._get_selected_idx())
+    end)
+
+    it('thread change resets selected_comment_idx to nil', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      assert.are.equal(1, tp._get_selected_idx())
+
+      local different_thread = {
+        id = 'thread-different',
+        isResolved = false,
+        comments = {
+          { author = { login = 'carol' }, body = 'Other', createdAt = '2026-01-03T12:00:00Z' },
+        },
+      }
+      tp.update(different_thread)
+
+      assert.is_nil(tp._get_selected_idx())
+    end)
+
+    it('M.close() resets selected_comment_idx to nil', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      assert.are.equal(1, tp._get_selected_idx())
+
+      tp.close()
+
+      assert.is_nil(tp._get_selected_idx())
+    end)
+
+    it('_select_comment applies NitThreadSelected extmarks on selected range', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_true(nil ~= ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(1, #marks, 'should highlight header line only')
+    end)
+
+    it('_select_comment highlights header line only', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_true(nil ~= ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(1, #marks, 'should highlight header line only')
+      assert.are.equal(0, marks[1][2], 'extmark on comment 1 header')
+    end)
+
+    it('_select_comment(nil) clears all selection extmarks', function()
+      tp.show(make_thread())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      tp._select_comment(nil)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_true(nil ~= ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(0, #marks, 'should have no extmarks after deselect')
+    end)
+
+    it('changing selection moves highlight to new comment', function()
+      tp.show(make_thread_multi())
+      vim.wait(50, function()
+        return tp.is_open()
+      end)
+
+      tp._select_comment(1)
+      tp._select_comment(2)
+
+      local ns_id = vim.api.nvim_get_namespaces()['nit_thread_selection']
+      assert.is_true(nil ~= ns_id)
+      local bufnr = vim.api.nvim_win_get_buf(tp.get_winid())
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, ns_id, 0, -1, {})
+      assert.are.equal(1, #marks, 'should have one extmark for comment 2 header')
+      assert.are.equal(4, marks[1][2], 'extmark on comment 2 header')
+    end)
+  end)
+
+  describe('_format_quote', function()
+    it('formats single-line comment as quoted reply', function()
+      local comment = { author = { login = 'alice' }, body = 'Hello' }
+      local result = thread_panel._format_quote(comment)
+      assert.are.equal('> @alice:\n> Hello\n\n', result)
+    end)
+
+    it('formats multi-line comment as quoted reply', function()
+      local comment = { author = { login = 'alice' }, body = 'Line 1\nLine 2' }
+      local result = thread_panel._format_quote(comment)
+      assert.are.equal('> @alice:\n> Line 1\n> Line 2\n\n', result)
+    end)
+  end)
+
+  describe('_format_quote_selection', function()
+    it('formats selected lines as quoted reply with author attribution', function()
+      local result = thread_panel._format_quote_selection('alice', { ' Hello', ' World' })
+      assert.are.equal('> @alice:\n> Hello\n> World\n\n', result)
+    end)
+
+    it('formats single selected line', function()
+      local result = thread_panel._format_quote_selection('bob', { ' One line' })
+      assert.are.equal('> @bob:\n> One line\n\n', result)
+    end)
+
+    it('handles empty lines in selection', function()
+      local result = thread_panel._format_quote_selection('alice', { ' First', '', ' Third' })
+      assert.are.equal('> @alice:\n> First\n> \n> Third\n\n', result)
+    end)
+
+    it('strips single leading space from panel-formatted lines', function()
+      local result = thread_panel._format_quote_selection('alice', { ' indented' })
+      assert.are.equal('> @alice:\n> indented\n\n', result)
+    end)
+  end)
+
+  describe('_extract_visual_text', function()
+    it('extracts substring from single line', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' some long paragraph text here' })
+      local result = thread_panel._extract_visual_text(bufnr, 1, 7, 1, 20)
+      assert.are.same({ 'long paragraph' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('extracts across multiple buffer lines', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(
+        bufnr,
+        0,
+        -1,
+        false,
+        { ' first line', ' second line', ' third line' }
+      )
+      local result = thread_panel._extract_visual_text(bufnr, 1, 5, 3, 9)
+      assert.are.same({ 'st line', ' second line', ' third li' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('handles single character selection', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { ' hello' })
+      local result = thread_panel._extract_visual_text(bufnr, 1, 3, 1, 3)
+      assert.are.same({ 'e' }, result)
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+  end)
+
+  describe('_apply_suggestion', function()
+    local original_notify
+    local notified = {}
+
+    before_each(function()
+      original_notify = vim.notify
+      notified = {}
+      vim.notify = function(msg, _level)
+        table.insert(notified, msg)
+      end
+    end)
+
+    after_each(function()
+      vim.notify = original_notify
+    end)
+
+    it('replaces lines in the target buffer', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { 'line 1', 'old line 2', 'line 3' })
+      local name = 'test_suggestion_file.lua'
+      vim.api.nvim_buf_set_name(bufnr, name)
+
+      local comment = { body = '```suggestion\nnew line 2\n```' }
+      local thread = { path = name, line = 2, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.are.same({ 'line 1', 'new line 2', 'line 3' }, lines)
+
+      vim.api.nvim_buf_delete(bufnr, { force = true })
+    end)
+
+    it('notifies when no suggestion block found in comment', function()
+      local comment = { body = 'Just a regular comment' }
+      local thread = { path = 'some/file.lua', line = 5, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      assert.are.equal(1, #notified)
+    end)
+
+    it('notifies when target file buffer is not open', function()
+      local comment = { body = '```suggestion\nnew line\n```' }
+      local thread = { path = 'not/open/file.lua', line = 3, start_line = nil }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      assert.are.equal(1, #notified)
+    end)
+
+    it('uses start_line when present for multi-line replacement', function()
+      local bufnr = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { 'a', 'b', 'c', 'd' })
+      local name = 'test_multiline_suggestion.lua'
+      vim.api.nvim_buf_set_name(bufnr, name)
+
+      local comment = { body = '```suggestion\nx\ny\n```' }
+      local thread = { path = name, line = 3, start_line = 2 }
+
+      thread_panel._apply_suggestion(comment, thread)
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      assert.are.same({ 'a', 'x', 'y', 'd' }, lines)
+
+      vim.api.nvim_buf_delete(bufnr, { force = true })
     end)
   end)
 end)

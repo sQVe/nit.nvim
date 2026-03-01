@@ -28,10 +28,16 @@ local REVIEW_THREADS_QUERY = [[
                 hasNextPage
               }
               nodes {
+                id
                 databaseId
                 author { login }
                 body
                 createdAt
+                reactionGroups {
+                  content
+                  viewerHasReacted
+                  reactors { totalCount }
+                }
               }
             }
           }
@@ -40,6 +46,8 @@ local REVIEW_THREADS_QUERY = [[
     }
   }
 ]]
+
+local normalize_reaction_groups = util.normalize_reaction_groups
 
 ---Normalize GraphQL thread nodes to Nit.Api.Thread format
 ---@param thread_nodes table[]
@@ -55,6 +63,7 @@ local function normalize_threads(thread_nodes)
       local author = comment_node.author
       comments[#comments + 1] = {
         id = comment_node.databaseId,
+        node_id = nil_if_vim_nil(comment_node.id),
         author = author and author.login and { login = author.login } or { login = 'unknown' },
         body = comment_node.body or '',
         createdAt = comment_node.createdAt or '',
@@ -63,6 +72,7 @@ local function normalize_threads(thread_nodes)
         side = nil_if_vim_nil(thread_node.diffSide),
         start_line = nil_if_vim_nil(thread_node.startLine),
         start_side = nil_if_vim_nil(thread_node.startDiffSide),
+        reactions = normalize_reaction_groups(comment_node.reactionGroups),
       }
     end
 

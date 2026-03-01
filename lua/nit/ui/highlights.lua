@@ -41,6 +41,8 @@ function M.setup()
   vim.api.nvim_set_hl(0, 'NitThreadAuthor', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintKey', { link = 'Special', default = true })
   vim.api.nvim_set_hl(0, 'NitThreadHintLabel', { link = 'Comment', default = true })
+  vim.api.nvim_set_hl(0, 'NitThreadReaction', { link = 'Comment', default = true })
+  vim.api.nvim_set_hl(0, 'NitThreadReactionOwn', { link = 'Special', default = true })
 
   local ok, cursor_line_hl = pcall(vim.api.nvim_get_hl, 0, { name = 'CursorLine', link = false })
   if not ok then
@@ -79,6 +81,16 @@ function M.setup()
   else
     vim.api.nvim_set_hl(0, 'NitThreadComment', { link = 'CursorLine', default = true })
     vim.api.nvim_set_hl(0, 'NitThreadCommentAlt', { link = 'NormalFloat', default = true })
+  end
+
+  if float_bg and accent then
+    vim.api.nvim_set_hl(
+      0,
+      'NitThreadSelected',
+      { bg = blend(accent, float_bg, 0.3), default = true }
+    )
+  else
+    vim.api.nvim_set_hl(0, 'NitThreadSelected', { link = 'Visual', default = true })
   end
 end
 

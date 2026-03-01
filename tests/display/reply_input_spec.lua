@@ -128,4 +128,51 @@ describe('nit.display.reply_input', function()
       end)
     end)
   end)
+
+  describe('append_text', function()
+    local panel_winid
+    local panel_bufnr
+
+    before_each(function()
+      package.loaded['nit.display.reply_input'] = nil
+      reply_input = require('nit.display.reply_input')
+      panel_bufnr = vim.api.nvim_create_buf(false, true)
+      local ref_win = vim.iter(vim.api.nvim_list_wins()):find(function(w)
+        return vim.api.nvim_win_get_config(w).relative == ''
+      end)
+      panel_winid = vim.api.nvim_open_win(panel_bufnr, false, { split = 'right', win = ref_win })
+    end)
+
+    after_each(function()
+      reply_input.close()
+      package.loaded['nit.display.reply_input'] = nil
+      if vim.api.nvim_win_is_valid(panel_winid) then
+        vim.api.nvim_win_close(panel_winid, true)
+      end
+      if vim.api.nvim_buf_is_valid(panel_bufnr) then
+        vim.api.nvim_buf_delete(panel_bufnr, { force = true })
+      end
+    end)
+
+    it('sets text when buffer is empty', function()
+      reply_input.open(panel_winid)
+      reply_input.append_text('hello')
+      assert.are.equal('hello', reply_input.get_text())
+    end)
+
+    it('appends text after existing content', function()
+      reply_input.open(panel_winid)
+      reply_input.set_text('first')
+      reply_input.append_text('second')
+      local text = reply_input.get_text()
+      assert.matches('first', text, 1, true)
+      assert.matches('second', text, 1, true)
+    end)
+
+    it('does not error when not open', function()
+      assert.has_no.errors(function()
+        reply_input.append_text('text')
+      end)
+    end)
+  end)
 end)

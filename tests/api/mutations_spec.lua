@@ -757,3 +757,400 @@ describe('unresolve_thread', function()
     assert.are.equal('Thread not found in response', result.error)
   end)
 end)
+
+describe('add_reaction', function()
+  before_each(setup_mocks)
+  after_each(teardown_mocks)
+
+  it('adds reaction and returns updated reaction groups', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('addReaction', {
+          subject = {
+            reactionGroups = {
+              { content = 'THUMBS_UP', viewerHasReacted = true, reactors = { totalCount = 1 } },
+            },
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.add_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.is_not_nil(result.data)
+    assert.are.equal(1, #result.data)
+    assert.are.equal('THUMBS_UP', result.data[1].content)
+    assert.are.equal(1, result.data[1].count)
+    assert.is_true(result.data[1].viewer_has_reacted)
+  end)
+
+  it('validates node_id is required', function()
+    local result = nil
+    mutations.add_reaction({
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('node_id', result.error)
+  end)
+
+  it('validates node_id cannot be empty', function()
+    local result = nil
+    mutations.add_reaction({
+      node_id = '',
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('node_id', result.error)
+  end)
+
+  it('validates content must be a valid ReactionContent', function()
+    local result = nil
+    mutations.add_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'INVALID',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('content', result.error)
+  end)
+
+  it('validates content is required', function()
+    local result = nil
+    mutations.add_reaction({
+      node_id = 'PRRC_kwDOABC123',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('content', result.error)
+  end)
+
+  it('handles GraphQL errors', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = error_response('Permission denied'),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.add_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('Permission denied', result.error)
+  end)
+
+  it('returns cancel function', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('addReaction', {
+          subject = { reactionGroups = {} },
+        }),
+        stderr = '',
+      },
+    }
+
+    local cancel = mutations.add_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function() end)
+
+    assert.is_function(cancel)
+  end)
+end)
+
+describe('remove_reaction', function()
+  before_each(setup_mocks)
+  after_each(teardown_mocks)
+
+  it('removes reaction and returns updated reaction groups', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('removeReaction', {
+          subject = {
+            reactionGroups = {
+              { content = 'THUMBS_UP', viewerHasReacted = false, reactors = { totalCount = 0 } },
+            },
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.remove_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.is_not_nil(result.data)
+    assert.are.equal(1, #result.data)
+    assert.are.equal('THUMBS_UP', result.data[1].content)
+    assert.are.equal(0, result.data[1].count)
+    assert.is_false(result.data[1].viewer_has_reacted)
+  end)
+
+  it('validates node_id is required', function()
+    local result = nil
+    mutations.remove_reaction({
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('node_id', result.error)
+  end)
+
+  it('validates content must be a valid ReactionContent', function()
+    local result = nil
+    mutations.remove_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'INVALID',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.matches('content', result.error)
+  end)
+
+  it('handles GraphQL errors', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = error_response('Permission denied'),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.remove_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('Permission denied', result.error)
+  end)
+
+  it('returns cancel function', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('removeReaction', {
+          subject = { reactionGroups = {} },
+        }),
+        stderr = '',
+      },
+    }
+
+    local cancel = mutations.remove_reaction({
+      node_id = 'PRRC_kwDOABC123',
+      content = 'THUMBS_UP',
+    }, function() end)
+
+    assert.is_function(cancel)
+  end)
+end)
+
+describe('update_comment', function()
+  before_each(setup_mocks)
+  after_each(teardown_mocks)
+
+  it('submits update and returns normalized comment', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = mutation_response('updatePullRequestReviewComment', {
+          pullRequestReviewComment = {
+            id = 'PRRC_kwDOABC123',
+            databaseId = 42,
+            author = { login = 'alice' },
+            body = 'Updated body',
+            createdAt = '2024-01-01T10:00:00Z',
+          },
+        }),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+      body = 'Updated body',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_true(result.ok)
+    assert.are.equal(42, result.data.id)
+    assert.are.equal('PRRC_kwDOABC123', result.data.node_id)
+    assert.are.equal('alice', result.data.author.login)
+    assert.are.equal('Updated body', result.data.body)
+  end)
+
+  it('validates comment_id is required', function()
+    local result = nil
+    mutations.update_comment({
+      body = 'hello',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('comment_id is required', result.error)
+  end)
+
+  it('validates body is required', function()
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('body is required', result.error)
+  end)
+
+  it('validates body cannot be empty', function()
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_kwDOABC123',
+      body = '   ',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('body cannot be empty', result.error)
+  end)
+
+  it('handles GraphQL errors', function()
+    mock_system_results = {
+      {
+        code = 0,
+        stdout = error_response('Comment not found'),
+        stderr = '',
+      },
+    }
+
+    local result = nil
+    mutations.update_comment({
+      comment_id = 'PRRC_missing',
+      body = 'hello',
+    }, function(r)
+      result = r
+    end)
+
+    vim.wait(200, function()
+      return result ~= nil
+    end)
+
+    assert.is_not_nil(result)
+    assert.is_false(result.ok)
+    assert.are.equal('Comment not found', result.error)
+  end)
+end)

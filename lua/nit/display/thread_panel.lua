@@ -10,8 +10,7 @@ local data = require('nit.state.data')
 local observers = require('nit.state.observers')
 local orchestration = require('nit.orchestration')
 
----@type {key: string, label: string}[]
-local hint_registry = {
+local DEFAULT_HINTS = {
   { key = 'C-s', label = 'Submit reply' },
   { key = 'CR', label = 'Submit reply' },
   { key = 'C-a', label = 'Actions' },
@@ -19,6 +18,9 @@ local hint_registry = {
   { key = 'Esc', label = 'Close' },
   { key = '?', label = 'Help' },
 }
+
+---@type Nit.Display.HelpHint[]
+local hint_registry = vim.deepcopy(DEFAULT_HINTS)
 
 ---@type any?
 local active_panel = nil
@@ -29,10 +31,61 @@ local current_thread = nil
 ---@type (fun())?
 local unsubscribe_comments = nil
 
+---@type table<string, string>
+local REACTION_EMOJI = {
+  THUMBS_UP = '👍',
+  THUMBS_DOWN = '👎',
+  LAUGH = '😄',
+  HOORAY = '🎉',
+  CONFUSED = '😕',
+  HEART = '❤️',
+  ROCKET = '🚀',
+  EYES = '👀',
+}
+
 local PANEL_WIDTH = 60
 local highlight_ns = vim.api.nvim_create_namespace('nit_thread_panel')
+local selection_ns = vim.api.nvim_create_namespace('nit_thread_selection')
 local closing = false
 local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
+
+---@class Nit.Display.CommentRange
+---@field comment_index integer
+---@field start_line integer
+---@field end_line integer
+
+---@type integer?
+local selected_comment_idx = nil
+---@type Nit.Display.CommentRange[]
+local current_ranges = {}
+
+---Apply NitThreadSelected highlight to the selected comment's lines
+local function redraw_selection()
+  if not active_panel or not vim.api.nvim_buf_is_valid(active_panel.bufnr) then
+    return
+  end
+  pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
+  if selected_comment_idx == nil then
+    return
+  end
+  for _, range in ipairs(current_ranges) do
+    if range.comment_index == selected_comment_idx then
+      pcall(
+        vim.api.nvim_buf_set_extmark,
+        active_panel.bufnr,
+        selection_ns,
+        range.start_line - 1,
+        0,
+        {
+          line_hl_group = 'NitThreadSelected',
+          hl_eol = true,
+          priority = 300,
+        }
+      )
+      break
+    end
+  end
+end
 
 ---Equalize non-panel windows while preserving panel width
 local function equalize_windows()
@@ -117,16 +170,20 @@ end
 
 ---Format thread comments into display lines
 ---@param thread Nit.Api.Thread
----@return string[], table<integer, true>
+---@return string[], table<integer, true>, Nit.Display.CommentRange[], table<integer, boolean>
 function M.format_thread(thread)
   local lines = {}
   local author_indices = {}
+  local ranges = {}
+  local reaction_line_indices = {}
   local viewer_login = data.get_viewer_login()
 
   for i, comment in ipairs(thread.comments) do
     if i > 1 then
       table.insert(lines, '')
     end
+
+    local start_line = #lines + 1
 
     local author_line = ' @'
       .. comment.author.login
@@ -154,9 +211,35 @@ function M.format_thread(thread)
         table.insert(lines, ' ' .. body_line)
       end
     end
+
+    local active_reactions = {}
+    for _, rg in ipairs(comment.reactions or {}) do
+      if rg.count > 0 then
+        table.insert(active_reactions, rg)
+      end
+    end
+
+    if #active_reactions > 0 then
+      table.sort(active_reactions, function(a, b)
+        return a.content < b.content
+      end)
+      local parts = {}
+      local viewer_has_reacted = false
+      for _, rg in ipairs(active_reactions) do
+        table.insert(parts, (REACTION_EMOJI[rg.content] or rg.content) .. ' ' .. rg.count)
+        if rg.viewer_has_reacted then
+          viewer_has_reacted = true
+        end
+      end
+      table.insert(lines, ' ' .. table.concat(parts, '  '))
+      reaction_line_indices[#lines] = viewer_has_reacted
+    end
+
+    local end_line = #lines
+    table.insert(ranges, { comment_index = i, start_line = start_line, end_line = end_line })
   end
 
-  return lines, author_indices
+  return lines, author_indices, ranges, reaction_line_indices
 end
 
 ---Format popup title based on thread state
@@ -185,7 +268,7 @@ function M.format_title(thread)
 end
 
 ---Register keybinding hints
----@param hints {key: string, label: string}[]
+---@param hints Nit.Display.HelpHint[]
 function M.register_hints(hints)
   for _, hint in ipairs(hints) do
     table.insert(hint_registry, hint)
@@ -198,7 +281,7 @@ function M.clear_hints()
 end
 
 ---Get current hint registry
----@return {key: string, label: string}[]
+---@return Nit.Display.HelpHint[]
 function M.get_hints()
   return hint_registry
 end
@@ -224,8 +307,172 @@ function M.get_title_highlight(thread)
   end
 end
 
+---Format a comment as a block-quoted reply
+---@param comment Nit.Api.Comment
+---@return string
+function M._format_quote(comment)
+  local body = comment.body:gsub('\r', '')
+  local body_lines = vim.split(body, '\n', { plain = true })
+  local quoted_lines = { '> @' .. comment.author.login .. ':' }
+  for _, line in ipairs(body_lines) do
+    table.insert(quoted_lines, '> ' .. line)
+  end
+  table.insert(quoted_lines, '')
+  return table.concat(quoted_lines, '\n') .. '\n'
+end
+
+---Format visually selected panel lines as a block-quoted reply
+---@param author_login string
+---@param selected_lines string[]
+---@return string
+function M._format_quote_selection(author_login, selected_lines)
+  local quoted_lines = { '> @' .. author_login .. ':' }
+  for _, line in ipairs(selected_lines) do
+    local stripped = line:match('^ (.*)$') or line
+    table.insert(quoted_lines, '> ' .. stripped)
+  end
+  table.insert(quoted_lines, '')
+  return table.concat(quoted_lines, '\n') .. '\n'
+end
+
+---Extract visually selected text from buffer with column precision
+---@param bufnr integer
+---@param start_lnum integer 1-based line number
+---@param start_col integer 1-based column
+---@param end_lnum integer 1-based line number
+---@param end_col integer 1-based column
+---@return string[]
+function M._extract_visual_text(bufnr, start_lnum, start_col, end_lnum, end_col)
+  local ok, buf_lines = pcall(vim.api.nvim_buf_get_lines, bufnr, start_lnum - 1, end_lnum, false)
+  if not ok or #buf_lines == 0 then
+    return {}
+  end
+  if start_lnum == end_lnum then
+    return { string.sub(buf_lines[1], start_col, end_col) }
+  end
+  buf_lines[1] = string.sub(buf_lines[1], start_col)
+  buf_lines[#buf_lines] = string.sub(buf_lines[#buf_lines], 1, end_col)
+  return buf_lines
+end
+
+---Apply a suggestion block from a comment to the target file buffer
+---@param comment Nit.Api.Comment
+---@param thread Nit.Api.Thread
+function M._apply_suggestion(comment, thread)
+  local content = comment.body:match('```suggestion\n(.-)%s*\n```')
+  if content == nil then
+    vim.notify('[nit] No suggestion block found in comment', vim.log.levels.WARN)
+    return
+  end
+
+  local path = thread.path or ''
+  local bufnr = vim.fn.bufnr(path)
+  if bufnr == -1 then
+    vim.notify('[nit] Open the file first to apply suggestion', vim.log.levels.WARN)
+    return
+  end
+
+  local start_line = thread.start_line or thread.line
+  local end_line = thread.line
+  if not start_line or not end_line then
+    vim.notify('[nit] Cannot apply suggestion: line info unavailable', vim.log.levels.WARN)
+    return
+  end
+  local replacement = vim.split(content, '\n', { plain = true })
+
+  pcall(vim.api.nvim_buf_set_lines, bufnr, start_line - 1, end_line, false, replacement)
+  vim.notify('[nit] Suggestion applied', vim.log.levels.INFO)
+end
+
+---Populate reply input with a quoted citation of the comment
+---@param comment Nit.Api.Comment
+local function quote_reply(comment)
+  if
+    not reply_input.is_open()
+    and active_panel
+    and active_panel.winid
+    and vim.api.nvim_win_is_valid(active_panel.winid)
+  then
+    reply_input.open(active_panel.winid)
+  end
+  local text = M._format_quote(comment)
+  reply_input.append_text(text)
+  local winid = reply_input.get_winid()
+  if winid ~= nil then
+    vim.api.nvim_set_current_win(winid)
+    vim.cmd('normal! G$')
+  end
+end
+
+local submit_reply
+
+---Bind reply_input C-s and CR to submit_reply (the default submit behavior)
+local function bind_submit_reply()
+  reply_input.map({ 'n', 'i' }, '<C-s>', function()
+    vim.cmd('stopinsert')
+    submit_reply()
+  end, { noremap = true })
+  reply_input.map('n', '<CR>', function()
+    submit_reply()
+  end, { noremap = true })
+end
+
+---Submit an edit for a specific comment
+---@param comment Nit.Api.Comment
+---@param comment_idx integer
+local function submit_edit(comment, comment_idx)
+  if not current_thread then
+    return
+  end
+  if not comment.node_id or comment.node_id == '' then
+    vim.notify('[nit] Cannot edit comment: missing ID', vim.log.levels.WARN)
+    return
+  end
+  local body = reply_input.get_text()
+  if body == '' then
+    return
+  end
+  reply_input.clear()
+  bind_submit_reply()
+  orchestration.update_comment({
+    thread_id = current_thread.id,
+    comment_id = comment.node_id or '',
+    comment_idx = comment_idx,
+    body = body,
+  }, function() end)
+end
+
+---Open reply_input pre-filled with comment body for editing
+---@param comment Nit.Api.Comment
+---@param comment_idx integer
+local function edit_comment(comment, comment_idx)
+  if
+    not active_panel
+    or not active_panel.winid
+    or not vim.api.nvim_win_is_valid(active_panel.winid)
+  then
+    return
+  end
+  if not reply_input.is_open() then
+    reply_input.open(active_panel.winid)
+  end
+  reply_input.set_text(comment.body)
+  local winid = reply_input.get_winid()
+  if winid ~= nil then
+    vim.api.nvim_set_current_win(winid)
+    vim.cmd('normal! G$')
+  end
+  reply_input.map({ 'n', 'i' }, '<C-s>', function()
+    vim.cmd('stopinsert')
+    submit_edit(comment, comment_idx)
+  end, { noremap = true })
+  reply_input.map('n', '<CR>', function()
+    submit_edit(comment, comment_idx)
+  end, { noremap = true })
+end
+
 ---Submit the reply from the input area
-local function submit_reply()
+submit_reply = function()
   if not current_thread then
     return
   end
@@ -253,11 +500,65 @@ local function toggle_resolved()
 end
 
 ---Open the action menu
-local function open_menu()
+---@param selected_lines string[]?
+local function open_menu(selected_lines)
   if not current_thread then
     return
   end
-  thread_menu.open(current_thread, { on_toggle_resolved = toggle_resolved })
+  local comment = nil
+  if selected_comment_idx ~= nil then
+    comment = current_thread.comments[selected_comment_idx]
+  end
+  local in_reply = reply_input.is_open()
+    and vim.api.nvim_get_current_win() == reply_input.get_winid()
+  thread_menu.open({
+    thread = current_thread,
+    on_toggle_resolved = toggle_resolved,
+    comment = comment,
+    viewer_login = data.get_viewer_login(),
+    in_reply_input = in_reply,
+    on_quote_reply = function(c)
+      if selected_lines ~= nil then
+        local text = M._format_quote_selection(c.author.login, selected_lines)
+        if not reply_input.is_open() then
+          reply_input.open(active_panel.winid)
+        end
+        reply_input.append_text(text)
+        local winid = reply_input.get_winid()
+        if winid ~= nil then
+          vim.api.nvim_set_current_win(winid)
+          vim.cmd('normal! G$')
+        end
+      else
+        quote_reply(c)
+      end
+    end,
+    on_edit_comment = function()
+      if comment ~= nil and selected_comment_idx ~= nil then
+        edit_comment(comment, selected_comment_idx)
+      end
+    end,
+    on_apply_suggestion = function()
+      if comment ~= nil then
+        M._apply_suggestion(comment, current_thread)
+      end
+    end,
+    on_react = function()
+      if comment ~= nil and selected_comment_idx ~= nil then
+        local reaction_picker = require('nit.display.reaction_picker')
+        reaction_picker.open({
+          comment = comment,
+          on_toggle = function(c)
+            orchestration.toggle_reaction({
+              thread_id = current_thread.id,
+              comment_idx = selected_comment_idx,
+              content = c,
+            }, function() end)
+          end,
+        })
+      end
+    end,
+  })
 end
 
 ---Re-render panel when comments state changes
@@ -275,6 +576,8 @@ end
 ---Show or update the thread panel
 ---@param thread Nit.Api.Thread
 function M.show(thread)
+  hint_registry = vim.deepcopy(DEFAULT_HINTS)
+
   if active_panel then
     if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
       M.update(thread)
@@ -303,6 +606,7 @@ function M.show(thread)
     win_options = {
       wrap = true,
       linebreak = true,
+      colorcolumn = '',
       breakindent = false,
       showbreak = ' ',
       list = false,
@@ -341,8 +645,31 @@ function M.show(thread)
     open_menu()
   end, { noremap = true })
 
+  panel:map('v', '<C-a>', function()
+    local v_start = vim.fn.getpos('v')
+    local v_end = vim.fn.getpos('.')
+    local start_lnum, start_col = v_start[2], v_start[3]
+    local end_lnum, end_col = v_end[2], v_end[3]
+    if start_lnum > end_lnum or (start_lnum == end_lnum and start_col > end_col) then
+      start_lnum, start_col, end_lnum, end_col = end_lnum, end_col, start_lnum, start_col
+    end
+    local lines = M._extract_visual_text(panel.bufnr, start_lnum, start_col, end_lnum, end_col)
+    open_menu(#lines > 0 and lines or nil)
+  end, { noremap = true })
+
   active_panel = panel
   M.update(thread, false)
+
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = augroup,
+    buffer = panel.bufnr,
+    callback = function()
+      local ok, cursor = pcall(vim.api.nvim_win_get_cursor, panel.winid)
+      if ok then
+        M._select_comment(M._find_comment_at_line(cursor[1], current_ranges))
+      end
+    end,
+  })
 
   if active_panel.winid ~= nil and vim.api.nvim_win_is_valid(active_panel.winid) then
     reply_input.open(active_panel.winid)
@@ -433,9 +760,13 @@ function M.update(thread, scroll_to_bottom)
 
   if thread_changed then
     reply_input.clear()
+    bind_submit_reply()
+    selected_comment_idx = nil
+    pcall(vim.api.nvim_buf_clear_namespace, active_panel.bufnr, selection_ns, 0, -1)
   end
 
-  local lines, author_indices = M.format_thread(thread)
+  local lines, author_indices, ranges, reaction_line_indices = M.format_thread(thread)
+  current_ranges = ranges
 
   vim.bo[active_panel.bufnr].modifiable = true
   pcall(vim.api.nvim_buf_set_lines, active_panel.bufnr, 0, -1, false, lines)
@@ -468,11 +799,24 @@ function M.update(thread, scroll_to_bottom)
     end
   end
 
+  for i, viewer_has_reacted in pairs(reaction_line_indices) do
+    local hl_group = viewer_has_reacted and 'NitThreadReactionOwn' or 'NitThreadReaction'
+    pcall(vim.api.nvim_buf_set_extmark, active_panel.bufnr, highlight_ns, i - 1, 0, {
+      line_hl_group = hl_group,
+      hl_eol = true,
+      priority = 200,
+    })
+  end
+
   if active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
     vim.wo[active_panel.winid].winbar = M.build_winbar(thread)
     if scroll_to_bottom ~= false and (thread_changed or scroll_to_bottom) then
       pcall(vim.fn.win_execute, active_panel.winid, 'noautocmd normal! G')
     end
+  end
+
+  if not thread_changed then
+    redraw_selection()
   end
 end
 
@@ -497,6 +841,7 @@ function M.close()
     active_panel:unmount()
     active_panel = nil
     current_thread = nil
+    selected_comment_idx = nil
   end
 
   pcall(function()
@@ -527,6 +872,40 @@ end
 ---@return Nit.Api.Thread?
 function M.get_current_thread()
   return current_thread
+end
+
+---Find the comment index for a given buffer line number
+---@param line integer 1-based line number
+---@param ranges Nit.Display.CommentRange[]
+---@return integer?
+function M._find_comment_at_line(line, ranges)
+  for _, range in ipairs(ranges) do
+    if line >= range.start_line and line <= range.end_line then
+      return range.comment_index
+    end
+  end
+  return nil
+end
+
+---Get the currently selected comment index
+---@return integer?
+function M._get_selected_idx()
+  return selected_comment_idx
+end
+
+---Select a comment by index, with bounds checking
+---@param idx integer?
+function M._select_comment(idx)
+  if idx == nil then
+    selected_comment_idx = nil
+    redraw_selection()
+    return
+  end
+  if idx < 1 or idx > #current_ranges then
+    return
+  end
+  selected_comment_idx = idx
+  redraw_selection()
 end
 
 return M
