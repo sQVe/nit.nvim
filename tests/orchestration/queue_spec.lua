@@ -291,6 +291,27 @@ describe('nit.orchestration.queue', function()
       assert.are.equal(0, #mock_timers)
     end)
 
+    it('ignores timer callback fired after reset()', function()
+      local stale_called = false
+
+      queue.enqueue('thread-1', function(done)
+        mock_time = 500
+        done()
+      end)
+
+      queue.enqueue('thread-1', function(done)
+        stale_called = true
+        done()
+      end)
+
+      assert.are.equal(1, #mock_timers)
+      queue.reset()
+
+      mock_timers[1].callback()
+
+      assert.is_false(stale_called)
+    end)
+
     it('recovers from errors with delayed dispatch', function()
       vim.notify = function() end
 

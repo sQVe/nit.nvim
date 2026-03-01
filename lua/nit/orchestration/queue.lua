@@ -63,9 +63,12 @@ local function schedule(thread_id, fn, skip_limit)
       remaining,
       0,
       vim.schedule_wrap(function()
+        if not pending_timers[timer] then
+          return
+        end
+        pending_timers[timer] = nil
         timer:stop()
         timer:close()
-        pending_timers[timer] = nil
         run(thread_id, fn)
       end)
     )
@@ -102,11 +105,12 @@ end
 
 ---Clear all queues and rate-limit state
 function M.reset()
-  for timer in pairs(pending_timers) do
+  local timers = pending_timers
+  pending_timers = {}
+  for timer in pairs(timers) do
     timer:stop()
     timer:close()
   end
-  pending_timers = {}
   queues = {}
   last_mutation_time = nil
 end
