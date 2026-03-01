@@ -54,6 +54,10 @@ local function schedule(thread_id, fn, skip_limit)
     run(thread_id, fn)
   else
     local timer = vim.uv.new_timer()
+    if timer == nil then
+      run(thread_id, fn)
+      return
+    end
     pending_timers[timer] = true
     timer:start(
       remaining,
