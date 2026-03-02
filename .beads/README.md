@@ -6,7 +6,7 @@ Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, 
 
 Beads is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
 
-**Learn more:** [github.com/steveyegge/beads_rust](https://github.com/steveyegge/beads_rust)
+**Learn more:** [github.com/Dicklesworthstone/beads_rust](https://github.com/Dicklesworthstone/beads_rust)
 
 ## Quick Start
 
@@ -69,9 +69,9 @@ br create "Try out Beads"
 
 ## Learn More
 
-- **Documentation**: [github.com/steveyegge/beads_rust/docs](https://github.com/steveyegge/beads_rust/tree/main/docs)
+- **Documentation**: [github.com/Dicklesworthstone/beads_rust/docs](https://github.com/Dicklesworthstone/beads_rust/tree/main/docs)
 - **Quick Start Guide**: Run `br quickstart`
-- **Examples**: [github.com/steveyegge/beads_rust/examples](https://github.com/steveyegge/beads_rust/tree/main/examples)
+- **Examples**: [github.com/Dicklesworthstone/beads_rust/examples](https://github.com/Dicklesworthstone/beads_rust/tree/main/examples)
 
 ---
 
