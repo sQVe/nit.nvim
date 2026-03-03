@@ -1,6 +1,2 @@
 # Cache.
 .tests/
-
-# Beads / Dolt
-/.beads/dolt-monitor.*
-/.beads/dolt-server.*

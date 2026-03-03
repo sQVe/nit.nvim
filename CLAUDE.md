@@ -10,7 +10,7 @@
 
 ## Issue tracking
 
-This project uses **br (beads_rust)** for issue tracking. Run `br prime` for workflow context.
+This project uses **br (beads_rust)** for issue tracking.
 
 **Note:** `br` is non-invasive and never executes git commands. After `br sync --flush-only`, you must manually run `git add .beads/ && git commit`.
 
