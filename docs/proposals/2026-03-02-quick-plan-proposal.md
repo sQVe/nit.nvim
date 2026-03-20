@@ -8,6 +8,7 @@
 ### 1. Current data retention
 
 `normalize_reaction_groups()` in `lua/nit/api/util.lua:138-151` retains:
+
 - `content` (reaction type)
 - `count` (totalCount)
 - `viewer_has_reacted`
@@ -52,6 +53,7 @@ Comment mapping via `current_ranges` and `M._find_comment_at_line(line, ranges)`
 ### 4. Popup pattern
 
 `help_popup.lua` pattern:
+
 - `nui.Popup` with `position = '50%'`, `relative = 'editor'`
 - Module state: `active_popup` variable
 - Functions: `show(data)`, `close()`, `is_open()`, `toggle(data)`
@@ -390,9 +392,11 @@ end)
 **Date:** 2026-03-02
 
 ### File paths and line numbers
+
 ✅ All cited paths exist and line numbers are accurate.
 
 ### Pattern observations
+
 ✅ All correct. GraphQL query structure, `normalize_reaction_groups` behavior, `reaction_line_indices` return, and `help_popup.lua` pattern verified.
 
 ### Feasibility issues
@@ -400,11 +404,13 @@ end)
 1. **`REACTION_EMOJI` access bug (Step 4, line 157)**
 
    `REACTION_EMOJI` is declared as `local` in `thread_panel.lua:35`:
+
    ```lua
    local REACTION_EMOJI = {
    ```
 
    The proposal's `reactor_popup.lua` references it as:
+
    ```lua
    local emoji = require('nit.display.thread_panel').REACTION_EMOJI[rg.content]
    ```
@@ -421,6 +427,7 @@ end)
 2. **Missing module variable (Step 5)**
 
    Proposal says "Track `reaction_line_indices` as module-level variable" but doesn't show adding:
+
    ```lua
    local current_reaction_lines = {}
    ```
@@ -430,9 +437,11 @@ end)
    ✅ **ADDRESSED:** Step 5 now shows explicit variable declaration and update in `update()`.
 
 ### Testing strategy
+
 ❌ **Missing entirely.** No tests specified.
 
 Recommended tests:
+
 - `normalize_reaction_groups()` extracting `reactors` field from GraphQL response
 - `reactor_popup.format_lines()` with various reaction counts
 - `reactor_popup.format_lines()` "+N more" overflow when count > #reactors
@@ -450,13 +459,13 @@ Recommended tests:
 
 ### Tasks
 
-| ID | Title | Status |
-|----|-------|--------|
-| nit.nvim-hpd.1 | Expand GraphQL query to fetch reactor usernames | open |
-| nit.nvim-hpd.2 | Update normalize_reaction_groups to extract reactor logins | open |
-| nit.nvim-hpd.3 | Add reactors field to Nit.Api.ReactionGroup type | open |
-| nit.nvim-hpd.4 | Create reactor_popup.lua display module | open |
-| nit.nvim-hpd.5 | Add CR keybinding and reaction line tracking in thread_panel | open |
+| ID             | Title                                                        | Status |
+| -------------- | ------------------------------------------------------------ | ------ |
+| nit.nvim-hpd.1 | Expand GraphQL query to fetch reactor usernames              | open   |
+| nit.nvim-hpd.2 | Update normalize_reaction_groups to extract reactor logins   | open   |
+| nit.nvim-hpd.3 | Add reactors field to Nit.Api.ReactionGroup type             | open   |
+| nit.nvim-hpd.4 | Create reactor_popup.lua display module                      | open   |
+| nit.nvim-hpd.5 | Add CR keybinding and reaction line tracking in thread_panel | open   |
 
 ### Dependency chain
 

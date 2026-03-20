@@ -10,7 +10,6 @@ reviews:
   path_filters:
     - "!.tests/**"
     - "!.beads/**"
-    - "!.mulch/**"
     - "!lazy-lock.json"
 
   auto_review:

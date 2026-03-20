@@ -62,6 +62,57 @@ describe('commands', function()
       assert.is_true(stopped)
     end)
 
+    it('calls menu subcommand', function()
+      local commands = require('nit.commands')
+      local called = false
+      package.loaded['nit'] = {
+        menu = function()
+          called = true
+        end,
+        start = function() end,
+        stop = function() end,
+      }
+
+      commands.dispatch({ fargs = { 'menu' } })
+
+      package.loaded['nit'] = nil
+      assert.is_true(called)
+    end)
+
+    it('calls next subcommand', function()
+      local commands = require('nit.commands')
+      local called = false
+      package.loaded['nit'] = {
+        next_comment = function()
+          called = true
+        end,
+        start = function() end,
+        stop = function() end,
+      }
+
+      commands.dispatch({ fargs = { 'next' } })
+
+      package.loaded['nit'] = nil
+      assert.is_true(called)
+    end)
+
+    it('calls prev subcommand', function()
+      local commands = require('nit.commands')
+      local called = false
+      package.loaded['nit'] = {
+        prev_comment = function()
+          called = true
+        end,
+        start = function() end,
+        stop = function() end,
+      }
+
+      commands.dispatch({ fargs = { 'prev' } })
+
+      package.loaded['nit'] = nil
+      assert.is_true(called)
+    end)
+
     it('shows error for unknown subcommand', function()
       local commands = require('nit.commands')
       local notified = false
@@ -111,6 +162,24 @@ describe('commands', function()
       assert.is_true(vim.tbl_contains(results, 'healthcheck'))
       assert.is_true(vim.tbl_contains(results, 'start'))
       assert.is_true(vim.tbl_contains(results, 'stop'))
+    end)
+
+    it('returns menu in subcommand completions', function()
+      local commands = require('nit.commands')
+      local results = commands.complete('', 'Nit ', 4)
+      assert.is_true(vim.tbl_contains(results, 'menu'))
+    end)
+
+    it('returns next in subcommand completions', function()
+      local commands = require('nit.commands')
+      local results = commands.complete('', 'Nit ', 4)
+      assert.is_true(vim.tbl_contains(results, 'next'))
+    end)
+
+    it('returns prev in subcommand completions', function()
+      local commands = require('nit.commands')
+      local results = commands.complete('', 'Nit ', 4)
+      assert.is_true(vim.tbl_contains(results, 'prev'))
     end)
 
     it('filters subcommands by prefix', function()
