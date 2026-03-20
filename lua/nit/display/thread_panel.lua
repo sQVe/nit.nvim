@@ -51,7 +51,7 @@ local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
 ---@class Nit.Display.CommentRange
 ---@field comment_index integer
----@field comment_id string
+---@field comment_id integer
 ---@field start_line integer
 ---@field end_line integer
 
