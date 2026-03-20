@@ -33,3 +33,10 @@ repos:
         types: [lua]
         pass_filenames: false
         verbose: true
+
+      - id: beads
+        name: beads sync
+        entry: bash scripts/beads-sync.sh
+        language: system
+        pass_filenames: false
+        always_run: true

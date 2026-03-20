@@ -1,2 +1,5 @@
 # Cache.
 .tests/
+
+# Beads.
+.beads/
