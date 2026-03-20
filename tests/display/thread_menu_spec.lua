@@ -95,7 +95,7 @@ describe('nit.display.thread_menu', function()
       })
       assert.are.equal(1, #items)
       assert.are.equal('r', items[1].key)
-      assert.are.equal('r  Resolve thread', items[1].label)
+      assert.matches('Resolve thread', items[1].label, 1, true)
     end)
 
     it('shows unresolve when thread is resolved', function()
@@ -103,7 +103,7 @@ describe('nit.display.thread_menu', function()
         thread = { isResolved = true },
         on_toggle_resolved = function() end,
       })
-      assert.are.equal('r  Unresolve thread', items[1].label)
+      assert.matches('Unresolve thread', items[1].label, 1, true)
     end)
 
     it('includes quote reply when comment and callback provided', function()
@@ -115,7 +115,7 @@ describe('nit.display.thread_menu', function()
       })
       assert.are.equal(2, #items)
       assert.are.equal('q', items[2].key)
-      assert.are.equal('q  Quote reply', items[2].label)
+      assert.matches('Quote reply', items[2].label, 1, true)
     end)
 
     it('excludes quote reply when no comment', function()
@@ -251,7 +251,7 @@ describe('nit.display.thread_menu', function()
       })
       local found = false
       for _, item in ipairs(items) do
-        if item.key == 'z' and item.label == 'z  React' then
+        if item.key == 'z' and item.label:find('React', 1, true) then
           found = true
         end
       end
@@ -296,6 +296,52 @@ describe('nit.display.thread_menu', function()
       assert.are.equal(5, #items)
       assert.are.equal('a', items[4].key)
       assert.are.equal('z', items[5].key)
+    end)
+
+    it('resolve label ends with hotkey r right-aligned', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+      })
+      local label = items[1].label
+      assert.are.equal('r', vim.trim(label):sub(-1))
+    end)
+
+    it('resolve label contains descriptive text before hotkey', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+      })
+      local label = items[1].label
+      assert.matches('Resolve thread', label, 1, true)
+    end)
+
+    it('quote reply label ends with hotkey q right-aligned', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hi' },
+        on_quote_reply = function() end,
+      })
+      local label = items[2].label
+      assert.are.equal('q', vim.trim(label):sub(-1))
+    end)
+
+    it('react label ends with hotkey z right-aligned', function()
+      local items = thread_menu.build_menu_items({
+        thread = { isResolved = false },
+        on_toggle_resolved = function() end,
+        comment = { author = { login = 'alice' }, body = 'hello', _optimistic_id = nil },
+        on_react = function() end,
+      })
+      local found_label = nil
+      for _, item in ipairs(items) do
+        if item.key == 'z' then
+          found_label = item.label
+        end
+      end
+      assert.is_not_nil(found_label)
+      assert.are.equal('z', vim.trim(found_label):sub(-1))
     end)
 
     it('resolve action calls on_toggle_resolved', function()

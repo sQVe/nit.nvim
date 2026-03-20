@@ -327,6 +327,31 @@ describe('thread_panel', function()
         assert.are.equal(2, ranges[2].comment_index)
         assert.are.equal(3, ranges[3].comment_index)
       end)
+
+      it('sets comment_id from comment.id in each range', function()
+        local thread = {
+          comments = {
+            {
+              id = 'abc123',
+              author = { login = 'alice' },
+              body = 'A',
+              createdAt = '2026-01-01T12:00:00Z',
+            },
+            {
+              id = 'def456',
+              author = { login = 'bob' },
+              body = 'B',
+              createdAt = '2026-01-02T12:00:00Z',
+            },
+          },
+        }
+
+        local _, _, ranges = thread_panel.format_thread(thread)
+
+        assert.are.equal(2, #ranges)
+        assert.are.equal('abc123', ranges[1].comment_id)
+        assert.are.equal('def456', ranges[2].comment_id)
+      end)
     end)
 
     describe('reactions', function()
@@ -855,6 +880,98 @@ describe('thread_panel', function()
       if result[4] then
         assert.not_equals('NitThreadCommentAlt', result[4].line_hl_group)
       end
+    end)
+  end)
+
+  describe('select_next_comment', function()
+    before_each(function()
+      thread_panel._select_comment(nil)
+    end)
+
+    it('is a function', function()
+      assert.is_function(thread_panel.select_next_comment)
+    end)
+
+    it('selects first comment when none is selected', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(nil)
+
+      thread_panel.select_next_comment()
+
+      assert.are.equal(1, thread_panel._get_selected_idx())
+    end)
+
+    it('advances selection from first to second comment', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(1)
+
+      thread_panel.select_next_comment()
+
+      assert.are.equal(2, thread_panel._get_selected_idx())
+    end)
+
+    it('stays at last comment when already at end', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(2)
+
+      thread_panel.select_next_comment()
+
+      assert.are.equal(2, thread_panel._get_selected_idx())
+    end)
+  end)
+
+  describe('select_prev_comment', function()
+    before_each(function()
+      thread_panel._select_comment(nil)
+    end)
+
+    it('is a function', function()
+      assert.is_function(thread_panel.select_prev_comment)
+    end)
+
+    it('selects last comment when none is selected', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(nil)
+
+      thread_panel.select_prev_comment()
+
+      assert.are.equal(2, thread_panel._get_selected_idx())
+    end)
+
+    it('goes from second to first comment', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(2)
+
+      thread_panel.select_prev_comment()
+
+      assert.are.equal(1, thread_panel._get_selected_idx())
+    end)
+
+    it('stays at first comment when already at start', function()
+      thread_panel._set_ranges({
+        { comment_index = 1, start_line = 1, end_line = 3 },
+        { comment_index = 2, start_line = 5, end_line = 7 },
+      })
+      thread_panel._select_comment(1)
+
+      thread_panel.select_prev_comment()
+
+      assert.are.equal(1, thread_panel._get_selected_idx())
     end)
   end)
 

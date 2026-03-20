@@ -22,4 +22,19 @@ function M.stop()
   require('nit.review').stop()
 end
 
+---Open the context-aware action menu
+function M.menu()
+  require('nit.display.thread_panel').open_menu()
+end
+
+---Jump to next comment in current buffer
+function M.next_comment()
+  require('nit.navigation').next_comment()
+end
+
+---Jump to previous comment in current buffer
+function M.prev_comment()
+  require('nit.navigation').prev_comment()
+end
+
 return M

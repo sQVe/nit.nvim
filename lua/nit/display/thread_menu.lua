@@ -7,6 +7,20 @@ local Popup = require('nui.popup')
 ---@type any?
 local active_popup = nil
 
+local MENU_CONTENT_WIDTH = 28
+
+---Format a menu item label with the hotkey right-aligned
+---@param text string The descriptive label text
+---@param key string The single hotkey character
+---@return string
+local function right_align_label(text, key)
+  local padding = MENU_CONTENT_WIDTH - #text - #key
+  if padding < 1 then
+    padding = 1
+  end
+  return text .. string.rep(' ', padding) .. key
+end
+
 ---@class Nit.Display.MenuItem
 ---@field key string
 ---@field label string
@@ -29,10 +43,10 @@ local active_popup = nil
 function M.build_menu_items(opts)
   local items = {}
 
-  local resolve_label = opts.thread.isResolved and 'r  Unresolve thread' or 'r  Resolve thread'
+  local resolve_text = opts.thread.isResolved and 'Unresolve thread' or 'Resolve thread'
   items[#items + 1] = {
     key = 'r',
-    label = resolve_label,
+    label = right_align_label(resolve_text, 'r'),
     action = opts.on_toggle_resolved,
   }
 
@@ -41,7 +55,7 @@ function M.build_menu_items(opts)
     local comment = opts.comment
     items[#items + 1] = {
       key = 'q',
-      label = 'q  Quote reply',
+      label = right_align_label('Quote reply', 'q'),
       action = function()
         opts.on_quote_reply(comment)
       end,
@@ -57,7 +71,7 @@ function M.build_menu_items(opts)
   then
     items[#items + 1] = {
       key = 'e',
-      label = 'e  Edit comment',
+      label = right_align_label('Edit comment', 'e'),
       action = opts.on_edit_comment,
     }
   end
@@ -70,7 +84,7 @@ function M.build_menu_items(opts)
   then
     items[#items + 1] = {
       key = 'a',
-      label = 'a  Apply suggestion',
+      label = right_align_label('Apply suggestion', 'a'),
       action = opts.on_apply_suggestion,
     }
   end
@@ -78,7 +92,7 @@ function M.build_menu_items(opts)
   if opts.comment ~= nil and opts.on_react ~= nil and opts.comment._optimistic_id == nil then
     items[#items + 1] = {
       key = 'z',
-      label = 'z  React',
+      label = right_align_label('React', 'z'),
       action = opts.on_react,
     }
   end

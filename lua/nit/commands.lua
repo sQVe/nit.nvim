@@ -27,6 +27,21 @@ local subcommands = {
       require('nit').stop()
     end,
   },
+  menu = {
+    run = function(_args, _opts)
+      require('nit').menu()
+    end,
+  },
+  next = {
+    run = function(_args, _opts)
+      require('nit').next_comment()
+    end,
+  },
+  prev = {
+    run = function(_args, _opts)
+      require('nit').prev_comment()
+    end,
+  },
 }
 
 ---@param opts table Command options from nvim_create_user_command

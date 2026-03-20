@@ -51,6 +51,7 @@ local augroup = vim.api.nvim_create_augroup('NitThreadPanel', { clear = true })
 
 ---@class Nit.Display.CommentRange
 ---@field comment_index integer
+---@field comment_id string
 ---@field start_line integer
 ---@field end_line integer
 
@@ -236,7 +237,10 @@ function M.format_thread(thread)
     end
 
     local end_line = #lines
-    table.insert(ranges, { comment_index = i, start_line = start_line, end_line = end_line })
+    table.insert(
+      ranges,
+      { comment_index = i, comment_id = comment.id, start_line = start_line, end_line = end_line }
+    )
   end
 
   return lines, author_indices, ranges, reaction_line_indices
@@ -906,6 +910,57 @@ function M._select_comment(idx)
   end
   selected_comment_idx = idx
   redraw_selection()
+end
+
+---Set ranges directly (for testing)
+---@param ranges Nit.Display.CommentRange[]
+function M._set_ranges(ranges)
+  current_ranges = ranges
+end
+
+---Get current ranges (for testing)
+---@return Nit.Display.CommentRange[]
+function M._get_ranges()
+  return current_ranges
+end
+
+---Move cursor in the panel window to the given 1-based line number
+---@param line integer
+local function jump_panel_cursor(line)
+  if active_panel and active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid) then
+    pcall(vim.api.nvim_win_set_cursor, active_panel.winid, { line, 0 })
+  end
+end
+
+---Select the next comment in the panel
+function M.select_next_comment()
+  if #current_ranges == 0 then
+    return
+  end
+  local next_idx = (selected_comment_idx or 0) + 1
+  if next_idx > #current_ranges then
+    next_idx = #current_ranges
+  end
+  M._select_comment(next_idx)
+  jump_panel_cursor(current_ranges[next_idx].start_line)
+end
+
+---Select the previous comment in the panel
+function M.select_prev_comment()
+  if #current_ranges == 0 then
+    return
+  end
+  local prev_idx = selected_comment_idx ~= nil and (selected_comment_idx - 1) or #current_ranges
+  if prev_idx < 1 then
+    prev_idx = 1
+  end
+  M._select_comment(prev_idx)
+  jump_panel_cursor(current_ranges[prev_idx].start_line)
+end
+
+---Open the action menu (public API entry point)
+function M.open_menu()
+  open_menu()
 end
 
 return M
