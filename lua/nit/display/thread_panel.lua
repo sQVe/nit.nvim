@@ -932,8 +932,24 @@ local function jump_panel_cursor(line)
   end
 end
 
+local function sync_selection_from_cursor()
+  if selected_comment_idx ~= nil then
+    return
+  end
+  if
+    not (active_panel and active_panel.winid and vim.api.nvim_win_is_valid(active_panel.winid))
+  then
+    return
+  end
+  local ok, cursor = pcall(vim.api.nvim_win_get_cursor, active_panel.winid)
+  if ok then
+    M._select_comment(M._find_comment_at_line(cursor[1], current_ranges))
+  end
+end
+
 ---Select the next comment in the panel
 function M.select_next_comment()
+  sync_selection_from_cursor()
   if #current_ranges == 0 then
     return
   end
@@ -947,6 +963,7 @@ end
 
 ---Select the previous comment in the panel
 function M.select_prev_comment()
+  sync_selection_from_cursor()
   if #current_ranges == 0 then
     return
   end
@@ -960,6 +977,7 @@ end
 
 ---Open the action menu (public API entry point)
 function M.open_menu()
+  sync_selection_from_cursor()
   open_menu()
 end
 
